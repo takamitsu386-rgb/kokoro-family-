@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>こころファミリー</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:sans-serif;background:#f3f5fb;color:#263247}
+header{background:linear-gradient(120deg,#6759d8,#8b7bea);color:white;padding:22px}
+h1{margin:0;font-size:25px}
+main{max-width:850px;margin:auto;padding:16px}
+.panel{background:white;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 3px 14px #20204012}
+h2{font-size:19px;margin-top:0}
+.room{height:290px;border:8px solid #d7c3a7;border-radius:12px;position:relative;overflow:hidden;background:#f5e9d8}
+.floor{position:absolute;bottom:0;left:0;width:100%;height:28%;background:#c89b72;border-top:5px solid #b7855e}
+.furniture{position:absolute;font-size:38px;cursor:grab;touch-action:none;user-select:none}
+button,select{border:0;border-radius:10px;padding:11px 14px;margin:4px;background:#eeeaff;color:#40358e;font-size:15px}
+button:active{transform:scale(.97)}
+.primary{background:#6759d8;color:white}
+.items{display:flex;flex-wrap:wrap;gap:5px}
+#message{color:#6759d8;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>🏡 こころファミリー</h1>
+<p>自分だけのお部屋をつくろう！</p>
+</header>
+<main>
+<section class="panel">
+<h2>🎨 お部屋のデザイン</h2>
+<div class="room" id="room">
+<div class="floor" id="floor"></div>
+</div>
+<p id="message">家具を追加して、好きな場所に動かしてみよう。</p>
+</section>
+<section class="panel">
+<h2>🧱 壁の色</h2>
+<div class="items" id="walls"></div>
+<h2>🪵 床の色</h2>
+<div class="items" id="floors"></div>
+</section>
+<section class="panel">
+<h2>🛋️ 家具を追加</h2>
+<div class="items" id="furniture"></div>
+<button class="primary" onclick="saveRoom()">💾 お部屋を保存</button>
+<button onclick="resetRoom()">リセット</button>
+</section>
+</main>
+<script>
+const room=document.getElementById('room');
+const furnitureList=['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','🖥️','📚','🛁','🚪','🪟','💡','🎹','🐱','🐶','🧺','🖼️'];
+const wallColors=['#f5e9d8','#f8dce8','#dceeff','#e4f2dc','#eee2ff','#fff0c9','#d9f4ef','#eeeeee'];
+const floorColors=['#c89b72','#e0bd91','#a9a9a9','#b5c99a','#d3b2b2'];
+function buttons(id,values,fn){
+const el=document.getElementById(id);
+values.forEach((v,i)=>{
+const b=document.createElement('button');
+b.textContent=id==='furniture'?v:v;
+b.onclick=()=>fn(v);
+el.appendChild(b);
+});
+}
+buttons('walls',wallColors,v=>room.style.background=v);
+buttons('floors',floorColors,v=>document.getElementById('floor').style.background=v);
+buttons('furniture',furnitureList,addFurniture);
+function addFurniture(icon){
+const item=document.createElement('div');
+item.className='furniture';
+item.textContent=icon;
+item.style.left=(15+Math.random()*65)+'%';
+item.style.top=(15+Math.random()*48)+'%';
+item.title='タップで選択、長押しして移動';
+room.appendChild(item);
+drag(item);
+item.onclick=()=>{if(confirm('この家具を削除しますか？'))item.remove()};
+}
+function drag(el){
+let active=false,ox=0,oy=0;
+el.addEventListener('pointerdown',e=>{
+active=true;
+el.setPointerCapture(e.pointerId);
+ox=e.clientX-el.offsetLeft;
+oy=e.clientY-el.offsetTop;
+});
+el.addEventListener('pointermove',e=>{
+if(!active)return;
+const r=room.getBoundingClientRect();
+el.style.left=Math.max(0,Math.min(r.width-45,e.clientX-r.left-ox+el.offsetLeft))+'px';
+el.style.top=Math.max(0,Math.min(r.height-45,e.clientY-r.top-oy+el.offsetTop))+'px';
+});
+el.addEventListener('pointerup',()=>active=false);
+el.addEventListener('pointercancel',()=>active=false);
+}
+function saveRoom(){
+const data={
+wall:room.style.background,
+floor:document.getElementById('floor').style.background,
+items:[...room.querySelectorAll('.furniture')].map(el=>({
+icon:el.textContent,left:el.style.left,top:el.style.top
+}))
+};
+localStorage.setItem('kokoroRoom',JSON.stringify(data));
+document.getElementById('message').textContent='✅ お部屋をこの端末に保存しました！';
+}
+function loadRoom(){
+const raw=localStorage.getItem('kokoroRoom');
+if(!raw)return;
+try{
+const data=JSON.parse(raw);
+room.style.background=data.wall;
+document.getElementById('floor').style.background=data.floor;
+data.items.forEach(v=>{
+addFurniture(v.icon);
+const el=room.lastElementChild;
+el.style.left=v.left;
+el.style.top=v.top;
+});
+}catch(e){}
+}
+function resetRoom(){
+if(!confirm('お部屋を初期状態に戻しますか？'))return;
+room.querySelectorAll('.furniture').forEach(el=>el.remove());
+room.style.background=wallColors[0];
+document.getElementById('floor').style.background=floorColors[0];
+localStorage.removeItem('kokoroRoom');
+}
+loadRoom();
+</script>
+</body>
+</html>
