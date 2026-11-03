@@ -322,11 +322,15 @@ if(raw){try{applyRoom(JSON.parse(raw));}catch(e){}}
 refreshSavedRooms();
 }
 function resetRoom(){
-if(!confirm('お部屋を初期状態に戻しますか？'))return;
+if(!confirm('お部屋を初期状態に戻しますか？家具と壁・床のデザインが初期状態になります。'))return;
 room.querySelectorAll('.furniture').forEach(el=>el.remove());
+selectedFurniture=null;
 room.style.background=wallColors[0];room.style.backgroundImage='none';
 document.getElementById('floor').style.backgroundColor=floorColors[0];document.getElementById('floor').style.backgroundImage='none';
+updateFurnitureCount();
 localStorage.removeItem('kokoroRoom');
+document.getElementById('selectedMessage').textContent='家具をタップして選んでね。';
+document.getElementById('message').textContent='🏡 お部屋を初期状態に戻しました。';
 }
 loadRoom();
 </script>
