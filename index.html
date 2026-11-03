@@ -34,6 +34,7 @@ button:active{transform:scale(.97)}
 <div class="floor" id="floor"></div>
 </div>
 <p id="message">家具を追加して、好きな場所に動かしてみよう。</p>
+<div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
 <p id="furnitureCount">🪑 お部屋の家具：0個</p>
 <p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。</p>
 </section>
@@ -140,6 +141,13 @@ b.onclick=()=>addFurniture(icon);root.appendChild(b);
 });
 }
 showFurnitureCategory('all');
+function setDotWallpaper(){
+room.style.backgroundImage='radial-gradient(circle at 8px 8px,#b52f70 0 5px,transparent 5.5px)';
+room.style.backgroundSize='32px 32px';
+room.style.backgroundRepeat='repeat';
+autoSaveRoom();
+document.getElementById('message').textContent='🔴 水玉の壁紙に変更したよ！';
+}
 function setCustomColor(target,color){
 if(target==='wall'){room.style.backgroundColor=color;}
 if(target==='floor'){document.getElementById('floor').style.backgroundColor=color;}
