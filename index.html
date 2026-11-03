@@ -14,7 +14,7 @@ main{max-width:850px;margin:auto;padding:16px}
 h2{font-size:19px;margin-top:0}
 .room{height:290px;border:8px solid #d7c3a7;border-radius:12px;position:relative;overflow:hidden;background:#f5e9d8}
 .floor{position:absolute;bottom:0;left:0;width:100%;height:28%;background:#c89b72;border-top:5px solid #b7855e}
-.furniture{position:absolute;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture:active{cursor:grabbing}
+.furniture{position:absolute;display:flex;align-items:center;gap:2px;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture .drag-handle{font-size:20px;background:#fff;border:2px solid #6759d8;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;box-shadow:0 1px 5px #3335;touch-action:none}.furniture:active{cursor:grabbing}
 button,select{border:0;border-radius:10px;padding:11px 14px;margin:4px;background:#eeeaff;color:#40358e;font-size:15px}
 button:active{transform:scale(.97)}
 .primary{background:#6759d8;color:white}
@@ -68,7 +68,9 @@ buttons('furniture',furnitureList,addFurniture);
 function addFurniture(icon){
 const item=document.createElement('div');
 item.className='furniture';
-item.textContent=icon;
+item.dataset.icon=icon;
+item.innerHTML='<span class="item-icon"></span><span class="drag-handle" aria-label="つかんで移動">✋</span>';
+item.querySelector('.item-icon').textContent=icon;
 item.style.left=(15+Math.random()*65)+'%';
 item.style.top=(15+Math.random()*48)+'%';
 item.title='手のマークでつかんで、そのままスライドして移動';
@@ -77,34 +79,35 @@ drag(item);
 
 }
 function drag(el){
-let active=false,startX=0,startY=0,baseX=0,baseY=0;
-el.addEventListener('pointerdown',e=>{
-active=true;
-el.style.cursor='grabbing';
-el.setPointerCapture(e.pointerId);
-const roomRect=room.getBoundingClientRect();
-const itemRect=el.getBoundingClientRect();
-startX=e.clientX; startY=e.clientY;
-baseX=itemRect.left-roomRect.left; baseY=itemRect.top-roomRect.top;
+let moving=false,grabX=0,grabY=0;
+const handle=el.querySelector('.drag-handle');
+handle.addEventListener('pointerdown',e=>{
 e.preventDefault();
+e.stopPropagation();
+moving=true;
+const itemRect=el.getBoundingClientRect();
+grabX=e.clientX-itemRect.left;
+grabY=e.clientY-itemRect.top;
+handle.setPointerCapture(e.pointerId);
 });
-el.addEventListener('pointermove',e=>{
-if(!active)return;
+handle.addEventListener('pointermove',e=>{
+if(!moving)return;
 const r=room.getBoundingClientRect();
-const x=baseX+(e.clientX-startX), y=baseY+(e.clientY-startY);
-el.style.left=Math.max(0,Math.min(r.width-el.offsetWidth,x))+'px';
-el.style.top=Math.max(0,Math.min(r.height-el.offsetHeight,y))+'px';
+const x=e.clientX-r.left-room.clientLeft-grabX;
+const y=e.clientY-r.top-room.clientTop-grabY;
+el.style.left=Math.max(0,Math.min(room.clientWidth-el.offsetWidth,x))+'px';
+el.style.top=Math.max(0,Math.min(room.clientHeight-el.offsetHeight,y))+'px';
 });
-const stop=()=>{active=false;el.style.cursor='grab'};
-el.addEventListener('pointerup',stop);
-el.addEventListener('pointercancel',stop);
+const stop=()=>{moving=false};
+handle.addEventListener('pointerup',stop);
+handle.addEventListener('pointercancel',stop);
 }
 function saveRoom(){
 const data={
 wall:room.style.background,
 floor:document.getElementById('floor').style.background,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.textContent,left:el.style.left,top:el.style.top
+icon:el.dataset.icon,left:el.style.left,top:el.style.top
 }))
 };
 localStorage.setItem('kokoroRoom',JSON.stringify(data));
