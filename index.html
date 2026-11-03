@@ -58,6 +58,15 @@ button:active{transform:scale(.97)}
 <button onclick="applyTheme('sky')">☁️ そら</button>
 <button onclick="applyTheme('mono')">🐼 シンプル</button>
 </div>
+<h2>🧸 家具の種類</h2>
+<div class="items" id="furnitureCategories">
+<button onclick="showFurnitureCategory('all')">ぜんぶ</button>
+<button onclick="showFurnitureCategory('room')">🛋️ 家具</button>
+<button onclick="showFurnitureCategory('plant')">🌿 植物</button>
+<button onclick="showFurnitureCategory('animal')">🐱 動物</button>
+<button onclick="showFurnitureCategory('food')">🍓 食べ物</button>
+<button onclick="showFurnitureCategory('other')">🎁 その他</button>
+</div>
 <h2>🛋️ 家具を追加</h2>
 <div class="items" id="furniture"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
@@ -115,7 +124,22 @@ root.appendChild(b);
 }
 patternButtons('wallPatterns',wallPatterns,room);
 patternButtons('floorPatterns',floorPatterns,document.getElementById('floor'));
-buttons('furniture',furnitureList,addFurniture);
+function showFurnitureCategory(category){
+const groups={
+room:['🛏️','🛋️','🪑','🪞','🖥️','📚','🛁','🚪','🪟','💡','🧺','🖼️','🕯️','🪜','🧹','🧴','🧼','🛒','📺','⌚','🧦','👒','👜','🎒','🕰️','🪔'],
+plant:['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷','🪺','🦋'],
+animal:['🧸','🐱','🐶','🐰'],
+food:['🍓','🧁','🍰','🍉','🍊','🥛','☕','🫖'],
+other:['🎀','🧩','🎨','🖌️','🎻','🎸','🧿','🪅','🎁','🎹']
+};
+const list=category==='all'?furnitureList:groups[category]||furnitureList;
+const root=document.getElementById('furniture');root.innerHTML='';
+list.forEach(icon=>{
+const b=document.createElement('button');b.textContent=icon;b.title=icon+' を追加';
+b.onclick=()=>addFurniture(icon);root.appendChild(b);
+});
+}
+showFurnitureCategory('all');
 function setCustomColor(target,color){
 if(target==='wall'){room.style.backgroundColor=color;}
 if(target==='floor'){document.getElementById('floor').style.backgroundColor=color;}
