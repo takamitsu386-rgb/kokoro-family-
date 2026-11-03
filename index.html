@@ -53,6 +53,7 @@ button:active{transform:scale(.97)}
 <button onclick="resizeSelected(1.25)">大きく</button>
 <p id="selectedMessage">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
+<button onclick="clearFurniture()">🧹 家具を全部片づける</button>
 <button onclick="duplicateSelected()">📑 選んだ家具をコピー</button>
 <button onclick="layerSelected(1)">⬆️ 前に表示</button>
 <button onclick="layerSelected(-1)">⬇️ 後ろに表示</button>
@@ -142,6 +143,15 @@ drag(copy);
 selectFurniture(copy);
 autoSaveRoom();
 document.getElementById('selectedMessage').textContent=copy.dataset.icon+' をコピーしたよ！';
+}
+function clearFurniture(){
+const items=room.querySelectorAll('.furniture');
+if(!items.length){document.getElementById('selectedMessage').textContent='お部屋に家具はないよ。';return;}
+if(!confirm('家具を全部片づけますか？壁と床のデザインは残ります。'))return;
+items.forEach(el=>el.remove());
+selectedFurniture=null;
+autoSaveRoom();
+document.getElementById('selectedMessage').textContent='家具を全部片づけたよ。壁と床はそのままだよ！';
 }
 function removeSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に削除したい家具をタップしてね。';return;}
