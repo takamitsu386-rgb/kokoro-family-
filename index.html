@@ -51,6 +51,7 @@ button:active{transform:scale(.97)}
 <h2>🔎 選んだ家具の大きさ</h2>
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
+<button onclick="centerSelected()">🎯 真ん中に移動</button>
 <p id="selectedMessage">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
@@ -160,6 +161,13 @@ selectedFurniture.remove();
 selectedFurniture=null;
 autoSaveRoom();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
+}
+function centerSelected(){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
+selectedFurniture.style.left=Math.max(0,(room.clientWidth-selectedFurniture.offsetWidth)/2)+'px';
+selectedFurniture.style.top=Math.max(0,(room.clientHeight-selectedFurniture.offsetHeight)/2)+'px';
+autoSaveRoom();
+document.getElementById('selectedMessage').textContent='家具をお部屋の真ん中に移動したよ！';
 }
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
