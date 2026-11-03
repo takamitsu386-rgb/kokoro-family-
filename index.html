@@ -97,7 +97,7 @@ const furnitureList=['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','�
 const wallColors=['#f5e9d8','#f8dce8','#dceeff','#e4f2dc','#eee2ff','#fff0c9','#d9f4ef','#eeeeee'];
 const floorColors=['#c89b72','#e0bd91','#a9a9a9','#b5c99a','#d3b2b2'];
 const wallPatterns=[
-['なし','none'],['水玉','radial-gradient(#d8a9c2 2px,transparent 2px)'],['しま','repeating-linear-gradient(90deg,transparent 0 18px,#ffffff80 18px 22px)'],['チェック','repeating-linear-gradient(0deg,#ffffff55 0 12px,transparent 12px 24px),repeating-linear-gradient(90deg,#ffffff55 0 12px,transparent 12px 24px)']
+['なし','none'],['水玉','radial-gradient(circle,#c56b98 3px,transparent 3.5px)'],['しま','repeating-linear-gradient(90deg,transparent 0 18px,#ffffff80 18px 22px)'],['チェック','repeating-linear-gradient(0deg,#ffffff55 0 12px,transparent 12px 24px),repeating-linear-gradient(90deg,#ffffff55 0 12px,transparent 12px 24px)']
 ];
 const floorPatterns=[
 ['なし','none'],['木目','repeating-linear-gradient(0deg,transparent 0 22px,#79553835 22px 24px)'],['タイル','linear-gradient(90deg,#ffffff55 2px,transparent 2px),linear-gradient(#ffffff55 2px,transparent 2px)'],['しま','repeating-linear-gradient(90deg,transparent 0 28px,#ffffff55 28px 32px)']
@@ -118,7 +118,7 @@ function patternButtons(id,patterns,target){
 const root=document.getElementById(id);
 patterns.forEach(([label,pattern])=>{
 const b=document.createElement('button');b.textContent=label;
-b.onclick=()=>{target.style.backgroundImage=pattern;autoSaveRoom();};
+b.onclick=()=>{target.style.backgroundImage=pattern;if(id==='wallPatterns'){target.style.backgroundSize=label==='水玉'?'24px 24px':label==='なし'?'auto':'auto';document.getElementById('message').textContent=label==='水玉'?'🔴 水玉の壁紙にしたよ！':'壁紙の模様を変更したよ！';}else{document.getElementById('message').textContent='床の模様を変更したよ！';}autoSaveRoom();};
 root.appendChild(b);
 });
 }
