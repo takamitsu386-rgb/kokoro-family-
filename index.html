@@ -52,7 +52,13 @@ button:active{transform:scale(.97)}
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
 <p id="selectedMessage">家具をタップして選んでね。</p>
-<button class="primary" onclick="saveRoom()">💾 お部屋を保存</button>
+<button class="primary" onclick="saveRoom()">💾 今のお部屋を保存</button>
+<div style="margin-top:10px">
+<button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
+<select id="savedRooms" aria-label="保存したお部屋"><option value="">保存したお部屋を選ぶ</option></select>
+<button onclick="openSavedRoom()">このお部屋を開く</button>
+<button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
+</div>
 <button onclick="resetRoom()">リセット</button>
 </section>
 </main>
@@ -139,8 +145,8 @@ const stop=()=>{moving=false};
 handle.addEventListener('pointerup',stop);
 handle.addEventListener('pointercancel',stop);
 }
-function saveRoom(){
-const data={
+function roomData(){
+return {
 wall:room.style.background,
 wallImage:room.style.backgroundImage,
 floor:document.getElementById('floor').style.backgroundColor,
@@ -149,26 +155,67 @@ items:[...room.querySelectorAll('.furniture')].map(el=>({
 icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize
 }))
 };
-localStorage.setItem('kokoroRoom',JSON.stringify(data));
-document.getElementById('message').textContent='✅ お部屋をこの端末に保存しました！';
+}
+function applyRoom(data){
+room.querySelectorAll('.furniture').forEach(el=>el.remove());
+selectedFurniture=null;
+room.style.background=data.wall||wallColors[0];
+room.style.backgroundImage=data.wallImage||'none';
+document.getElementById('floor').style.backgroundColor=data.floor||floorColors[0];
+document.getElementById('floor').style.backgroundImage=data.floorImage||'none';
+(data.items||[]).forEach(v=>{
+addFurniture(v.icon);
+const el=room.lastElementChild;
+el.style.left=v.left;el.style.top=v.top;
+if(v.size)el.style.fontSize=v.size;
+});
+}
+function savedRoomData(){
+try{return JSON.parse(localStorage.getItem('kokoroSavedRooms')||'{}')}catch(e){return {}}
+}
+function refreshSavedRooms(){
+const select=document.getElementById('savedRooms');
+if(!select)return;
+const current=select.value;
+select.innerHTML='<option value="">保存したお部屋を選ぶ</option>';
+Object.keys(savedRoomData()).forEach(name=>{
+const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);
+});
+if(Object.prototype.hasOwnProperty.call(savedRoomData(),current))select.value=current;
+}
+function saveRoom(){
+localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));
+document.getElementById('message').textContent='✅ 今のお部屋をこの端末に保存しました！';
+}
+function saveAsRoom(){
+const name=prompt('お部屋の名前をつけてね（例：ピンクのお部屋）');
+if(!name||!name.trim())return;
+const rooms=savedRoomData();rooms[name.trim()]=roomData();
+localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+refreshSavedRooms();
+document.getElementById('savedRooms').value=name.trim();
+document.getElementById('message').textContent='✅「'+name.trim()+'」を保存しました！';
+}
+function openSavedRoom(){
+const name=document.getElementById('savedRooms').value;
+const rooms=savedRoomData();
+if(!name||!rooms[name]){document.getElementById('message').textContent='開きたいお部屋を選んでね。';return;}
+applyRoom(rooms[name]);
+document.getElementById('message').textContent='🏡「'+name+'」を開きました。';
+}
+function deleteSavedRoom(){
+const name=document.getElementById('savedRooms').value;
+if(!name){document.getElementById('message').textContent='削除するお部屋を選んでね。';return;}
+if(!confirm('「'+name+'」を削除しますか？'))return;
+const rooms=savedRoomData();delete rooms[name];
+localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+refreshSavedRooms();
+document.getElementById('message').textContent='「'+name+'」を削除しました。';
 }
 function loadRoom(){
 const raw=localStorage.getItem('kokoroRoom');
-if(!raw)return;
-try{
-const data=JSON.parse(raw);
-room.style.background=data.wall;
-room.style.backgroundImage=data.wallImage||'none';
-document.getElementById('floor').style.backgroundColor=data.floor;
-document.getElementById('floor').style.backgroundImage=data.floorImage||'none';
-data.items.forEach(v=>{
-addFurniture(v.icon);
-const el=room.lastElementChild;
-el.style.left=v.left;
-el.style.top=v.top;
-if(v.size)el.style.fontSize=v.size;
-});
-}catch(e){}
+if(raw){try{applyRoom(JSON.parse(raw));}catch(e){}}
+refreshSavedRooms();
 }
 function resetRoom(){
 if(!confirm('お部屋を初期状態に戻しますか？'))return;
