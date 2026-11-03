@@ -38,14 +38,17 @@ button:active{transform:scale(.97)}
 <p id="furnitureCount">🪑 お部屋の家具：0個</p>
 <p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。</p>
 </section>
+<section class="panel" style="border:3px solid #6759d8;background:#fff8fc">
+<h2>🌸 壁紙の模様を選ぶ</h2>
+<p>ここを押すと、お部屋の壁に模様がつくよ！</p>
+<div class="items" id="wallPatterns"></div>
+</section>
 <section class="panel">
 <h2>🎨 好きな色を選ぶ</h2>
 <label style="display:inline-flex;align-items:center;gap:8px;margin:6px">壁の色 <input type="color" value="#f5e9d8" onchange="setCustomColor('wall',this.value)" aria-label="壁の色を自由に選ぶ"></label>
 <label style="display:inline-flex;align-items:center;gap:8px;margin:6px">床の色 <input type="color" value="#c89b72" onchange="setCustomColor('floor',this.value)" aria-label="床の色を自由に選ぶ"></label>
 <h2>🧱 壁の色</h2>
 <div class="items" id="walls"></div>
-<h2>🧱 壁紙の模様</h2>
-<div class="items" id="wallPatterns"></div>
 <h2>🪵 床の色</h2>
 <div class="items" id="floors"></div>
 <h2>🪵 床の模様</h2>
