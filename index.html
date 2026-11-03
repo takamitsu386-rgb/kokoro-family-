@@ -38,6 +38,9 @@ button:active{transform:scale(.97)}
 <p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。</p>
 </section>
 <section class="panel">
+<h2>🎨 好きな色を選ぶ</h2>
+<label style="display:inline-flex;align-items:center;gap:8px;margin:6px">壁の色 <input type="color" value="#f5e9d8" onchange="setCustomColor('wall',this.value)" aria-label="壁の色を自由に選ぶ"></label>
+<label style="display:inline-flex;align-items:center;gap:8px;margin:6px">床の色 <input type="color" value="#c89b72" onchange="setCustomColor('floor',this.value)" aria-label="床の色を自由に選ぶ"></label>
 <h2>🧱 壁の色</h2>
 <div class="items" id="walls"></div>
 <h2>🧱 壁紙の模様</h2>
@@ -113,6 +116,12 @@ root.appendChild(b);
 patternButtons('wallPatterns',wallPatterns,room);
 patternButtons('floorPatterns',floorPatterns,document.getElementById('floor'));
 buttons('furniture',furnitureList,addFurniture);
+function setCustomColor(target,color){
+if(target==='wall'){room.style.backgroundColor=color;}
+if(target==='floor'){document.getElementById('floor').style.backgroundColor=color;}
+autoSaveRoom();
+document.getElementById('message').textContent='🎨 好きな色に変更したよ！';
+}
 function applyTheme(theme){
 const themes={
 sweet:{wall:'#f8dce8',floor:'#e0bd91',wallImage:'radial-gradient(#ffffff99 2px,transparent 2px)'},
