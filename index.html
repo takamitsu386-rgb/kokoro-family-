@@ -47,6 +47,13 @@ button:active{transform:scale(.97)}
 <div class="items" id="floorPatterns"></div>
 </section>
 <section class="panel">
+<h2>🌟 お部屋のテーマ</h2>
+<div class="items" id="themes">
+<button onclick="applyTheme('sweet')">🍓 かわいい</button>
+<button onclick="applyTheme('nature')">🌿 ナチュラル</button>
+<button onclick="applyTheme('sky')">☁️ そら</button>
+<button onclick="applyTheme('mono')">🐼 シンプル</button>
+</div>
 <h2>🛋️ 家具を追加</h2>
 <div class="items" id="furniture"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
@@ -105,6 +112,20 @@ root.appendChild(b);
 patternButtons('wallPatterns',wallPatterns,room);
 patternButtons('floorPatterns',floorPatterns,document.getElementById('floor'));
 buttons('furniture',furnitureList,addFurniture);
+function applyTheme(theme){
+const themes={
+sweet:{wall:'#f8dce8',floor:'#e0bd91',wallImage:'radial-gradient(#ffffff99 2px,transparent 2px)'},
+nature:{wall:'#e4f2dc',floor:'#b5c99a',wallImage:'none'},
+sky:{wall:'#dceeff',floor:'#c8d7e8',wallImage:'linear-gradient(135deg,#ffffff66 25%,transparent 25%,transparent 75%,#ffffff66 75%)'},
+mono:{wall:'#eeeeee',floor:'#a9a9a9',wallImage:'none'}
+};
+const t=themes[theme];if(!t)return;
+room.style.background=t.wall;room.style.backgroundImage=t.wallImage;
+document.getElementById('floor').style.backgroundColor=t.floor;
+document.getElementById('floor').style.backgroundImage='none';
+autoSaveRoom();
+document.getElementById('message').textContent='🌟 お部屋のテーマを変更したよ！家具はそのままだよ。';
+}
 function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
 }
