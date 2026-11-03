@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 </main>
 <script>
 const room=document.getElementById('room');
-const furnitureList=['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','🖥️','📚','🛁','🚪','🪟','💡','🎹','🐱','🐶','🧺','🖼️'];
+const furnitureList=['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','🖥️','📚','🛁','🚪','🪟','💡','🎹','🐱','🐶','🧺','🖼️','🕯️','🎀','🧸','🐰','🦋','🍓','🪻','🧩','🪑','🛋️','🪴'];
 const wallColors=['#f5e9d8','#f8dce8','#dceeff','#e4f2dc','#eee2ff','#fff0c9','#d9f4ef','#eeeeee'];
 const floorColors=['#c89b72','#e0bd91','#a9a9a9','#b5c99a','#d3b2b2'];
 function buttons(id,values,fn){
@@ -77,21 +77,26 @@ drag(item);
 item.onclick=()=>{if(confirm('この家具を削除しますか？'))item.remove()};
 }
 function drag(el){
-let active=false,ox=0,oy=0;
+let active=false,startX=0,startY=0,baseX=0,baseY=0;
 el.addEventListener('pointerdown',e=>{
 active=true;
 el.setPointerCapture(e.pointerId);
-ox=e.clientX-el.offsetLeft;
-oy=e.clientY-el.offsetTop;
+const roomRect=room.getBoundingClientRect();
+const itemRect=el.getBoundingClientRect();
+startX=e.clientX; startY=e.clientY;
+baseX=itemRect.left-roomRect.left; baseY=itemRect.top-roomRect.top;
+e.preventDefault();
 });
 el.addEventListener('pointermove',e=>{
 if(!active)return;
 const r=room.getBoundingClientRect();
-el.style.left=Math.max(0,Math.min(r.width-45,e.clientX-r.left-ox+el.offsetLeft))+'px';
-el.style.top=Math.max(0,Math.min(r.height-45,e.clientY-r.top-oy+el.offsetTop))+'px';
+const x=baseX+(e.clientX-startX), y=baseY+(e.clientY-startY);
+el.style.left=Math.max(0,Math.min(r.width-el.offsetWidth,x))+'px';
+el.style.top=Math.max(0,Math.min(r.height-el.offsetHeight,y))+'px';
 });
-el.addEventListener('pointerup',()=>active=false);
-el.addEventListener('pointercancel',()=>active=false);
+const stop=()=>{active=false};
+el.addEventListener('pointerup',stop);
+el.addEventListener('pointercancel',stop);
 }
 function saveRoom(){
 const data={
