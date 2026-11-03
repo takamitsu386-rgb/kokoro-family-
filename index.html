@@ -501,23 +501,10 @@ message.textContent="読み込めませんでした。ファイル形式やデ�
 reader.onerror=()=>{message.textContent="ファイルを読み込めませんでした。";};
 reader.readAsText(file);
 }
-if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
-localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
-localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
-applyRoom(data.currentRoom);
-refreshSavedRooms();
-message.textContent="✅ バックアップを読み込みました。";
-}catch(e){
-message.textContent="読み込めませんでした。こころファミリーのバックアップファイルか確認してね。";
-}
-};
-reader.onerror=()=>{message.textContent="ファイルを読み込めませんでした。";};
-reader.readAsText(file);
-}
 
 </script>
 <script>
-if("serviceWorker" in navigator && location.protocol==="https:"){
+if("serviceWorker" in navigator && location.protocol==="https"){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 }
 </script>
