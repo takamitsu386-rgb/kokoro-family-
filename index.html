@@ -55,6 +55,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
 </style>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#6759d8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="こころファミリー">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
 </head>
 <body>
 <header>
@@ -510,6 +515,11 @@ reader.onerror=()=>{message.textContent="ファイルを読み込めませんで
 reader.readAsText(file);
 }
 
+</script>
+<script>
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
 </script>
 </body>
 </html>
