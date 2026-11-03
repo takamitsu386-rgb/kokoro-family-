@@ -1,0 +1,19 @@
+{
+  "name": "こころファミリー",
+  "short_name": "こころ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5fb",
+  "theme_color": "#6759d8",
+  "description": "自分のお部屋を作ってカスタマイズできるアプリ",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
