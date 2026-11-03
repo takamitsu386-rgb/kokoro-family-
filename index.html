@@ -38,12 +38,20 @@ button:active{transform:scale(.97)}
 <section class="panel">
 <h2>🧱 壁の色</h2>
 <div class="items" id="walls"></div>
+<h2>🧱 壁紙の模様</h2>
+<div class="items" id="wallPatterns"></div>
 <h2>🪵 床の色</h2>
 <div class="items" id="floors"></div>
+<h2>🪵 床の模様</h2>
+<div class="items" id="floorPatterns"></div>
 </section>
 <section class="panel">
 <h2>🛋️ 家具を追加</h2>
 <div class="items" id="furniture"></div>
+<h2>🔎 選んだ家具の大きさ</h2>
+<button onclick="resizeSelected(0.8)">小さく</button>
+<button onclick="resizeSelected(1.25)">大きく</button>
+<p id="selectedMessage">家具をタップして選んでね。</p>
 <button class="primary" onclick="saveRoom()">💾 お部屋を保存</button>
 <button onclick="resetRoom()">リセット</button>
 </section>
@@ -53,6 +61,13 @@ const room=document.getElementById('room');
 const furnitureList=['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','🖥️','📚','🛁','🚪','🪟','💡','🎹','🐱','🐶','🧺','🖼️','🕯️','🎀','🧸','🐰','🦋','🍓','🪻','🧩','🪑','🛋️','🪴'];
 const wallColors=['#f5e9d8','#f8dce8','#dceeff','#e4f2dc','#eee2ff','#fff0c9','#d9f4ef','#eeeeee'];
 const floorColors=['#c89b72','#e0bd91','#a9a9a9','#b5c99a','#d3b2b2'];
+const wallPatterns=[
+['なし','none'],['水玉','radial-gradient(#d8a9c2 2px,transparent 2px)'],['しま','repeating-linear-gradient(90deg,transparent 0 18px,#ffffff80 18px 22px)'],['チェック','repeating-linear-gradient(0deg,#ffffff55 0 12px,transparent 12px 24px),repeating-linear-gradient(90deg,#ffffff55 0 12px,transparent 12px 24px)']
+];
+const floorPatterns=[
+['なし','none'],['木目','repeating-linear-gradient(0deg,transparent 0 22px,#79553835 22px 24px)'],['タイル','linear-gradient(90deg,#ffffff55 2px,transparent 2px),linear-gradient(#ffffff55 2px,transparent 2px)'],['しま','repeating-linear-gradient(90deg,transparent 0 28px,#ffffff55 28px 32px)']
+];
+let selectedFurniture=null;
 function buttons(id,values,fn){
 const el=document.getElementById(id);
 values.forEach((v,i)=>{
@@ -63,7 +78,17 @@ el.appendChild(b);
 });
 }
 buttons('walls',wallColors,v=>room.style.background=v);
-buttons('floors',floorColors,v=>document.getElementById('floor').style.background=v);
+buttons('floors',floorColors,v=>document.getElementById('floor').style.backgroundColor=v);
+function patternButtons(id,patterns,target){
+const root=document.getElementById(id);
+patterns.forEach(([label,pattern])=>{
+const b=document.createElement('button');b.textContent=label;
+b.onclick=()=>{target.style.backgroundImage=pattern;};
+root.appendChild(b);
+});
+}
+patternButtons('wallPatterns',wallPatterns,room);
+patternButtons('floorPatterns',floorPatterns,document.getElementById('floor'));
 buttons('furniture',furnitureList,addFurniture);
 function addFurniture(icon){
 const item=document.createElement('div');
@@ -71,12 +96,24 @@ item.className='furniture';
 item.dataset.icon=icon;
 item.innerHTML='<span class="item-icon"></span><span class="drag-handle" aria-label="つかんで移動">✋</span>';
 item.querySelector('.item-icon').textContent=icon;
+item.querySelector('.item-icon').addEventListener('click',()=>selectFurniture(item));
 item.style.left=(15+Math.random()*65)+'%';
 item.style.top=(15+Math.random()*48)+'%';
 item.title='手のマークでつかんで、そのままスライドして移動';
 room.appendChild(item);
 drag(item);
 
+}
+function selectFurniture(el){
+selectedFurniture=el;
+document.getElementById('selectedMessage').textContent='選択中：'+el.dataset.icon;
+room.querySelectorAll('.furniture').forEach(x=>x.style.outline='none');
+el.style.outline='2px dashed #6759d8';
+}
+function resizeSelected(factor){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
+const current=parseFloat(selectedFurniture.style.fontSize)||38;
+selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
 }
 function drag(el){
 let moving=false,grabX=0,grabY=0;
@@ -105,9 +142,11 @@ handle.addEventListener('pointercancel',stop);
 function saveRoom(){
 const data={
 wall:room.style.background,
-floor:document.getElementById('floor').style.background,
+wallImage:room.style.backgroundImage,
+floor:document.getElementById('floor').style.backgroundColor,
+floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize
 }))
 };
 localStorage.setItem('kokoroRoom',JSON.stringify(data));
@@ -119,20 +158,23 @@ if(!raw)return;
 try{
 const data=JSON.parse(raw);
 room.style.background=data.wall;
-document.getElementById('floor').style.background=data.floor;
+room.style.backgroundImage=data.wallImage||'none';
+document.getElementById('floor').style.backgroundColor=data.floor;
+document.getElementById('floor').style.backgroundImage=data.floorImage||'none';
 data.items.forEach(v=>{
 addFurniture(v.icon);
 const el=room.lastElementChild;
 el.style.left=v.left;
 el.style.top=v.top;
+if(v.size)el.style.fontSize=v.size;
 });
 }catch(e){}
 }
 function resetRoom(){
 if(!confirm('お部屋を初期状態に戻しますか？'))return;
 room.querySelectorAll('.furniture').forEach(el=>el.remove());
-room.style.background=wallColors[0];
-document.getElementById('floor').style.background=floorColors[0];
+room.style.background=wallColors[0];room.style.backgroundImage='none';
+document.getElementById('floor').style.backgroundColor=floorColors[0];document.getElementById('floor').style.backgroundImage='none';
 localStorage.removeItem('kokoroRoom');
 }
 loadRoom();
