@@ -237,7 +237,7 @@ wallImage:room.style.backgroundImage,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex
 }))
 };
 }
@@ -253,6 +253,7 @@ addFurniture(v.icon);
 const el=room.lastElementChild;
 el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
+if(v.zIndex)el.style.zIndex=v.zIndex;
 });
 }
 function savedRoomData(){
