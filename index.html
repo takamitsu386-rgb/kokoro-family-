@@ -54,6 +54,8 @@ button:active{transform:scale(.97)}
 <p id="selectedMessage">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="duplicateSelected()">📑 選んだ家具をコピー</button>
+<button onclick="layerSelected(1)">⬆️ 前に表示</button>
+<button onclick="layerSelected(-1)">⬇️ 後ろに表示</button>
 <button class="primary" onclick="saveRoom()">💾 今のお部屋を保存</button>
 <div style="margin-top:10px">
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
@@ -119,6 +121,15 @@ selectedFurniture=el;
 document.getElementById('selectedMessage').textContent='選択中：'+el.dataset.icon;
 room.querySelectorAll('.furniture').forEach(x=>x.style.outline='none');
 el.style.outline='2px dashed #6759d8';
+}
+function layerSelected(direction){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
+const items=[...room.querySelectorAll('.furniture')];
+const levels=items.map(el=>parseInt(el.style.zIndex||0));
+const current=parseInt(selectedFurniture.style.zIndex||0);
+selectedFurniture.style.zIndex=direction>0?Math.max(...levels,current)+1:Math.min(...levels,current)-1;
+autoSaveRoom();
+document.getElementById('selectedMessage').textContent=direction>0?'家具を手前に表示したよ。かさなった家具も見やすくなるよ！':'家具を後ろに表示したよ。';
 }
 function duplicateSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にコピーしたい家具をタップしてね。';return;}
