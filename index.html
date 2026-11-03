@@ -34,6 +34,7 @@ button:active{transform:scale(.97)}
 <div class="floor" id="floor"></div>
 </div>
 <p id="message">家具を追加して、好きな場所に動かしてみよう。</p>
+<p id="furnitureCount">🪑 お部屋の家具：0個</p>
 </section>
 <section class="panel">
 <h2>🧱 壁の色</h2>
@@ -103,6 +104,9 @@ root.appendChild(b);
 patternButtons('wallPatterns',wallPatterns,room);
 patternButtons('floorPatterns',floorPatterns,document.getElementById('floor'));
 buttons('furniture',furnitureList,addFurniture);
+function updateFurnitureCount(){
+document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
+}
 function addFurniture(icon){
 const item=document.createElement('div');
 item.className='furniture';
@@ -115,6 +119,7 @@ item.style.top=(15+Math.random()*48)+'%';
 item.title='手のマークでつかんで、そのままスライドして移動';
 room.appendChild(item);
 drag(item);
+updateFurnitureCount();
 autoSaveRoom();
 
 }
@@ -142,6 +147,7 @@ copy.style.outline='none';
 room.appendChild(copy);
 drag(copy);
 selectFurniture(copy);
+updateFurnitureCount();
 autoSaveRoom();
 document.getElementById('selectedMessage').textContent=copy.dataset.icon+' をコピーしたよ！';
 }
@@ -151,6 +157,7 @@ if(!items.length){document.getElementById('selectedMessage').textContent='お部
 if(!confirm('家具を全部片づけますか？壁と床のデザインは残ります。'))return;
 items.forEach(el=>el.remove());
 selectedFurniture=null;
+updateFurnitureCount();
 autoSaveRoom();
 document.getElementById('selectedMessage').textContent='家具を全部片づけたよ。壁と床はそのままだよ！';
 }
@@ -159,6 +166,7 @@ if(!selectedFurniture){document.getElementById('selectedMessage').textContent='�
 const icon=selectedFurniture.dataset.icon;
 selectedFurniture.remove();
 selectedFurniture=null;
+updateFurnitureCount();
 autoSaveRoom();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
 }
