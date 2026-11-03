@@ -450,12 +450,35 @@ const input=document.getElementById("backupFile");
 const file=input.files&&input.files[0];
 const message=document.getElementById("backupMessage");
 if(!file){message.textContent="先にバックアップファイルを選んでね。";return;}
+if(file.size>2*1024*1024){message.textContent="ファイルが大きすぎます。2MB以下のバックアップを選んでね。";return;}
 const reader=new FileReader();
 reader.onload=()=>{
 try{
 const data=JSON.parse(reader.result);
-if(!data||data.app!=="kokoro-family"||data.version!==1||!data.currentRoom||typeof data.savedRooms!=="object"||Array.isArray(data.savedRooms)){
+const validRoom=v=>v&&typeof v==="object"&&!Array.isArray(v)&&
+typeof v.wall==="string"&&Array.isArray(v.items)&&v.items.length<=300&&
+v.items.every(x=>x&&typeof x.icon==="string"&&typeof x.left==="string"&&typeof x.top==="string");
+if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoom(data.currentRoom)||
+!data.savedRooms||typeof data.savedRooms!=="object"||Array.isArray(data.savedRooms)||
+Object.keys(data.savedRooms).length>100||
+!Object.entries(data.savedRooms).every(([name,value])=>name.trim().length>0&&name.length<=80&&validRoom(value))){
 throw new Error("invalid backup");
+}
+if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
+// Keep a recovery copy immediately before replacing local data.
+localStorage.setItem("kokoroRoomBeforeImport",localStorage.getItem("kokoroRoom")||"");
+localStorage.setItem("kokoroSavedRoomsBeforeImport",localStorage.getItem("kokoroSavedRooms")||"{}");
+localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
+localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
+applyRoom(data.currentRoom);
+refreshSavedRooms();
+message.textContent="✅ バックアップを読み込みました。読み込み直前のデータも端末内に退避しました。";
+}catch(e){
+message.textContent="読み込めませんでした。ファイル形式やデータ内容を確認してね。";
+}
+};
+reader.onerror=()=>{message.textContent="ファイルを読み込めませんでした。";};
+reader.readAsText(file);
 }
 if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
