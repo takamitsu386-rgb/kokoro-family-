@@ -57,6 +57,7 @@ button:active{transform:scale(.97)}
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
 <select id="savedRooms" aria-label="保存したお部屋"><option value="">保存したお部屋を選ぶ</option></select>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
+<button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
 </div>
 <button onclick="resetRoom()">リセット</button>
@@ -202,6 +203,21 @@ const rooms=savedRoomData();
 if(!name||!rooms[name]){document.getElementById('message').textContent='開きたいお部屋を選んでね。';return;}
 applyRoom(rooms[name]);
 document.getElementById('message').textContent='🏡「'+name+'」を開きました。';
+}
+function renameSavedRoom(){
+const select=document.getElementById('savedRooms');
+const oldName=select.value;
+const rooms=savedRoomData();
+if(!oldName||!rooms[oldName]){document.getElementById('message').textContent='名前を変えるお部屋を選んでね。';return;}
+const newName=prompt('新しいお部屋の名前を入力してね',oldName);
+if(!newName||!newName.trim())return;
+const clean=newName.trim();
+if(clean!==oldName&&Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
+rooms[clean]=rooms[oldName];
+if(clean!==oldName)delete rooms[oldName];
+localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+refreshSavedRooms();select.value=clean;
+document.getElementById('message').textContent='✏️ お部屋の名前を「'+clean+'」に変更しました！';
 }
 function deleteSavedRoom(){
 const name=document.getElementById('savedRooms').value;
