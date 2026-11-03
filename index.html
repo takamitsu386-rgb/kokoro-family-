@@ -63,6 +63,7 @@ button:active{transform:scale(.97)}
 <div style="margin-top:10px">
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
 <select id="savedRooms" aria-label="保存したお部屋"><option value="">保存したお部屋を選ぶ</option></select>
+<p id="savedRoomCount">💾 保存したお部屋：0個</p>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
@@ -244,6 +245,7 @@ Object.keys(savedRoomData()).forEach(name=>{
 const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);
 });
 if(Object.prototype.hasOwnProperty.call(savedRoomData(),current))select.value=current;
+document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+Object.keys(savedRoomData()).length+'個';
 }
 function autoSaveRoom(){
 try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));}catch(e){}
