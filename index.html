@@ -25,6 +25,14 @@ button:active{transform:scale(.97)}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{min-width:320px;line-height:1.55;overflow-wrap:anywhere}
 header{padding:clamp(16px,3vw,28px)}
+.app-nav{position:sticky;top:0;z-index:50;display:flex;gap:8px;overflow-x:auto;padding:10px max(12px,calc((100vw - 1100px)/2));background:#ffffffed;backdrop-filter:blur(10px);border-bottom:1px solid #e6e8f0}
+.app-nav a{flex:0 0 auto;text-decoration:none;background:#eeeaff;color:#40358e;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:700}
+.app-nav a:focus-visible{outline:3px solid #a99fff;outline-offset:2px}
+.home-intro{background:linear-gradient(130deg,#fff,#f5f0ff);border:1px solid #e7e0ff}
+.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}
+.home-actions a{display:block;text-align:center;text-decoration:none;background:#6759d8;color:white;border-radius:12px;padding:13px 10px;font-weight:700}
+.home-actions a.secondary{background:#eeeaff;color:#40358e}
+section[id]{scroll-margin-top:76px}
 main{width:min(100% - 24px,1100px);padding:clamp(10px,2vw,22px) 0 40px}
 .panel{padding:clamp(12px,2.2vw,22px);margin:14px 0;min-width:0}
 button,select,input{max-width:100%;min-height:42px;font:inherit}
@@ -53,8 +61,16 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h1>🏡 こころファミリー</h1>
 <p>自分だけのお部屋をつくろう！</p>
 </header>
+<nav class="app-nav" aria-label="アプリ内メニュー">
+<a href="#home">ホーム</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#backupTitle">バックアップ</a>
+</nav>
 <main>
-<section class="panel">
+<section class="panel home-intro" id="home">
+<h2>🏡 マイホーム</h2>
+<p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
+<div class="home-actions"><a href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+</section>
+<section class="panel" id="room-design">
 <h2>🎨 お部屋のデザイン</h2>
 <div class="room" id="room">
 <div class="floor" id="floor"></div>
@@ -64,7 +80,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p id="furnitureCount">🪑 お部屋の家具：0個</p>
 <p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。</p>
 </section>
-<section class="panel" style="border:3px solid #6759d8;background:#fff8fc">
+<section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
 <p>ここを押すと、お部屋の壁に模様がつくよ！</p>
 <div class="items" id="wallPatterns"></div>
@@ -80,7 +96,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h2>🪵 床の模様</h2>
 <div class="items" id="floorPatterns"></div>
 </section>
-<section class="panel">
+<section class="panel" id="furniture-tools">
 <h2>🌟 お部屋のテーマ</h2>
 <div class="items" id="themes">
 <button onclick="applyTheme('sweet')">🍓 かわいい</button>
