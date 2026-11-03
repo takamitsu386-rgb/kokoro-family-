@@ -85,13 +85,13 @@ b.onclick=()=>fn(v);
 el.appendChild(b);
 });
 }
-buttons('walls',wallColors,v=>room.style.background=v);
-buttons('floors',floorColors,v=>document.getElementById('floor').style.backgroundColor=v);
+buttons('walls',wallColors,v=>{room.style.background=v;autoSaveRoom();});
+buttons('floors',floorColors,v=>{document.getElementById('floor').style.backgroundColor=v;autoSaveRoom();});
 function patternButtons(id,patterns,target){
 const root=document.getElementById(id);
 patterns.forEach(([label,pattern])=>{
 const b=document.createElement('button');b.textContent=label;
-b.onclick=()=>{target.style.backgroundImage=pattern;};
+b.onclick=()=>{target.style.backgroundImage=pattern;autoSaveRoom();};
 root.appendChild(b);
 });
 }
@@ -110,6 +110,7 @@ item.style.top=(15+Math.random()*48)+'%';
 item.title='手のマークでつかんで、そのままスライドして移動';
 room.appendChild(item);
 drag(item);
+autoSaveRoom();
 
 }
 function selectFurniture(el){
@@ -123,12 +124,14 @@ if(!selectedFurniture){document.getElementById('selectedMessage').textContent='�
 const icon=selectedFurniture.dataset.icon;
 selectedFurniture.remove();
 selectedFurniture=null;
+autoSaveRoom();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。すぐに保存すると次回もこの状態になるよ。';
 }
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
 const current=parseFloat(selectedFurniture.style.fontSize)||38;
 selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
+autoSaveRoom();
 }
 function drag(el){
 let moving=false,grabX=0,grabY=0;
@@ -150,7 +153,7 @@ const y=e.clientY-r.top-room.clientTop-grabY;
 el.style.left=Math.max(0,Math.min(room.clientWidth-el.offsetWidth,x))+'px';
 el.style.top=Math.max(0,Math.min(room.clientHeight-el.offsetHeight,y))+'px';
 });
-const stop=()=>{moving=false};
+const stop=()=>{if(moving){moving=false;autoSaveRoom();}};
 handle.addEventListener('pointerup',stop);
 handle.addEventListener('pointercancel',stop);
 }
@@ -191,6 +194,9 @@ Object.keys(savedRoomData()).forEach(name=>{
 const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);
 });
 if(Object.prototype.hasOwnProperty.call(savedRoomData(),current))select.value=current;
+}
+function autoSaveRoom(){
+try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));}catch(e){}
 }
 function saveRoom(){
 localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));
