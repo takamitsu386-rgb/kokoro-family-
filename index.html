@@ -120,6 +120,19 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <button onclick="resetRoom()">リセット</button>
 </section>
+
+<section class="panel" aria-labelledby="backupTitle">
+<h2 id="backupTitle">🛡️ お部屋データのバックアップ</h2>
+<p>保存したお部屋と、今のお部屋をファイルに保存できます。機種変更やデータ移動の前に使ってね。</p>
+<button class="primary" type="button" onclick="exportRoomBackup()">⬇️ バックアップを書き出す</button>
+<div style="margin-top:10px">
+<label for="backupFile">バックアップファイルを読み込む</label><br>
+<input id="backupFile" type="file" accept="application/json,.json">
+<button type="button" onclick="importRoomBackup()">⬆️ 読み込む</button>
+</div>
+<p id="backupMessage" role="status" aria-live="polite">※読み込み時は、現在のお部屋データがバックアップの内容に置き換わります。</p>
+</section>
+
 </main>
 <script>
 const room=document.getElementById('room');
@@ -411,6 +424,53 @@ document.getElementById('selectedMessage').textContent='家具をタップして
 document.getElementById('message').textContent='🏡 お部屋を初期状態に戻しました。';
 }
 loadRoom();
+
+function exportRoomBackup(){
+try{
+const payload={
+app:"kokoro-family",
+version:1,
+exportedAt:new Date().toISOString(),
+currentRoom:roomData(),
+savedRooms:savedRoomData()
+};
+const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+a.href=url;
+a.download="kokoro-family-backup-"+new Date().toISOString().slice(0,10)+".json";
+document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+document.getElementById("backupMessage").textContent="✅ バックアップファイルを書き出しました。";
+}catch(e){
+document.getElementById("backupMessage").textContent="書き出しに失敗しました。";
+}
+}
+function importRoomBackup(){
+const input=document.getElementById("backupFile");
+const file=input.files&&input.files[0];
+const message=document.getElementById("backupMessage");
+if(!file){message.textContent="先にバックアップファイルを選んでね。";return;}
+const reader=new FileReader();
+reader.onload=()=>{
+try{
+const data=JSON.parse(reader.result);
+if(!data||data.app!=="kokoro-family"||data.version!==1||!data.currentRoom||typeof data.savedRooms!=="object"||Array.isArray(data.savedRooms)){
+throw new Error("invalid backup");
+}
+if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
+localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
+localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
+applyRoom(data.currentRoom);
+refreshSavedRooms();
+message.textContent="✅ バックアップを読み込みました。";
+}catch(e){
+message.textContent="読み込めませんでした。こころファミリーのバックアップファイルか確認してね。";
+}
+};
+reader.onerror=()=>{message.textContent="ファイルを読み込めませんでした。";};
+reader.readAsText(file);
+}
+
 </script>
 </body>
 </html>
