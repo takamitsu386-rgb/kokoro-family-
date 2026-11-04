@@ -891,10 +891,16 @@ if(window.kokoroQueueSync)window.kokoroQueueSync();
 message.textContent="✅ バックアップを読み込みました。読み込み直前のデータも端末内に退避しました。";
 }
 }catch(e){
+console.error("Backup import failed",e);
 message.textContent="読み込めませんでした。ファイル形式やデータ内容を確認してね。";
+}finally{
+input.value="";
 }
 };
-reader.onerror=()=>{message.textContent="ファイルを読み込めませんでした。";};
+reader.onerror=()=>{
+message.textContent="ファイルを読み込めませんでした。";
+input.value="";
+};
 reader.readAsText(file);
 }
 
