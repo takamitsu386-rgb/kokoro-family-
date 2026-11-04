@@ -1,5 +1,5 @@
-// Updated with saved-room duplication and overwrite confirmation safeguards.
-const CACHE_NAME="kokoro-family-v20";
+// Updated with keyboard furniture movement and saved-room overwrite safeguards.
+const CACHE_NAME="kokoro-family-v21";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
