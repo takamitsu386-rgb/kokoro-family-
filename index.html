@@ -364,11 +364,13 @@ const items=room.querySelectorAll('.furniture');
 if(!items.length){document.getElementById('selectedMessage').textContent='お部屋に家具はないよ。';return;}
 if(!confirm('家具を全部片づけますか？壁と床のデザインは残ります。'))return;
 const previousSelection=selectedFurniture;
+const originalRoomOrder=[...room.childNodes];
 items.forEach(el=>el.remove());
 selectedFurniture=null;
 updateFurnitureCount();
 if(!autoSaveRoom()){
-items.forEach(el=>room.appendChild(el));
+// Restore every room child in its original order so furniture stacking stays unchanged.
+originalRoomOrder.forEach(node=>room.appendChild(node));
 selectedFurniture=previousSelection;
 updateFurnitureCount();
 document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元に戻しました。';
@@ -412,7 +414,12 @@ if(!selectedFurniture){document.getElementById('selectedMessage').textContent='�
 const previous=selectedFurniture.style.fontSize;
 const current=parseFloat(previous)||38;
 selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
-if(!autoSaveRoom())selectedFurniture.style.fontSize=previous;
+if(!autoSaveRoom()){
+selectedFurniture.style.fontSize=previous;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具の大きさを元に戻しました。';
+return;
+}
+document.getElementById('selectedMessage').textContent='家具の大きさを変更したよ！';
 }
 function drag(el){
 let moving=false,grabX=0,grabY=0,activePointerId=null,originalLeft='',originalTop='';
