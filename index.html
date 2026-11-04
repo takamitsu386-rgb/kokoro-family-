@@ -819,7 +819,7 @@ const allNames=Object.keys(rooms);
 const categories=prefs?prefs.categories:{};
 const filter=document.getElementById('savedRoomCategoryFilter');
 const selectedCategory=filter?filter.value:'';
-const categoryNames=[...new Set(Object.values(categories).filter(value=>typeof value==='string'&&value.trim()))].sort((a,b)=>a.localeCompare(b,'ja'));
+const categoryNames=[...new Set(allNames.map(name=>categories[name]).filter(value=>typeof value==='string'&&value.trim()))].sort((a,b)=>a.localeCompare(b,'ja'));
 if(filter){const previous=filter.value;filter.replaceChildren();const allOption=document.createElement('option');allOption.value='';allOption.textContent='すべてのカテゴリ';filter.appendChild(allOption);categoryNames.forEach(category=>{const option=document.createElement('option');option.value=category;option.textContent=category;filter.appendChild(option);});if(categoryNames.includes(previous))filter.value=previous;}
 const names=allNames.filter(name=>!selectedCategory||categories[name]===selectedCategory);
 const favorites=prefs?prefs.favorites.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
