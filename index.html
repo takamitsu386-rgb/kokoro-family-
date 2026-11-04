@@ -515,6 +515,7 @@ originalLeft=el.style.left;
 originalTop=el.style.top;
 moving=true;
 activePointerId=e.pointerId;
+selectFurniture(el);
 });
 handle.addEventListener('pointermove',e=>{
 if(!moving||e.pointerId!==activePointerId)return;
