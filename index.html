@@ -715,7 +715,9 @@ if(!validSavedRooms(rooms)){document.getElementById('message').textContent='こ�
 if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
-document.getElementById('savedRooms').value=clean;
+const savedRoomSelect=document.getElementById('savedRooms');
+savedRoomSelect.value=clean;
+savedRoomSelect.focus();
 document.getElementById('message').textContent='✅「'+clean+'」を保存しました！';
 }
 function openSavedRoom(){
@@ -755,6 +757,7 @@ if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 select.value=clean;
+select.focus();
 document.getElementById('message').textContent='📑「'+oldName+'」を「'+clean+'」として複製しました！';
 }
 function renameSavedRoom(){
@@ -775,7 +778,7 @@ if(clean!==oldName)delete rooms[oldName];
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='この変更は保存できません。内容を確認してね。';return;}
 if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
-refreshSavedRooms();select.value=clean;
+refreshSavedRooms();select.value=clean;select.focus();
 document.getElementById('message').textContent='✏️ お部屋の名前を「'+clean+'」に変更しました！';
 }
 function deleteSavedRoom(){
@@ -790,6 +793,7 @@ if(!validSavedRooms(rooms)){document.getElementById('message').textContent='削�
 if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
+document.getElementById('savedRooms').focus();
 document.getElementById('message').textContent='「'+name+'」を削除しました。'
 }
 function loadRoom(){
