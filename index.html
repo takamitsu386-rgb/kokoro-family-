@@ -872,7 +872,7 @@ document.getElementById('message').textContent='端末の保存領域を読み�
 refreshSavedRooms();
 return;
 }
-if(raw){
+if(raw!==null){
 try{
 const data=JSON.parse(raw);
 if(!validRoomData(data))throw new Error('invalid room data');
@@ -897,7 +897,7 @@ document.getElementById('message').textContent='保存したお部屋の保存�
 refreshSavedRooms();
 return;
 }
-if(savedRaw){
+if(savedRaw!==null){
 try{
 if(!validSavedRooms(JSON.parse(savedRaw)))throw new Error('invalid saved rooms');
 }catch(e){
