@@ -910,6 +910,12 @@ function storeCloudDataSafely(data) {
 }
 let uploadQueue = Promise.resolve();
 let syncInProgress = false;
+let syncPending = false;
+function flushPendingSync() {
+  if (!syncPending) return;
+  syncPending = false;
+  if (currentUser) queueSync();
+}
 function setSyncBusy(busy) {
   if (syncButton) syncButton.disabled = busy || !currentUser;
   if (downloadButton) downloadButton.disabled = busy || !currentUser;
@@ -958,6 +964,7 @@ async function downloadCloud() {
   } finally {
     syncInProgress = false;
     setSyncBusy(false);
+    flushPendingSync();
   }
 }
 async function syncNow() {
@@ -1003,10 +1010,15 @@ async function syncNow() {
   } finally {
     syncInProgress = false;
     setSyncBusy(false);
+    flushPendingSync();
   }
 }
 function queueSync() {
   if (!currentUser) return;
+  if (syncInProgress) {
+    syncPending = true;
+    return;
+  }
   const queuedUid = currentUser.uid;
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = setTimeout(async () => {
