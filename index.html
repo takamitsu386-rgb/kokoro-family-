@@ -400,9 +400,13 @@ if(!autoSaveRoom()){
 originalRoomOrder.forEach(node=>room.appendChild(node));
 selectedFurniture=previousSelection;
 updateFurnitureCount();
+const restoredHandle=previousSelection&&previousSelection.querySelector('.drag-handle');
+if(restoredHandle)restoredHandle.focus();
 document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元に戻しました。';
 return;
 }
+const clearButton=document.querySelector('button[onclick="clearFurniture()"]');
+if(clearButton)clearButton.focus();
 document.getElementById('selectedMessage').textContent='家具を全部片づけたよ。壁と床はそのままだよ！';
 }
 function removeSelected(){
@@ -418,9 +422,13 @@ if(!autoSaveRoom()){
 parent.insertBefore(item,next);
 selectFurniture(item);
 updateFurnitureCount();
+const restoredHandle=item.querySelector('.drag-handle');
+if(restoredHandle)restoredHandle.focus();
 document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元に戻しました。';
 return;
 }
+const deleteButton=document.querySelector('button[onclick="removeSelected()"]');
+if(deleteButton)deleteButton.focus();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
 }
 function centerSelected(){
