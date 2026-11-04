@@ -143,6 +143,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
 <select id="savedRooms" aria-label="保存したお部屋"><option value="">保存したお部屋を選ぶ</option></select>
 <p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
+<button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="duplicateSavedRoom()">📑 選んだお部屋を複製</button>
@@ -721,6 +722,54 @@ const data=JSON.parse(raw);
 return validSavedRooms(data)?data:null;
 }catch(e){return null}
 }
+function saveSavedRoomsWithUndo(nextRooms){
+if(!validSavedRooms(nextRooms)){
+document.getElementById('message').textContent='保存内容を確認できないため、変更を中止しました。';
+return false;
+}
+let previousRaw,previousUndo;
+try{
+previousRaw=localStorage.getItem('kokoroSavedRooms');
+previousUndo=localStorage.getItem('kokoroSavedRoomsUndo');
+if(previousRaw!==null&&!validSavedRooms(JSON.parse(previousRaw))){
+document.getElementById('message').textContent='元データを確認できないため、変更を中止しました。';
+return false;
+}
+localStorage.setItem('kokoroSavedRoomsUndo',JSON.stringify({raw:previousRaw}));
+localStorage.setItem('kokoroSavedRooms',JSON.stringify(nextRooms));
+return true;
+}catch(error){
+try{
+if(previousUndo===null)localStorage.removeItem('kokoroSavedRoomsUndo');
+else if(previousUndo!==undefined)localStorage.setItem('kokoroSavedRoomsUndo',previousUndo);
+}catch(restoreError){console.warn('Undo snapshot rollback failed',restoreError);}
+document.getElementById('message').textContent='保存できませんでした。元のお部屋データは変更していません。端末の空き容量を確認してください。';
+return false;
+}
+}
+function undoSavedRoomChange(){
+let snapshot,currentRaw;
+try{
+const raw=localStorage.getItem('kokoroSavedRoomsUndo');
+if(raw===null){document.getElementById('message').textContent='取り消せる操作はありません。';return;}
+snapshot=JSON.parse(raw);
+currentRaw=localStorage.getItem('kokoroSavedRooms');
+if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||!Object.prototype.hasOwnProperty.call(snapshot,'raw'))throw new Error('invalid undo snapshot');
+const previous=snapshot.raw===null?{}:JSON.parse(snapshot.raw);
+if(!validSavedRooms(previous))throw new Error('invalid previous saved rooms');
+if(currentRaw!==null&&!validSavedRooms(JSON.parse(currentRaw)))throw new Error('invalid current saved rooms');
+const currentSnapshot=JSON.stringify({raw:currentRaw});
+localStorage.setItem('kokoroSavedRoomsUndo',currentSnapshot);
+localStorage.setItem('kokoroSavedRooms',JSON.stringify(previous));
+}catch(error){
+document.getElementById('message').textContent='取り消しデータを確認できないか、保存できませんでした。現在のデータは保護しています。';
+return;
+}
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+refreshSavedRooms();
+document.getElementById('savedRooms').focus();
+document.getElementById('message').textContent='↩️ 直前のお部屋一覧の変更を取り消しました。もう一度押すと、取り消し前に戻せます。';
+}
 function refreshSavedRooms(){
 const select=document.getElementById('savedRooms');
 if(!select)return;
@@ -778,7 +827,7 @@ if(Object.prototype.hasOwnProperty.call(rooms,clean)&&!confirm('「'+clean+'」�
 if(!Object.prototype.hasOwnProperty.call(rooms,clean)&&Object.keys(rooms).length>=100){document.getElementById('message').textContent='保存できるお部屋は100個までです。';return;}
 rooms[clean]=roomData();
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='このお部屋は保存できません。内容を確認してね。';return;}
-if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
+if(!saveSavedRoomsWithUndo(rooms))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 const savedRoomSelect=document.getElementById('savedRooms');
@@ -819,7 +868,7 @@ if(clean.length>80){document.getElementById('message').textContent='お部屋の
 if(Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
 try{rooms[clean]=JSON.parse(JSON.stringify(rooms[oldName]));}catch(error){document.getElementById('message').textContent='お部屋を複製できませんでした。元データは変更していません。';return;}
 if(!validSavedRooms(rooms)){delete rooms[clean];document.getElementById('message').textContent='複製したお部屋の内容を確認できないため、保存を中止しました。';return;}
-if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
+if(!saveSavedRoomsWithUndo(rooms))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 select.value=clean;
@@ -842,7 +891,7 @@ if(Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('m
 rooms[clean]=rooms[oldName];
 if(clean!==oldName)delete rooms[oldName];
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='この変更は保存できません。内容を確認してね。';return;}
-if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
+if(!saveSavedRoomsWithUndo(rooms))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();select.value=clean;select.focus();
 document.getElementById('message').textContent='✏️ お部屋の名前を「'+clean+'」に変更しました！';
@@ -856,7 +905,7 @@ if(rooms===null){document.getElementById('message').textContent='保存データ
 if(!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='選んだお部屋が見つかりません。';return;}
 delete rooms[name];
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='削除内容を保存できません。';return;}
-if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
+if(!saveSavedRoomsWithUndo(rooms))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 document.getElementById('savedRooms').focus();
