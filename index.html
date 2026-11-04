@@ -929,7 +929,7 @@ const input=document.getElementById("backupFile");
 const file=input.files&&input.files[0];
 const message=document.getElementById("backupMessage");
 if(!file){message.textContent="先にバックアップファイルを選んでね。";return;}
-if(file.size>MAX_BACKUP_BYTES){message.textContent="ファイルが大きすぎます。10MB以下のバックアップを選んでね。";return;}
+if(file.size>MAX_BACKUP_BYTES){message.textContent="ファイルが大きすぎます。10MB以下のバックアップを選んでね。";input.value="";return;}
 const reader=new FileReader();
 reader.onload=()=>{
 try{
