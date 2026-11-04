@@ -530,9 +530,16 @@ const name=document.getElementById('savedRooms').value;
 const rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データを保護しています。';return;}
 if(!name||!rooms[name]){document.getElementById('message').textContent='開きたいお部屋を選んでね。';return;}
-applyRoom(rooms[name]);
-if(window.kokoroQueueSync)window.kokoroQueueSync();
-document.getElementById('message').textContent='🏡「'+name+'」を開きました。'
+try{
+if(applyRoom(rooms[name])!==true){
+document.getElementById('message').textContent='お部屋を復元できませんでした。保存データは変更していません。';
+return;
+}
+document.getElementById('message').textContent='🏡「'+name+'」を開きました。';
+}catch(error){
+console.error('Saved room restore failed',error);
+document.getElementById('message').textContent='お部屋の復元中に問題が起きました。保存データは残しています。';
+}
 }
 function renameSavedRoom(){
 const select=document.getElementById('savedRooms');
