@@ -137,6 +137,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
+<button onclick="duplicateSavedRoom()">📑 選んだお部屋を複製</button>
 <button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
 </div>
 <button onclick="resetRoom()">リセット</button>
@@ -678,6 +679,27 @@ document.getElementById('message').textContent='🏡「'+name+'」を開きま�
 console.error('Saved room restore failed',error);
 document.getElementById('message').textContent='お部屋の復元中に問題が起きました。保存データは残しています。';
 }
+}
+function duplicateSavedRoom(){
+const select=document.getElementById('savedRooms');
+const oldName=select.value;
+const rooms=savedRoomData();
+if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データを保護しています。';return;}
+if(!oldName||!Object.prototype.hasOwnProperty.call(rooms,oldName)){document.getElementById('message').textContent='複製するお部屋を選んでね。';return;}
+if(Object.keys(rooms).length>=100){document.getElementById('message').textContent='保存できるお部屋は100個までです。先に不要なお部屋を整理してね。';return;}
+const newName=prompt('複製したお部屋の名前を入力してね',oldName+' のコピー');
+if(!newName||!newName.trim())return;
+const clean=newName.trim();
+if(["__proto__","constructor","prototype"].includes(clean)){document.getElementById('message').textContent='この名前は使えません。別の名前にしてね。';return;}
+if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
+if(Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
+try{rooms[clean]=JSON.parse(JSON.stringify(rooms[oldName]));}catch(error){document.getElementById('message').textContent='お部屋を複製できませんでした。元データは変更していません。';return;}
+if(!validSavedRooms(rooms)){delete rooms[clean];document.getElementById('message').textContent='複製したお部屋の内容を確認できないため、保存を中止しました。';return;}
+if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+refreshSavedRooms();
+select.value=clean;
+document.getElementById('message').textContent='📑「'+oldName+'」を「'+clean+'」として複製しました！';
 }
 function renameSavedRoom(){
 const select=document.getElementById('savedRooms');
