@@ -202,6 +202,10 @@ const wallBefore=room.style.cssText;
 const floor=document.getElementById('floor');
 const floorBefore=floor.style.cssText;
 change();
+if(room.style.cssText===wallBefore&&floor.style.cssText===floorBefore){
+document.getElementById('message').textContent='このデザインはすでに選択されています。';
+return false;
+}
 if(!autoSaveRoom()){
 room.style.cssText=wallBefore;
 floor.style.cssText=floorBefore;
