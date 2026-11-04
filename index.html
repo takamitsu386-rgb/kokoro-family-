@@ -1160,6 +1160,8 @@ function storeCloudDataSafely(data) {
 let uploadQueue = Promise.resolve();
 let syncInProgress = false;
 let syncPending = false;
+let syncRetryCount = 0;
+let syncRetryTimer = null;
 function flushPendingSync() {
   if (!syncPending) return;
   syncPending = false;
@@ -1286,12 +1288,27 @@ function queueSync() {
     try {
       await uploadLocal(queuedUid);
       if (currentUser && currentUser.uid === queuedUid) {
+        clearTimeout(syncRetryTimer);
+        syncRetryTimer = null;
+        syncRetryCount = 0;
         status("自動同期しました。");
         markCloudSync(queuedUid);
       }
     } catch (error) {
       console.error(error);
-      if (currentUser && currentUser.uid === queuedUid) status("クラウド同期に失敗しました。端末内には保存されています。");
+      if (currentUser && currentUser.uid === queuedUid) {
+        status("クラウド同期に失敗しました。端末内には保存されています。");
+        if (syncRetryCount < 3) {
+          const delay = [3000, 10000, 30000][syncRetryCount++];
+          clearTimeout(syncRetryTimer);
+          syncRetryTimer = setTimeout(() => {
+            syncRetryTimer = null;
+            if (currentUser && currentUser.uid === queuedUid) queueSync();
+          }, delay);
+        } else {
+          status("自動再試行を3回行いました。端末内データは保存済みです。通信復帰後か「同期する」から再試行できます。");
+        }
+      }
     }
   }, 900);
 }
