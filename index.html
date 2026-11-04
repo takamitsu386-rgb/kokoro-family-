@@ -836,16 +836,18 @@ function applyCloudDataSafely(data) {
       throw new Error("クラウドのお部屋を画面に反映できませんでした。");
     }
     storeCloudDataSafely(data);
-    if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
-    return true;
   } catch (error) {
     const restored = restorePreviousRoom();
-    if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
     if (!restored) {
       throw new Error("クラウドの読み込みに失敗し、元のお部屋表示も復元できませんでした。端末の保存データは確認せずに消去しないでください。");
     }
     throw error;
   }
+  if (typeof window.refreshSavedRooms === "function") {
+    try { window.refreshSavedRooms(); }
+    catch (refreshError) { console.error("Saved room list refresh failed", refreshError); }
+  }
+  return true;
 }
 function storeCloudDataSafely(data) {
   let previousRoom, previousSavedRooms;
