@@ -451,8 +451,17 @@ document.getElementById('savedRoomCount').textContent='💾 保存したお部�
 function autoSaveRoom(){
 try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));if(window.kokoroQueueSync)window.kokoroQueueSync();}catch(e){}
 }
+function safeWriteLocalStorage(key,value){
+try{
+localStorage.setItem(key,value);
+return true;
+}catch(error){
+document.getElementById('message').textContent='保存できませんでした。端末の空き容量を確認してね。';
+return false;
+}
+}
 function saveRoom(){
-localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));
+if(!safeWriteLocalStorage('kokoroRoom',JSON.stringify(roomData())))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 document.getElementById('message').textContent='✅ 今のお部屋をこの端末に保存しました！';
 }
@@ -465,7 +474,7 @@ if(clean.length>80){document.getElementById('message').textContent='お部屋の
 if(!Object.prototype.hasOwnProperty.call(rooms,clean)&&Object.keys(rooms).length>=100){document.getElementById('message').textContent='保存できるお部屋は100個までです。';return;}
 rooms[clean]=roomData();
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='このお部屋は保存できません。内容を確認してね。';return;}
-localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 document.getElementById('savedRooms').value=clean;
