@@ -808,11 +808,16 @@ function storeCloudDataSafely(data) {
   }
 }
 let uploadQueue = Promise.resolve();
+let syncInProgress = false;
+function setSyncBusy(busy) {
+  if (syncButton) syncButton.disabled = busy || !currentUser;
+  if (downloadButton) downloadButton.disabled = busy || !currentUser;
+}
 async function uploadLocal(uid = currentUser?.uid) {
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
-  const payload = localPayload();
   const task = uploadQueue.catch(() => {}).then(async () => {
     if (!currentUser || currentUser.uid !== uid) throw new Error("同期待ちの間にGoogleアカウントが切り替わりました。もう一度同期してください。");
+    const payload = localPayload();
     await setDoc(cloudRef(uid), {
       ...payload,
       updatedAt: serverTimestamp()
@@ -824,6 +829,10 @@ async function uploadLocal(uid = currentUser?.uid) {
 }
 async function downloadCloud() {
   if (!currentUser) throw new Error("ログインしてください。");
+  if (syncInProgress) { status("別の同期処理が進行中です。完了してからお試しください。"); return false; }
+  syncInProgress = true;
+  setSyncBusy(true);
+  try {
   const uid = currentUser.uid;
   const snapshot = await getDoc(cloudRef(uid));
   if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
@@ -843,9 +852,16 @@ async function downloadCloud() {
   markCloudSync(uid);
   status("クラウドから読み込みました。端末内にも保存済みです。");
   return true;
+  } finally {
+    syncInProgress = false;
+    setSyncBusy(false);
+  }
 }
 async function syncNow() {
   if (!currentUser) { status("先にGoogleでログインしてください。"); return; }
+  if (syncInProgress) { status("別の同期処理が進行中です。完了してからお試しください。"); return; }
+  syncInProgress = true;
+  setSyncBusy(true);
   const uid = currentUser.uid;
   status("同期を確認しています…");
   try {
@@ -879,6 +895,9 @@ async function syncNow() {
   } catch (error) {
     console.error(error);
     status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
+  } finally {
+    syncInProgress = false;
+    setSyncBusy(false);
   }
 }
 function queueSync() {
