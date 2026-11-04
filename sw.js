@@ -1,5 +1,5 @@
-// Updated to keep backup download URLs available longer on mobile.
-const CACHE_NAME="kokoro-family-v53";
+// Updated backup export cleanup to run even when the download click fails.
+const CACHE_NAME="kokoro-family-v54";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
