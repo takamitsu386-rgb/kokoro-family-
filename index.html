@@ -655,6 +655,7 @@ if(["__proto__","constructor","prototype"].includes(clean)){document.getElementB
 const rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れないため、上書きを中止しました。元データを保護しています。';return;}
 if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
+if(Object.prototype.hasOwnProperty.call(rooms,clean)&&!confirm('「'+clean+'」はすでにあります。今のお部屋で上書きしますか？'))return;
 if(!Object.prototype.hasOwnProperty.call(rooms,clean)&&Object.keys(rooms).length>=100){document.getElementById('message').textContent='保存できるお部屋は100個までです。';return;}
 rooms[clean]=roomData();
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='このお部屋は保存できません。内容を確認してね。';return;}
