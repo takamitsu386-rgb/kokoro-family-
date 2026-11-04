@@ -853,23 +853,19 @@ refreshSavedRooms();
 document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を「'+category+'」に分類しました。';
 }
 function deleteBulkSavedRooms(){
-const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
-if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データまたは設定を読み取れません。';return;}
+const rooms=savedRoomData();
+if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データを保護しています。';return;}
 const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name));
 if(!selected.length){document.getElementById('message').textContent='削除するお部屋を選んでください。';return;}
 if(!confirm(selected.length+'個のお部屋を削除しますか？この操作は「取り消し」で戻せます。'))return;
 const nextRooms={...rooms};
 selected.forEach(name=>delete nextRooms[name]);
 if(!saveSavedRoomsWithUndo(nextRooms))return;
-prefs.categories=prefs.categories||{};
-prefs.favorites=prefs.favorites.filter(name=>!selected.includes(name));
-prefs.order=prefs.order.filter(name=>!selected.includes(name));
-selected.forEach(name=>delete prefs.categories[name]);
-if(!writeSavedRoomPrefs(prefs)){document.getElementById('message').textContent='お部屋は削除しましたが、カテゴリ・お気に入り設定の整理は保存できませんでした。';}
+// Keep preference entries so undoing the deletion restores favorites and categories too.
 bulkSavedRoomSelection.clear();
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
-document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を削除しました。取り消しボタンで保存一覧を戻せます。';
+document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を削除しました。取り消すとカテゴリやお気に入り設定も再表示されます。';
 }
 function refreshSavedRooms(){
 const select=document.getElementById('savedRooms');
