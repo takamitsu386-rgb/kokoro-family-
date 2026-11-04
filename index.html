@@ -1032,11 +1032,20 @@ async function syncNow() {
 }
 function queueSync() {
   if (!currentUser) return;
+  const queuedUid = currentUser.uid;
+  let syncWasInitialized = initializedSyncForUid === queuedUid;
+  if (!syncWasInitialized) {
+    try { syncWasInitialized = localStorage.getItem("kokoroCloudSyncUid") === queuedUid; }
+    catch (storageError) { console.warn("Cloud sync state could not be read", storageError); }
+  }
+  if (!syncWasInitialized) {
+    status("初回同期がまだです。「同期する」を押して保存先を選んでください。");
+    return;
+  }
   if (syncInProgress) {
     syncPending = true;
     return;
   }
-  const queuedUid = currentUser.uid;
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = setTimeout(async () => {
     window.__kokoroSyncTimer = null;
