@@ -949,6 +949,7 @@ input.value="";
 return;
 }
 reader.onload=()=>{
+let rollbackFailed=false;
 try{
 const data=JSON.parse(reader.result);
 if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoomData(data.currentRoom)||
@@ -978,6 +979,7 @@ if(applyRoom(previousDisplayRoom,false)!==true)throw new Error("previous room di
 refreshSavedRooms();
 }catch(rollbackError){
 console.error("Backup import rollback failed",rollbackError);
+rollbackFailed=true;
 message.textContent="読み込みに失敗し、元データの復元も完了できませんでした。端末内の退避データを確認してください。";
 throw importError;
 }
@@ -989,7 +991,7 @@ message.textContent="✅ バックアップを読み込みました。読み込�
 }
 }catch(e){
 console.error("Backup import failed",e);
-message.textContent="読み込めませんでした。ファイル形式やデータ内容を確認してね。";
+if(!rollbackFailed)message.textContent="読み込めませんでした。ファイル形式やデータ内容を確認してね。";
 }finally{
 input.value="";
 }
