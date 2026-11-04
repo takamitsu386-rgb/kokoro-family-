@@ -515,7 +515,12 @@ return false;
 }
 }
 function saveRoom(){
-if(!safeWriteLocalStorage('kokoroRoom',JSON.stringify(roomData())))return;
+const data=roomData();
+if(!validRoomData(data)){
+document.getElementById('message').textContent='このお部屋は保存できません。内容を確認してください。前回の保存データは保護しています。';
+return;
+}
+if(!safeWriteLocalStorage('kokoroRoom',JSON.stringify(data)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 document.getElementById('message').textContent='✅ 今のお部屋をこの端末に保存しました！';
 }
