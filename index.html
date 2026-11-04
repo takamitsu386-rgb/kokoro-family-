@@ -820,19 +820,30 @@ function applyCloudDataSafely(data) {
   if (!validRoomData(previousRoom)) {
     throw new Error("現在のお部屋を安全に退避できないため、クラウドデータは反映しませんでした。");
   }
-  if (typeof window.applyRoom !== "function" || window.applyRoom(data.currentRoom, false) !== true) {
-    window.applyRoom(previousRoom, false);
-    throw new Error("クラウドのお部屋を画面に反映できませんでした。端末内データは変更していません。");
-  }
+  const restorePreviousRoom = () => {
+    if (typeof window.applyRoom !== "function") return false;
+    try {
+      return window.applyRoom(previousRoom, false) === true;
+    } catch (restoreError) {
+      console.error("Previous room restore failed", restoreError);
+      return false;
+    }
+  };
   try {
+    if (typeof window.applyRoom !== "function" || window.applyRoom(data.currentRoom, false) !== true) {
+      throw new Error("クラウドのお部屋を画面に反映できませんでした。");
+    }
     storeCloudDataSafely(data);
-  } catch (error) {
-    window.applyRoom(previousRoom, false);
     if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+    return true;
+  } catch (error) {
+    const restored = restorePreviousRoom();
+    if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+    if (!restored) {
+      throw new Error("クラウドの読み込みに失敗し、元のお部屋表示も復元できませんでした。端末の保存データは確認せずに消去しないでください。");
+    }
     throw error;
   }
-  if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
-  return true;
 }
 function storeCloudDataSafely(data) {
   let previousRoom, previousSavedRooms;
