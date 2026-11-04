@@ -1,5 +1,5 @@
-// Updated with visible keyboard focus for furniture selection controls.
-const CACHE_NAME="kokoro-family-v32";
+// Updated with live furniture category counts for assistive technology.
+const CACHE_NAME="kokoro-family-v33";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
