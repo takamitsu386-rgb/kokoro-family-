@@ -367,7 +367,7 @@ selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
 autoSaveRoom();
 }
 function drag(el){
-let moving=false,grabX=0,grabY=0,activePointerId=null;
+let moving=false,grabX=0,grabY=0,activePointerId=null,originalLeft='',originalTop='';
 const handle=el.querySelector('.drag-handle');
 handle.setAttribute('role','button');
 handle.setAttribute('tabindex','0');
@@ -378,18 +378,26 @@ const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
 const move=moves[e.key];
 if(!move)return;
 e.preventDefault();
+const previousLeft=el.style.left,previousTop=el.style.top;
 const step=e.shiftKey?30:10;
 const left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),el.offsetLeft+move[0]*step));
 const top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),el.offsetTop+move[1]*step));
 el.style.left=left+'px';
 el.style.top=top+'px';
-autoSaveRoom();
+if(!autoSaveRoom()){
+el.style.left=previousLeft;
+el.style.top=previousTop;
+}
 });
 const stop=e=>{
 if(!moving||(e&&e.pointerId!==activePointerId))return;
 moving=false;
 activePointerId=null;
-autoSaveRoom();
+if(!autoSaveRoom()){
+el.style.left=originalLeft;
+el.style.top=originalTop;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元の位置に戻しました。';
+}
 };
 handle.addEventListener('pointerdown',e=>{
 if(moving)return;
@@ -405,6 +413,8 @@ console.warn('Furniture pointer capture failed',captureError);
 document.getElementById('selectedMessage').textContent='この操作では家具をつかめませんでした。もう一度試してね。';
 return;
 }
+originalLeft=el.style.left;
+originalTop=el.style.top;
 moving=true;
 activePointerId=e.pointerId;
 });
