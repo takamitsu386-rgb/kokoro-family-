@@ -566,10 +566,10 @@ function localPayload() {
 function cloudRef(uid) {
   return doc(db, "users", uid, "kokoro", "data");
 }
-async function uploadLocal() {
-  if (!currentUser) throw new Error("ログインしてください。");
+async function uploadLocal(uid = currentUser?.uid) {
+  if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
   const payload = localPayload();
-  await setDoc(cloudRef(currentUser.uid), {
+  await setDoc(cloudRef(uid), {
     ...payload,
     updatedAt: serverTimestamp()
   });
@@ -636,15 +636,20 @@ async function syncNow() {
 }
 function queueSync() {
   if (!currentUser) return;
+  const queuedUid = currentUser.uid;
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = setTimeout(async () => {
+    window.__kokoroSyncTimer = null;
+    if (!currentUser || currentUser.uid !== queuedUid) return;
     try {
-      await uploadLocal();
-      status("自動同期しました。");
-      localStorage.setItem("kokoroCloudSyncUid", currentUser.uid);
+      await uploadLocal(queuedUid);
+      if (currentUser && currentUser.uid === queuedUid) {
+        status("自動同期しました。");
+        localStorage.setItem("kokoroCloudSyncUid", queuedUid);
+      }
     } catch (error) {
       console.error(error);
-      status("クラウド同期に失敗しました。端末内には保存されています。");
+      if (currentUser && currentUser.uid === queuedUid) status("クラウド同期に失敗しました。端末内には保存されています。");
     }
   }, 900);
 }
@@ -671,11 +676,15 @@ try {
     catch (error) { status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。"); }
   });
   logoutButton.addEventListener("click", async () => {
-    try { await signOut(auth); initializedSyncForUid = null; status("ログアウトしました。端末内データは残っています。"); }
+    try { clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null; await signOut(auth); initializedSyncForUid = null; status("ログアウトしました。端末内データは残っています。"); }
     catch (error) { status("ログアウトできません：" + (error.code || error.message)); }
   });
   await getRedirectResult(auth).catch(error => status("ログイン結果を確認できません：" + (error.code || error.message)));
   onAuthStateChanged(auth, user => {
+    if (currentUser?.uid !== user?.uid) {
+      clearTimeout(window.__kokoroSyncTimer);
+      window.__kokoroSyncTimer = null;
+    }
     currentUser = user;
     loginButton.disabled = !!user;
     syncButton.disabled = !user;
