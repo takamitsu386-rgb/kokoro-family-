@@ -179,6 +179,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>バックアップファイルやクラウドを読み込む直前の状態に戻せます。復元前の現在データも別に退避します。</p>
 <button type="button" onclick="restorePreviousData('backup')">ファイル読み込み前に戻す</button>
 <button type="button" onclick="restorePreviousData('cloud')">クラウド読み込み前に戻す</button>
+<button type="button" onclick="restorePreviousData('recovery')">直前の復元操作の前に戻す</button>
 </div>
 </section>
 
@@ -1052,6 +1053,8 @@ function restorePreviousData(source){
 const message=document.getElementById("backupMessage");
 const keys=source==="cloud"
 ?{room:"kokoroRoomBeforeCloudImport",saved:"kokoroSavedRoomsBeforeCloudImport",label:"クラウド読み込み前"}
+:source==="recovery"
+?{room:"kokoroRoomBeforeRecovery",saved:"kokoroSavedRoomsBeforeRecovery",label:"直前の復元操作前"}
 :{room:"kokoroRoomBeforeImport",saved:"kokoroSavedRoomsBeforeImport",label:"バックアップファイル読み込み前"};
 let roomRaw,savedRaw;
 try{
@@ -1092,7 +1095,7 @@ message.textContent="現在のお部屋を安全に退避できないため、�
 return;
 }
 try{
-localStorage.setItem("kokoroRoomBeforeRecovery",currentRoom||"");
+localStorage.setItem("kokoroRoomBeforeRecovery",currentRoom||JSON.stringify(currentDisplay));
 localStorage.setItem("kokoroSavedRoomsBeforeRecovery",currentSaved||"{}");
 localStorage.setItem("kokoroRoom",JSON.stringify(previousRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(previousSavedRooms));
