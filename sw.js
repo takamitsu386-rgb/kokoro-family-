@@ -1,5 +1,5 @@
-// Updated with saved-room rename guard and keyboard movement guidance.
-const CACHE_NAME="kokoro-family-v24";
+// Updated with in-room furniture placement and saved-room safeguards.
+const CACHE_NAME="kokoro-family-v25";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
