@@ -433,6 +433,7 @@ document.getElementById('selectedMessage').textContent='家具をお部屋の真
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
 const previous=selectedFurniture.style.fontSize;
+const previousLeft=selectedFurniture.style.left,previousTop=selectedFurniture.style.top;
 const current=parseFloat(previous)||38;
 const next=Math.max(20,Math.min(80,current*factor))+'px';
 if(next===previous){
@@ -440,9 +441,15 @@ document.getElementById('selectedMessage').textContent='これ以上、大きさ
 return;
 }
 selectedFurniture.style.fontSize=next;
+const maxLeft=Math.max(0,room.clientWidth-selectedFurniture.offsetWidth);
+const maxTop=Math.max(0,room.clientHeight-selectedFurniture.offsetHeight);
+selectedFurniture.style.left=Math.min(maxLeft,Math.max(0,selectedFurniture.offsetLeft))+'px';
+selectedFurniture.style.top=Math.min(maxTop,Math.max(0,selectedFurniture.offsetTop))+'px';
 if(!autoSaveRoom()){
 selectedFurniture.style.fontSize=previous;
-document.getElementById('selectedMessage').textContent='保存できなかったため、家具の大きさを元に戻しました。';
+selectedFurniture.style.left=previousLeft;
+selectedFurniture.style.top=previousTop;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具の大きさと位置を元に戻しました。';
 return;
 }
 document.getElementById('selectedMessage').textContent='家具の大きさを変更したよ！';
