@@ -1769,6 +1769,19 @@ function validSavedRoomPrefs(value) {
 function defaultSavedRoomPrefs() {
   return { favorites: [], order: [], categories: {}, notes: {} };
 }
+function validCloudData(data) {
+  try {
+    if (!data || typeof data !== "object" || data.version !== 1 ||
+        !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) return false;
+    const prefs = data.savedRoomPrefs === undefined ? defaultSavedRoomPrefs() : data.savedRoomPrefs;
+    if (!validSavedRoomPrefs(prefs)) return false;
+    const payload = { version: 1, currentRoom: data.currentRoom, savedRooms: data.savedRooms, savedRoomPrefs: prefs };
+    return new TextEncoder().encode(JSON.stringify(payload)).length <= 900 * 1024;
+  } catch (error) {
+    console.warn("Cloud data validation failed", error);
+    return false;
+  }
+}
 function localPayload() {
   let currentRoom, savedRooms, savedRoomPrefs;
   try {
@@ -1932,8 +1945,8 @@ async function downloadCloud() {
     return false;
   }
   const data = snapshot.data();
-  if (data.version !== 1 || !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) {
-    throw new Error("クラウドデータの形式を確認できません。端末内データは変更していません。");
+  if (!validCloudData(data)) {
+    throw new Error("クラウドデータの形式またはサイズを確認できません。端末内データは変更していません。");
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
   if (!currentUser || currentUser.uid !== uid) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
@@ -1975,8 +1988,8 @@ async function syncNow() {
       const useCloud = confirm("このアカウントにはクラウドデータがあります。OK：クラウドから読み込む／キャンセル：この端末のデータをクラウドへ保存する");
       if (useCloud) {
         const data = snapshot.data();
-        if (data.version !== 1 || !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) {
-          throw new Error("クラウドデータの形式が違います。端末内データは変更していません。");
+        if (!validCloudData(data)) {
+          throw new Error("クラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
         }
         if (!currentUser || currentUser.uid !== uid) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
         applyCloudDataSafely(data);
