@@ -250,9 +250,13 @@ function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
 }
 function addFurniture(icon,persist=true){
+if(typeof icon!=='string'||!icon||icon.length>8){
+document.getElementById('selectedMessage').textContent='家具のデータが正しくありません。';
+return null;
+}
 if(room.querySelectorAll('.furniture').length>=300){
 document.getElementById('selectedMessage').textContent='家具は300個まで置けます。';
-return;
+return null;
 }
 const item=document.createElement('div');
 item.className='furniture';
@@ -275,7 +279,7 @@ room.appendChild(item);
 drag(item);
 updateFurnitureCount();
 if(persist)autoSaveRoom();
-
+return item;
 }
 function selectFurniture(el){
 selectedFurniture=el;
@@ -453,8 +457,8 @@ room.style.backgroundRepeat=data.wallRepeat||'repeat';
 document.getElementById('floor').style.backgroundColor=data.floor||floorColors[0];
 document.getElementById('floor').style.backgroundImage=data.floorImage||'none';
 (data.items||[]).forEach(v=>{
-addFurniture(v.icon,false);
-const el=room.lastElementChild;
+const el=addFurniture(v.icon,false);
+if(!el)throw new Error('Furniture could not be restored');
 el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
