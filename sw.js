@@ -1,5 +1,5 @@
-// Updated with furniture rollback ordering and cloud-sync safeguards.
-const CACHE_NAME="kokoro-family-v16";
+// Updated with furniture layer rollback and cloud-sync safeguards.
+const CACHE_NAME="kokoro-family-v17";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
