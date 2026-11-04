@@ -428,7 +428,7 @@ validPosition(item.left)&&validPosition(item.top)&&
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
 Object.keys(value).length<=100&&
-Object.entries(value).every(([name,data])=>typeof name==="string"&&name.trim().length>0&&name.length<=80&&validRoomData(data));
+Object.entries(value).every(([name,data])=>typeof name==="string"&&name.trim().length>0&&name.length<=80&&!["__proto__","constructor","prototype"].includes(name)&&validRoomData(data));
 }
 function roomData(){
 return {
@@ -528,6 +528,7 @@ function saveAsRoom(){
 const name=prompt('お部屋の名前をつけてね（例：ピンクのお部屋）');
 if(!name||!name.trim())return;
 const clean=name.trim();
+if(["__proto__","constructor","prototype"].includes(clean)){document.getElementById('message').textContent='この名前は使えません。別の名前にしてね。';return;}
 const rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れないため、上書きを中止しました。元データを保護しています。';return;}
 if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
@@ -565,6 +566,7 @@ if(!oldName||!rooms[oldName]){document.getElementById('message').textContent='�
 const newName=prompt('新しいお部屋の名前を入力してね',oldName);
 if(!newName||!newName.trim())return;
 const clean=newName.trim();
+if(["__proto__","constructor","prototype"].includes(clean)){document.getElementById('message').textContent='この名前は使えません。別の名前にしてね。';return;}
 if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
 if(clean!==oldName&&Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
 rooms[clean]=rooms[oldName];
