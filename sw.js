@@ -1,5 +1,5 @@
-// Updated to retry cloud sync when network connectivity returns.
-const CACHE_NAME="kokoro-family-v51";
+// Updated to explain safe device switching for cloud sync.
+const CACHE_NAME="kokoro-family-v52";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
