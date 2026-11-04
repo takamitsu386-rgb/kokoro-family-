@@ -1699,20 +1699,40 @@ function validSavedRooms(value) {
     Object.keys(value).length <= 100 &&
     Object.entries(value).every(([name, room]) => name.trim().length > 0 && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name) && validRoomData(room));
 }
+function validSavedRoomPrefs(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value) &&
+    Array.isArray(value.favorites) && Array.isArray(value.order) &&
+    value.favorites.length <= 100 && value.order.length <= 100 &&
+    value.favorites.every(name => typeof name === "string" && name.length <= 80) &&
+    value.order.every(name => typeof name === "string" && name.length <= 80) &&
+    new Set(value.favorites).size === value.favorites.length &&
+    new Set(value.order).size === value.order.length &&
+    !!value.categories && typeof value.categories === "object" && !Array.isArray(value.categories) &&
+    Object.keys(value.categories).length <= 100 &&
+    Object.entries(value.categories).every(([name, category]) => typeof name === "string" && name.length <= 80 && typeof category === "string" && category.length <= 24) &&
+    !!value.notes && typeof value.notes === "object" && !Array.isArray(value.notes) &&
+    Object.keys(value.notes).length <= 100 &&
+    Object.entries(value.notes).every(([name, note]) => typeof name === "string" && name.length <= 80 && typeof note === "string" && note.length <= 500);
+}
+function defaultSavedRoomPrefs() {
+  return { favorites: [], order: [], categories: {}, notes: {} };
+}
 function localPayload() {
-  let currentRoom, savedRooms;
+  let currentRoom, savedRooms, savedRoomPrefs;
   try {
     const currentRaw = localStorage.getItem("kokoroRoom");
     const savedRaw = localStorage.getItem("kokoroSavedRooms");
+    const prefsRaw = localStorage.getItem("kokoroSavedRoomPrefs");
     currentRoom = currentRaw === null ? null : JSON.parse(currentRaw);
     savedRooms = savedRaw === null ? {} : JSON.parse(savedRaw);
+    savedRoomPrefs = prefsRaw === null ? defaultSavedRoomPrefs() : JSON.parse(prefsRaw);
   } catch {
     throw new Error("端末内の保存データを読み取れません。バックアップを確認してください。");
   }
-  if (!validRoomData(currentRoom) || !validSavedRooms(savedRooms)) {
+  if (!validRoomData(currentRoom) || !validSavedRooms(savedRooms) || !validSavedRoomPrefs(savedRoomPrefs)) {
     throw new Error("端末内の保存データの形式が正しくありません。クラウドへの上書きを中止しました。");
   }
-  const payload = { version: 1, currentRoom, savedRooms };
+  const payload = { version: 1, currentRoom, savedRooms, savedRoomPrefs };
   const payloadBytes = new TextEncoder().encode(JSON.stringify(payload)).length;
   if (payloadBytes > 900 * 1024) {
     throw new Error("クラウド保存データが大きすぎます。保存したお部屋や家具を整理してください。端末内データはそのままです。");
@@ -1736,6 +1756,7 @@ function markCloudSync(uid) {
 }
 function applyCloudDataSafely(data) {
   const previousRoom = window.roomData();
+  const previousPrefsRaw = localStorage.getItem("kokoroSavedRoomPrefs");
   if (!validRoomData(previousRoom)) {
     throw new Error("現在のお部屋を安全に退避できないため、クラウドデータは反映しませんでした。");
   }
@@ -1755,6 +1776,13 @@ function applyCloudDataSafely(data) {
     storeCloudDataSafely(data, previousRoom);
   } catch (error) {
     const restored = restorePreviousRoom();
+    try {
+      if (previousPrefsRaw === null) localStorage.removeItem("kokoroSavedRoomPrefs");
+      else localStorage.setItem("kokoroSavedRoomPrefs", previousPrefsRaw);
+      if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+    } catch (prefsRestoreError) {
+      console.error("Saved room preferences rollback failed", prefsRestoreError);
+    }
     if (!restored) {
       throw new Error("クラウドの読み込みに失敗し、元のお部屋表示も復元できませんでした。端末の保存データは確認せずに消去しないでください。");
     }
@@ -1767,18 +1795,23 @@ function applyCloudDataSafely(data) {
   return true;
 }
 function storeCloudDataSafely(data, previousDisplayRoom) {
-  let previousRoom, previousSavedRooms;
+  let previousRoom, previousSavedRooms, previousPrefs;
+  const incomingPrefs = data.savedRoomPrefs === undefined ? defaultSavedRoomPrefs() : data.savedRoomPrefs;
+  if (!validSavedRoomPrefs(incomingPrefs)) throw new Error("クラウドのお気に入り・カテゴリ・メモの形式が正しくありません。端末内データは変更していません。");
   try {
     previousRoom = localStorage.getItem("kokoroRoom");
     previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
+    previousPrefs = localStorage.getItem("kokoroSavedRoomPrefs");
   } catch (readError) {
     throw new Error("端末内の保存データを読み取れないため、クラウドの内容は反映しませんでした。");
   }
   try {
     localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom === null ? JSON.stringify(previousDisplayRoom) : previousRoom);
     localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms === null ? "{}" : previousSavedRooms);
+    localStorage.setItem("kokoroSavedRoomPrefsBeforeCloudImport", previousPrefs === null ? JSON.stringify(defaultSavedRoomPrefs()) : previousPrefs);
     localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
     localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
+    localStorage.setItem("kokoroSavedRoomPrefs", JSON.stringify(incomingPrefs));
     return true;
   } catch (writeError) {
     try {
@@ -1786,6 +1819,8 @@ function storeCloudDataSafely(data, previousDisplayRoom) {
       else localStorage.setItem("kokoroRoom", previousRoom);
       if (previousSavedRooms === null) localStorage.removeItem("kokoroSavedRooms");
       else localStorage.setItem("kokoroSavedRooms", previousSavedRooms);
+      if (previousPrefs === null) localStorage.removeItem("kokoroSavedRoomPrefs");
+      else localStorage.setItem("kokoroSavedRoomPrefs", previousPrefs);
     } catch (rollbackError) {
       console.error("Cloud import rollback failed", rollbackError);
       throw new Error("端末への保存と元データの復元に失敗しました。ブラウザの保存領域を消去せず、復旧用コピーを確認してください。");
