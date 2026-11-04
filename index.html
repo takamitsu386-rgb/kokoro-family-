@@ -1007,6 +1007,7 @@ function flushPendingSync() {
 function setSyncBusy(busy) {
   if (syncButton) syncButton.disabled = busy || !currentUser;
   if (downloadButton) downloadButton.disabled = busy || !currentUser;
+  if (logoutButton) logoutButton.disabled = busy || !currentUser;
 }
 async function uploadLocal(uid = currentUser?.uid) {
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
@@ -1156,6 +1157,7 @@ try {
     catch (error) { status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。"); }
   });
   logoutButton.addEventListener("click", async () => {
+    if (syncInProgress) { status("同期処理が終わってからログアウトしてください。"); return; }
     try { clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null; await signOut(auth); initializedSyncForUid = null; status("ログアウトしました。端末内データは残っています。"); }
     catch (error) { status("ログアウトできません：" + (error.code || error.message)); }
   });
@@ -1170,7 +1172,7 @@ try {
     currentUser = user;
     loginButton.disabled = !!user;
     setSyncBusy(syncInProgress);
-    logoutButton.disabled = !user;
+    logoutButton.disabled = syncInProgress || !user;
     if (user) status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
     else status("未接続：この端末内に保存しています。");
   });
