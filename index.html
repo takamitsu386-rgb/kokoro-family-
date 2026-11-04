@@ -920,11 +920,17 @@ document.getElementById("backupMessage").textContent="バックアップが10MB�
 return;
 }
 const url=URL.createObjectURL(blob);
+setTimeout(()=>URL.revokeObjectURL(url),60000);
 const a=document.createElement("a");
 a.href=url;
 a.download="kokoro-family-backup-"+new Date().toISOString().slice(0,10)+".json";
-document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+try{
+document.body.appendChild(a);
+a.click();
 document.getElementById("backupMessage").textContent="✅ バックアップファイルを書き出しました。";
+}finally{
+a.remove();
+}
 }catch(e){
 document.getElementById("backupMessage").textContent="書き出しに失敗しました。";
 }
