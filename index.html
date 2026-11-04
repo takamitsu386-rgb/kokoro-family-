@@ -80,9 +80,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div class="room" id="room">
 <div class="floor" id="floor"></div>
 </div>
-<p id="message">家具を追加して、好きな場所に動かしてみよう。</p>
+<p id="message" role="status" aria-live="polite">家具を追加して、好きな場所に動かしてみよう。</p>
 <div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
-<p id="furnitureCount">🪑 お部屋の家具：0個</p>
+<p id="furnitureCount" role="status" aria-live="polite">🪑 お部屋の家具：0個</p>
 <p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。</p>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
@@ -124,7 +124,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
-<p id="selectedMessage">家具をタップして選んでね。</p>
+<p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
 <button onclick="duplicateSelected()">📑 選んだ家具をコピー</button>
@@ -134,7 +134,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="margin-top:10px">
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
 <select id="savedRooms" aria-label="保存したお部屋"><option value="">保存したお部屋を選ぶ</option></select>
-<p id="savedRoomCount">💾 保存したお部屋：0個</p>
+<p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
