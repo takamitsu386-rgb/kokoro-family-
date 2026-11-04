@@ -398,6 +398,7 @@ try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));if(window.koko
 }
 function saveRoom(){
 localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));
+if(window.kokoroQueueSync)window.kokoroQueueSync();
 document.getElementById('message').textContent='✅ 今のお部屋をこの端末に保存しました！';
 }
 function saveAsRoom(){
@@ -415,7 +416,8 @@ const name=document.getElementById('savedRooms').value;
 const rooms=savedRoomData();
 if(!name||!rooms[name]){document.getElementById('message').textContent='開きたいお部屋を選んでね。';return;}
 applyRoom(rooms[name]);
-document.getElementById('message').textContent='🏡「'+name+'」を開きました。';
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+document.getElementById('message').textContent='🏡「'+name+'」を開きました。'
 }
 function renameSavedRoom(){
 const select=document.getElementById('savedRooms');
@@ -429,6 +431,7 @@ if(clean!==oldName&&Object.prototype.hasOwnProperty.call(rooms,clean)){document.
 rooms[clean]=rooms[oldName];
 if(clean!==oldName)delete rooms[oldName];
 localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();select.value=clean;
 document.getElementById('message').textContent='✏️ お部屋の名前を「'+clean+'」に変更しました！';
 }
@@ -438,8 +441,9 @@ if(!name){document.getElementById('message').textContent='削除するお部屋�
 if(!confirm('「'+name+'」を削除しますか？'))return;
 const rooms=savedRoomData();delete rooms[name];
 localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
-document.getElementById('message').textContent='「'+name+'」を削除しました。';
+document.getElementById('message').textContent='「'+name+'」を削除しました。'
 }
 function loadRoom(){
 const raw=localStorage.getItem('kokoroRoom');
@@ -453,7 +457,7 @@ selectedFurniture=null;
 room.style.background=wallColors[0];room.style.backgroundImage='none';
 document.getElementById('floor').style.backgroundColor=floorColors[0];document.getElementById('floor').style.backgroundImage='none';
 updateFurnitureCount();
-localStorage.removeItem('kokoroRoom');
+autoSaveRoom();
 document.getElementById('selectedMessage').textContent='家具をタップして選んでね。';
 document.getElementById('message').textContent='🏡 お部屋を初期状態に戻しました。';
 }
@@ -506,6 +510,7 @@ localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
 applyRoom(data.currentRoom);
 refreshSavedRooms();
+if(window.kokoroQueueSync)window.kokoroQueueSync();
 message.textContent="✅ バックアップを読み込みました。読み込み直前のデータも端末内に退避しました。";
 }catch(e){
 message.textContent="読み込めませんでした。ファイル形式やデータ内容を確認してね。";
