@@ -294,7 +294,7 @@ function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
 }
 function addFurniture(icon,persist=true){
-if(typeof icon!=='string'||!icon||icon.length>8){
+if(typeof icon!=='string'||!icon||icon.length>8||!furnitureList.includes(icon)){
 document.getElementById('selectedMessage').textContent='家具のデータが正しくありません。';
 return null;
 }
