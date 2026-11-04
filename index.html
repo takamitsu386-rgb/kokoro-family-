@@ -1379,14 +1379,14 @@ try {
   });
   window.addEventListener("offline", () => {
     loginButton.disabled = true;
-    setSyncBusy(false);
+    setSyncBusy(syncInProgress);
     status(currentUser
       ? "通信がオフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再試行します。"
       : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
   });
   window.addEventListener("online", () => {
     loginButton.disabled = !!currentUser;
-    setSyncBusy(false);
+    setSyncBusy(syncInProgress);
     if (!currentUser) {
       status("通信が戻りました。Googleログインを利用できます。");
       return;
