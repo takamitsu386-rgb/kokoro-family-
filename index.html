@@ -1301,8 +1301,18 @@ rooms[clean]=rooms[oldName];
 if(clean!==oldName)delete rooms[oldName];
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='この変更は保存できません。内容を確認してね。';return;}
 if(!saveSavedRoomsWithUndo(rooms))return;
+const renamePrefs=readSavedRoomPrefs();
+if(renamePrefs){
+renamePrefs.notes=renamePrefs.notes||{};
+if(Object.prototype.hasOwnProperty.call(renamePrefs.notes,oldName)){renamePrefs.notes[clean]=renamePrefs.notes[oldName];delete renamePrefs.notes[oldName];}
+renamePrefs.categories=renamePrefs.categories||{};
+if(Object.prototype.hasOwnProperty.call(renamePrefs.categories,oldName)){renamePrefs.categories[clean]=renamePrefs.categories[oldName];delete renamePrefs.categories[oldName];}
+renamePrefs.favorites=renamePrefs.favorites.map(name=>name===oldName?clean:name);
+renamePrefs.order=renamePrefs.order.map(name=>name===oldName?clean:name);
+writeSavedRoomPrefs(renamePrefs);
+}
 if(window.kokoroQueueSync)window.kokoroQueueSync();
-refreshSavedRooms();select.value=clean;select.focus();
+refreshSavedRooms();select.value=clean;loadSavedRoomNote();select.focus();
 document.getElementById('message').textContent='✏️ お部屋の名前を「'+clean+'」に変更しました！';
 }
 function deleteSavedRoom(){
