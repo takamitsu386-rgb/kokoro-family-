@@ -340,28 +340,37 @@ selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
 autoSaveRoom();
 }
 function drag(el){
-let moving=false,grabX=0,grabY=0;
+let moving=false,grabX=0,grabY=0,activePointerId=null;
 const handle=el.querySelector('.drag-handle');
+const stop=e=>{
+if(!moving||(e&&e.pointerId!==activePointerId))return;
+moving=false;
+activePointerId=null;
+autoSaveRoom();
+};
 handle.addEventListener('pointerdown',e=>{
+if(moving)return;
 e.preventDefault();
 e.stopPropagation();
 moving=true;
+activePointerId=e.pointerId;
 const itemRect=el.getBoundingClientRect();
 grabX=e.clientX-itemRect.left;
 grabY=e.clientY-itemRect.top;
 handle.setPointerCapture(e.pointerId);
 });
 handle.addEventListener('pointermove',e=>{
-if(!moving)return;
+if(!moving||e.pointerId!==activePointerId)return;
+e.preventDefault();
 const r=room.getBoundingClientRect();
 const x=e.clientX-r.left-room.clientLeft-grabX;
 const y=e.clientY-r.top-room.clientTop-grabY;
-el.style.left=Math.max(0,Math.min(room.clientWidth-el.offsetWidth,x))+'px';
-el.style.top=Math.max(0,Math.min(room.clientHeight-el.offsetHeight,y))+'px';
+el.style.left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),x))+'px';
+el.style.top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),y))+'px';
 });
-const stop=()=>{if(moving){moving=false;autoSaveRoom();}};
 handle.addEventListener('pointerup',stop);
 handle.addEventListener('pointercancel',stop);
+handle.addEventListener('lostpointercapture',stop);
 }
 function roomData(){
 return {
