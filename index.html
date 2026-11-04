@@ -732,10 +732,7 @@ async function downloadCloud() {
     throw new Error("クラウドデータの形式を確認できません。端末内データは変更していません。");
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
-  localStorage.setItem("kokoroRoomBeforeCloudImport", localStorage.getItem("kokoroRoom") || "");
-  localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", localStorage.getItem("kokoroSavedRooms") || "{}");
-  localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
-  localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
+  storeCloudDataSafely(data);
   if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
   if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
   initializedSyncForUid = uid;
@@ -758,10 +755,7 @@ async function syncNow() {
         if (data.version !== 1 || !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) {
           throw new Error("クラウドデータの形式が違います。端末内データは変更していません。");
         }
-        localStorage.setItem("kokoroRoomBeforeCloudImport", localStorage.getItem("kokoroRoom") || "");
-        localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", localStorage.getItem("kokoroSavedRooms") || "{}");
-        localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
-        localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
+        storeCloudDataSafely(data);
         if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
         if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
