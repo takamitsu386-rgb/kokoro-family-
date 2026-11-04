@@ -493,6 +493,11 @@ handle.setAttribute('aria-label',el.dataset.icon+' を移動。矢印キーで�
 handle.setAttribute('aria-describedby','furnitureMoveHelp');
 handle.setAttribute('aria-keyshortcuts','ArrowUp ArrowDown ArrowLeft ArrowRight');
 handle.addEventListener('keydown',e=>{
+if(e.key==='Enter'||e.key===' '){
+e.preventDefault();
+selectFurniture(el);
+return;
+}
 const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
 const move=moves[e.key];
 if(!move)return;
@@ -556,6 +561,7 @@ originalTop=el.style.top;
 moving=true;
 activePointerId=e.pointerId;
 selectFurniture(el);
+handle.focus({preventScroll:true});
 });
 handle.addEventListener('pointermove',e=>{
 if(!moving||e.pointerId!==activePointerId)return;
