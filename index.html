@@ -685,11 +685,11 @@ const select=document.getElementById('savedRooms');
 if(!select)return;
 const current=select.value;
 const rooms=savedRoomData();
-select.innerHTML='<option value="">保存したお部屋を選ぶ</option>';
 if(rooms===null){
 document.getElementById('savedRoomCount').textContent='⚠️ 保存データを読み取れません。元データを保護しています。';
 return;
 }
+select.innerHTML='<option value="">保存したお部屋を選ぶ</option>';
 Object.keys(rooms).forEach(name=>{
 const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);
 });
