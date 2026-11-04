@@ -456,6 +456,7 @@ document.getElementById('message').textContent='「'+name+'」を削除しまし
 function loadRoom(){
 const raw=localStorage.getItem('kokoroRoom');
 if(raw){try{applyRoom(JSON.parse(raw));}catch(e){}}
+else{autoSaveRoom();}
 refreshSavedRooms();
 }
 function resetRoom(){
