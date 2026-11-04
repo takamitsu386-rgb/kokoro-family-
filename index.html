@@ -512,7 +512,9 @@ if(!autoSaveRoom()){
 el.style.left=previousLeft;
 el.style.top=previousTop;
 document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元の位置に戻しました。';
+return;
 }
+document.getElementById('selectedMessage').textContent='家具を移動しました。現在の位置を保存しました。';
 });
 const stop=e=>{
 if(!moving||(e&&e.pointerId!==activePointerId))return;
