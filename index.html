@@ -471,15 +471,17 @@ if(!validRoomData(data)){
 document.getElementById('message').textContent='お部屋データに問題があるため、読み込みを中止しました。';
 return false;
 }
+const previous=roomData();
+const render=source=>{
 room.querySelectorAll('.furniture').forEach(el=>el.remove());
 selectedFurniture=null;
-if(data.wallColor){room.style.backgroundColor=data.wallColor;}else{room.style.background=data.wall||wallColors[0];}
-room.style.backgroundImage=data.wallImage||'none';
-room.style.backgroundSize=data.wallSize||'auto';
-room.style.backgroundRepeat=data.wallRepeat||'repeat';
-document.getElementById('floor').style.backgroundColor=data.floor||floorColors[0];
-document.getElementById('floor').style.backgroundImage=data.floorImage||'none';
-(data.items||[]).forEach(v=>{
+if(source.wallColor){room.style.backgroundColor=source.wallColor;}else{room.style.background=source.wall||wallColors[0];}
+room.style.backgroundImage=source.wallImage||'none';
+room.style.backgroundSize=source.wallSize||'auto';
+room.style.backgroundRepeat=source.wallRepeat||'repeat';
+document.getElementById('floor').style.backgroundColor=source.floor||floorColors[0];
+document.getElementById('floor').style.backgroundImage=source.floorImage||'none';
+(source.items||[]).forEach(v=>{
 const el=addFurniture(v.icon,false);
 if(!el)throw new Error('Furniture could not be restored');
 el.style.left=v.left;el.style.top=v.top;
@@ -491,7 +493,22 @@ el.style.left=Math.max(0,Math.min(maxLeft,el.offsetLeft))+'px';
 el.style.top=Math.max(0,Math.min(maxTop,el.offsetTop))+'px';
 });
 updateFurnitureCount();
-return persist?autoSaveRoom():true;
+};
+try{
+render(data);
+if(persist&&!autoSaveRoom())throw new Error('Room data could not be saved');
+return true;
+}catch(error){
+console.error('Room apply failed',error);
+try{render(previous);}
+catch(restoreError){
+console.error('Room rollback failed',restoreError);
+document.getElementById('message').textContent='お部屋の読み込みに失敗し、元の表示も復元できませんでした。端末データを消さずに保管してください。';
+return false;
+}
+document.getElementById('message').textContent='お部屋を読み込めませんでした。元のお部屋に戻しました。';
+return false;
+}
 }
 function savedRoomData(){
 try{
