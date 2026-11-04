@@ -154,6 +154,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <input id="savedRoomCategoryName" type="text" maxlength="24" placeholder="例：リビング・寝室・季節もの">
 <button type="button" onclick="setSavedRoomCategory()">カテゴリを設定</button>
 <button type="button" onclick="clearSavedRoomCategory()">カテゴリを解除</button>
+<div style="margin:12px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px">
+<strong>複数のお部屋をまとめて整理</strong>
+<p id="bulkSavedRoomCount" role="status" aria-live="polite">選択中：0個</p>
+<div id="bulkSavedRoomList" style="max-height:240px;overflow:auto;padding:6px 0"></div>
+<button type="button" onclick="selectVisibleSavedRooms(true)">表示中をすべて選択</button>
+<button type="button" onclick="selectVisibleSavedRooms(false)">表示中の選択を解除</button>
+<label for="bulkSavedRoomCategory">選択したお部屋に付けるカテゴリ</label>
+<input id="bulkSavedRoomCategory" type="text" maxlength="24" placeholder="カテゴリ名">
+<button type="button" onclick="applyBulkSavedRoomCategory()">選択したお部屋を一括分類</button>
+<button type="button" onclick="deleteBulkSavedRooms()">選択したお部屋を一括削除</button>
+</div>
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button type="button" onclick="previewSavedRoom()">👀 選んだお部屋をプレビュー</button>
@@ -805,6 +816,61 @@ function writeSavedRoomPrefs(prefs){
 try{localStorage.setItem('kokoroSavedRoomPrefs',JSON.stringify(prefs));return true;}
 catch(error){document.getElementById('message').textContent='お気に入り・並び順を保存できませんでした。保存したお部屋本体は変更していません。';return false;}
 }
+let bulkSavedRoomSelection=new Set();
+function updateBulkSavedRoomCount(){
+const count=document.getElementById('bulkSavedRoomCount');
+if(count)count.textContent='選択中：'+bulkSavedRoomSelection.size+'個';
+}
+function selectVisibleSavedRooms(checked){
+const rooms=savedRoomData();if(rooms===null)return;
+const filter=document.getElementById('savedRoomCategoryFilter');
+const category=filter?filter.value:'';
+Object.keys(rooms).forEach(name=>{
+const prefs=readSavedRoomPrefs();
+if(!category||(prefs&&prefs.categories&&prefs.categories[name]===category)){
+if(checked)bulkSavedRoomSelection.add(name);else bulkSavedRoomSelection.delete(name);
+}
+});
+refreshSavedRooms();
+}
+function toggleBulkSavedRoom(name,checked){
+if(checked)bulkSavedRoomSelection.add(name);else bulkSavedRoomSelection.delete(name);
+updateBulkSavedRoomCount();
+}
+function applyBulkSavedRoomCategory(){
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+const category=document.getElementById('bulkSavedRoomCategory').value.trim();
+if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データまたはカテゴリ設定を読み取れません。';return;}
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name));
+if(!selected.length){document.getElementById('message').textContent='分類するお部屋を選んでください。';return;}
+if(!category||category.length>24){document.getElementById('message').textContent='カテゴリ名を1〜24文字で入力してください。';return;}
+prefs.categories=prefs.categories||{};
+selected.forEach(name=>prefs.categories[name]=category);
+if(!writeSavedRoomPrefs(prefs))return;
+bulkSavedRoomSelection=new Set(selected);
+const filter=document.getElementById('savedRoomCategoryFilter');if(filter)filter.value='';
+refreshSavedRooms();
+document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を「'+category+'」に分類しました。';
+}
+function deleteBulkSavedRooms(){
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データまたは設定を読み取れません。';return;}
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name));
+if(!selected.length){document.getElementById('message').textContent='削除するお部屋を選んでください。';return;}
+if(!confirm(selected.length+'個のお部屋を削除しますか？この操作は「取り消し」で戻せます。'))return;
+const nextRooms={...rooms};
+selected.forEach(name=>delete nextRooms[name]);
+if(!saveSavedRoomsWithUndo(nextRooms))return;
+prefs.categories=prefs.categories||{};
+prefs.favorites=prefs.favorites.filter(name=>!selected.includes(name));
+prefs.order=prefs.order.filter(name=>!selected.includes(name));
+selected.forEach(name=>delete prefs.categories[name]);
+if(!writeSavedRoomPrefs(prefs)){document.getElementById('message').textContent='お部屋は削除しましたが、カテゴリ・お気に入り設定の整理は保存できませんでした。';}
+bulkSavedRoomSelection.clear();
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+refreshSavedRooms();
+document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を削除しました。取り消しボタンで保存一覧を戻せます。';
+}
 function refreshSavedRooms(){
 const select=document.getElementById('savedRooms');
 if(!select)return;
@@ -839,7 +905,19 @@ const option=document.createElement('option');option.value=name;option.textConte
 });
 if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
 document.getElementById('savedRoomCount').textContent='💾 表示中：'+names.length+'個 ／ 全 '+allNames.length+'個'+(favorites.length?'（⭐ お気に入り '+favorites.length+'個）':'')+(selectedCategory?'・カテゴリ：'+selectedCategory:'')+(prefs===null?'・設定データに問題があります。既存データは保護しています。':'');
-}
+
+const bulkList=document.getElementById('bulkSavedRoomList');
+if(bulkList){
+bulkSavedRoomSelection=new Set([...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)));
+bulkList.replaceChildren();
+names.forEach(name=>{
+const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 2px';
+const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=bulkSavedRoomSelection.has(name);checkbox.style.minHeight='24px';checkbox.style.width='24px';checkbox.onchange=()=>toggleBulkSavedRoom(name,checkbox.checked);
+const caption=document.createElement('span');caption.textContent=(favorites.includes(name)?'⭐ ':'')+name+(categories[name]?' · '+categories[name]:'');
+label.appendChild(checkbox);label.appendChild(caption);bulkList.appendChild(label);
+});
+updateBulkSavedRoomCount();
+}}
 function setSavedRoomCategory(){
 const select=document.getElementById('savedRooms'),name=select.value;
 const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
