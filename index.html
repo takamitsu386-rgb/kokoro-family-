@@ -296,9 +296,10 @@ el.style.outline='2px dashed #6759d8';
 function layerSelected(direction){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
 const items=[...room.querySelectorAll('.furniture')];
-const levels=items.map(el=>parseInt(el.style.zIndex||0));
-const current=parseInt(selectedFurniture.style.zIndex||0);
-selectedFurniture.style.zIndex=direction>0?Math.max(...levels,current)+1:Math.min(...levels,current)-1;
+const levels=items.map(el=>Number.parseInt(el.style.zIndex||0)).filter(Number.isFinite);
+const current=Number.parseInt(selectedFurniture.style.zIndex||0)||0;
+const next=direction>0?Math.max(0,...levels,current)+1:Math.min(0,...levels,current)-1;
+selectedFurniture.style.zIndex=Math.max(-99999,Math.min(99999,next));
 autoSaveRoom();
 document.getElementById('selectedMessage').textContent=direction>0?'家具を手前に表示したよ。かさなった家具も見やすくなるよ！':'家具を後ろに表示したよ。';
 }
@@ -495,7 +496,12 @@ if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
 document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+Object.keys(rooms).length+'個';
 }
 function autoSaveRoom(){
-if(!safeWriteLocalStorage('kokoroRoom',JSON.stringify(roomData())))return false;
+const data=roomData();
+if(!validRoomData(data)){
+document.getElementById('message').textContent='お部屋の状態を保存できません。内容を確認してください。前回の保存データは保護しています。';
+return false;
+}
+if(!safeWriteLocalStorage('kokoroRoom',JSON.stringify(data)))return false;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 return true;
 }
