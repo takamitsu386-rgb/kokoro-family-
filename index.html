@@ -1233,7 +1233,7 @@ function storeCloudDataSafely(data, previousDisplayRoom) {
   }
   try {
     localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom === null ? JSON.stringify(previousDisplayRoom) : previousRoom);
-    localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms || "{}");
+    localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms === null ? "{}" : previousSavedRooms);
     localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
     localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
     return true;
