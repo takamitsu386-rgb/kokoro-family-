@@ -174,6 +174,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="importRoomBackup()">⬆️ 読み込む</button>
 </div>
 <p id="backupMessage" role="status" aria-live="polite">※読み込み時は、現在のお部屋データがバックアップの内容に置き換わります。</p>
+<div style="margin-top:12px;padding:12px;border:1px solid #d8dce5;border-radius:10px">
+<strong>読み込み前のデータを復元</strong>
+<p>バックアップファイルやクラウドを読み込む直前の状態に戻せます。復元前の現在データも別に退避します。</p>
+<button type="button" onclick="restorePreviousData('backup')">ファイル読み込み前に戻す</button>
+<button type="button" onclick="restorePreviousData('cloud')">クラウド読み込み前に戻す</button>
+</div>
 </section>
 
 </main>
@@ -1039,6 +1045,76 @@ reader.readAsText(file);
 console.error("Backup file read could not start",readError);
 message.textContent="ファイルの読み込みを開始できませんでした。別のバックアップファイルを選んでね。";
 input.value="";
+}
+}
+
+function restorePreviousData(source){
+const message=document.getElementById("backupMessage");
+const keys=source==="cloud"
+?{room:"kokoroRoomBeforeCloudImport",saved:"kokoroSavedRoomsBeforeCloudImport",label:"クラウド読み込み前"}
+:{room:"kokoroRoomBeforeImport",saved:"kokoroSavedRoomsBeforeImport",label:"バックアップファイル読み込み前"};
+let roomRaw,savedRaw;
+try{
+roomRaw=localStorage.getItem(keys.room);
+savedRaw=localStorage.getItem(keys.saved);
+}catch(error){
+message.textContent="退避データを読み取れません。端末の保存領域を確認してください。";
+return;
+}
+if(roomRaw===null||roomRaw===""||savedRaw===null){
+message.textContent=keys.label+"の退避データが見つかりません。";
+return;
+}
+let previousRoom,previousSavedRooms;
+try{
+previousRoom=JSON.parse(roomRaw);
+previousSavedRooms=JSON.parse(savedRaw);
+}catch(error){
+message.textContent="退避データを読み取れません。元データを消さずに保管してください。";
+return;
+}
+if(!validRoomData(previousRoom)||!validSavedRooms(previousSavedRooms)){
+message.textContent="退避データの形式を確認できません。安全のため復元を中止しました。";
+return;
+}
+if(!confirm(keys.label+"の状態に戻します。現在のお部屋と保存一覧は復元用に別途退避します。続けますか？"))return;
+let currentRoom,currentSaved;
+try{
+currentRoom=localStorage.getItem("kokoroRoom");
+currentSaved=localStorage.getItem("kokoroSavedRooms");
+}catch(error){
+message.textContent="現在のデータを安全に退避できないため、復元を中止しました。";
+return;
+}
+const currentDisplay=roomData();
+if(!validRoomData(currentDisplay)){
+message.textContent="現在のお部屋を安全に退避できないため、復元を中止しました。";
+return;
+}
+try{
+localStorage.setItem("kokoroRoomBeforeRecovery",currentRoom||"");
+localStorage.setItem("kokoroSavedRoomsBeforeRecovery",currentSaved||"{}");
+localStorage.setItem("kokoroRoom",JSON.stringify(previousRoom));
+localStorage.setItem("kokoroSavedRooms",JSON.stringify(previousSavedRooms));
+if(applyRoom(previousRoom,false)!==true)throw new Error("recovery display failed");
+refreshSavedRooms();
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+message.textContent="✅ "+keys.label+"のデータに戻しました。復元直前のデータも端末内に退避しました。";
+}catch(error){
+console.error("Previous data recovery failed",error);
+let rollbackOK=true;
+try{
+if(currentRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",currentRoom);
+if(currentSaved===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",currentSaved);
+if(applyRoom(currentDisplay,false)!==true)rollbackOK=false;
+refreshSavedRooms();
+}catch(rollbackError){
+console.error("Recovery rollback failed",rollbackError);
+rollbackOK=false;
+}
+message.textContent=rollbackOK
+?"復元できませんでした。復元前のデータはそのままです。"
+:"復元と元データへの復帰に失敗しました。端末の保存領域を消さず、退避データを保管してください。";
 }
 }
 
