@@ -1079,7 +1079,12 @@ function localPayload() {
   if (!validRoomData(currentRoom) || !validSavedRooms(savedRooms)) {
     throw new Error("端末内の保存データの形式が正しくありません。クラウドへの上書きを中止しました。");
   }
-  return { version: 1, currentRoom, savedRooms };
+  const payload = { version: 1, currentRoom, savedRooms };
+  const payloadBytes = new TextEncoder().encode(JSON.stringify(payload)).length;
+  if (payloadBytes > 900 * 1024) {
+    throw new Error("クラウド保存データが大きすぎます。保存したお部屋や家具を整理してください。端末内データはそのままです。");
+  }
+  return payload;
 }
 function cloudRef(uid) {
   return doc(db, "users", uid, "kokoro", "data");
