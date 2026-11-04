@@ -583,6 +583,33 @@ handle.addEventListener('pointerup',stop);
 handle.addEventListener('pointercancel',stop);
 handle.addEventListener('lostpointercapture',stop);
 }
+
+function keepFurnitureInsideRoom(){
+const items=[...room.querySelectorAll('.furniture')];
+if(!items.length)return;
+const previous=items.map(el=>({el,left:el.style.left,top:el.style.top}));
+let changed=false;
+items.forEach(el=>{
+const left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),el.offsetLeft));
+const top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),el.offsetTop));
+if(left!==el.offsetLeft||top!==el.offsetTop){
+el.style.left=left+'px';
+el.style.top=top+'px';
+changed=true;
+}
+});
+if(changed&&!autoSaveRoom()){
+previous.forEach(({el,left,top})=>{el.style.left=left;el.style.top=top;});
+document.getElementById('selectedMessage').textContent='画面サイズ変更後の保存に失敗したため、家具の位置を元に戻しました。';
+}
+}
+if(typeof ResizeObserver!=='undefined'){
+const roomSizeObserver=new ResizeObserver(()=>keepFurnitureInsideRoom());
+roomSizeObserver.observe(room);
+}else{
+window.addEventListener('resize',keepFurnitureInsideRoom,{passive:true});
+}
+
 function validRoomData(value) {
 const validPosition = v => {
 if(typeof v!=="string")return false;
