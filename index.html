@@ -1178,8 +1178,9 @@ function flushPendingSync() {
   if (currentUser) queueSync();
 }
 function setSyncBusy(busy) {
-  if (syncButton) syncButton.disabled = busy || !currentUser;
-  if (downloadButton) downloadButton.disabled = busy || !currentUser;
+  const unavailable = busy || !currentUser || !navigator.onLine;
+  if (syncButton) syncButton.disabled = unavailable;
+  if (downloadButton) downloadButton.disabled = unavailable;
   if (logoutButton) logoutButton.disabled = busy || !currentUser;
 }
 async function uploadLocal(uid = currentUser?.uid) {
@@ -1363,17 +1364,33 @@ try {
       initializedSyncForUid = null;
     }
     currentUser = user;
-    loginButton.disabled = !!user;
+    loginButton.disabled = !!user || !navigator.onLine;
     setSyncBusy(syncInProgress);
     logoutButton.disabled = syncInProgress || !user;
-    if (user) status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
-    else status("未接続：この端末内に保存しています。");
+    if (!navigator.onLine) {
+      status(user
+        ? "オフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再開できます。"
+        : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
+    } else if (user) {
+      status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
+    } else {
+      status("未接続：この端末内に保存しています。");
+    }
   });
   window.addEventListener("offline", () => {
-    if (currentUser) status("通信がオフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再試行します。");
+    loginButton.disabled = true;
+    setSyncBusy(false);
+    status(currentUser
+      ? "通信がオフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再試行します。"
+      : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
   });
   window.addEventListener("online", () => {
-    if (!currentUser) return;
+    loginButton.disabled = !!currentUser;
+    setSyncBusy(false);
+    if (!currentUser) {
+      status("通信が戻りました。Googleログインを利用できます。");
+      return;
+    }
     status("通信が戻りました。クラウド同期を再試行します…");
     queueSync();
   });
