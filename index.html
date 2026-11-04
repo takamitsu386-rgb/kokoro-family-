@@ -316,9 +316,18 @@ const items=[...room.querySelectorAll('.furniture')];
 const levels=items.map(el=>Number.parseInt(el.style.zIndex||0)).filter(Number.isFinite);
 const current=Number.parseInt(selectedFurniture.style.zIndex||0)||0;
 const next=direction>0?Math.max(0,...levels,current)+1:Math.min(0,...levels,current)-1;
+const bounded=Math.max(-99999,Math.min(99999,next));
+if(bounded===current){
+document.getElementById('selectedMessage').textContent='これ以上、重なり順を変更できません。';
+return;
+}
 const previous=selectedFurniture.style.zIndex;
-selectedFurniture.style.zIndex=Math.max(-99999,Math.min(99999,next));
-if(!autoSaveRoom())selectedFurniture.style.zIndex=previous;
+selectedFurniture.style.zIndex=String(bounded);
+if(!autoSaveRoom()){
+selectedFurniture.style.zIndex=previous;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具の重なり順を元に戻しました。';
+return;
+}
 document.getElementById('selectedMessage').textContent=direction>0?'家具を手前に表示したよ。かさなった家具も見やすくなるよ！':'家具を後ろに表示したよ。';
 }
 function duplicateSelected(){
