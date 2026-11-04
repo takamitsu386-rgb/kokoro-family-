@@ -412,12 +412,17 @@ document.getElementById('message').textContent='✅ 今のお部屋をこの端�
 function saveAsRoom(){
 const name=prompt('お部屋の名前をつけてね（例：ピンクのお部屋）');
 if(!name||!name.trim())return;
-const rooms=savedRoomData();rooms[name.trim()]=roomData();
+const clean=name.trim();
+const rooms=savedRoomData();
+if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
+if(!Object.prototype.hasOwnProperty.call(rooms,clean)&&Object.keys(rooms).length>=100){document.getElementById('message').textContent='保存できるお部屋は100個までです。';return;}
+rooms[clean]=roomData();
+if(!validSavedRooms(rooms)){document.getElementById('message').textContent='このお部屋は保存できません。内容を確認してね。';return;}
 localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
-document.getElementById('savedRooms').value=name.trim();
-document.getElementById('message').textContent='✅「'+name.trim()+'」を保存しました！';
+document.getElementById('savedRooms').value=clean;
+document.getElementById('message').textContent='✅「'+clean+'」を保存しました！';
 }
 function openSavedRoom(){
 const name=document.getElementById('savedRooms').value;
@@ -435,6 +440,7 @@ if(!oldName||!rooms[oldName]){document.getElementById('message').textContent='�
 const newName=prompt('新しいお部屋の名前を入力してね',oldName);
 if(!newName||!newName.trim())return;
 const clean=newName.trim();
+if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
 if(clean!==oldName&&Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
 rooms[clean]=rooms[oldName];
 if(clean!==oldName)delete rooms[oldName];
@@ -502,13 +508,8 @@ const reader=new FileReader();
 reader.onload=()=>{
 try{
 const data=JSON.parse(reader.result);
-const validRoom=v=>v&&typeof v==="object"&&!Array.isArray(v)&&
-typeof v.wall==="string"&&Array.isArray(v.items)&&v.items.length<=300&&
-v.items.every(x=>x&&typeof x.icon==="string"&&typeof x.left==="string"&&typeof x.top==="string");
-if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoom(data.currentRoom)||
-!data.savedRooms||typeof data.savedRooms!=="object"||Array.isArray(data.savedRooms)||
-Object.keys(data.savedRooms).length>100||
-!Object.entries(data.savedRooms).every(([name,value])=>name.trim().length>0&&name.length<=80&&validRoom(value))){
+if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoomData(data.currentRoom)||
+!validSavedRooms(data.savedRooms)){
 throw new Error("invalid backup");
 }
 if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
