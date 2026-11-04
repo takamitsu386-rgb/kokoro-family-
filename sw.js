@@ -1,5 +1,5 @@
-// Updated with focus handling after saved-room management actions.
-const CACHE_NAME="kokoro-family-v37";
+// Updated with accessible movement instructions for furniture controls.
+const CACHE_NAME="kokoro-family-v38";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
