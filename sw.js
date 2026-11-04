@@ -1,5 +1,5 @@
-// Updated backup export cleanup to run even when the download click fails.
-const CACHE_NAME="kokoro-family-v54";
+// Preserve the specific warning if backup import rollback also fails.
+const CACHE_NAME="kokoro-family-v55";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
