@@ -1,5 +1,5 @@
-// Updated with announce successful keyboard furniture movement.
-const CACHE_NAME="kokoro-family-v41";
+// Updated with accessible furniture handle keyboard activation and focus.
+const CACHE_NAME="kokoro-family-v42";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
