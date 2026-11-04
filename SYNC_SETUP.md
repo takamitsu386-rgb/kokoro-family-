@@ -121,3 +121,8 @@ Cloud room data uses the same strict room validator as local saves and backup im
 - Fixed a duplicate `async` keyword in the cloud download function declaration; the declaration is now valid JavaScript syntax.
 
 - スマホ・PC同期セクションへのリンクを上部の固定ナビゲーションとホーム画面のショートカットに追加し、スマートフォンでも同期設定へ直接移動できるようにする
+
+
+## アプリ内メニューの移動
+
+バックアップへのメニューリンクは見出しを直接指定しています。固定メニューに見出しが隠れないよう、セクションとID付き見出しの両方にスクロール余白を設定しています。
