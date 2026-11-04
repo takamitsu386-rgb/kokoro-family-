@@ -1,5 +1,5 @@
-// Updated with drag no-op save guard and in-room furniture placement.
-const CACHE_NAME="kokoro-family-v26";
+// Updated with automatic furniture selection on drag and drag no-op guard.
+const CACHE_NAME="kokoro-family-v27";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
