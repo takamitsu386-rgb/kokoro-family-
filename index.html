@@ -533,26 +533,50 @@ refreshSavedRooms();
 document.getElementById('message').textContent='「'+name+'」を削除しました。'
 }
 function loadRoom(){
-const raw=localStorage.getItem('kokoroRoom');
+let raw=null;
+try{
+raw=localStorage.getItem('kokoroRoom');
+}catch(storageError){
+console.warn('Room data could not be read',storageError);
+document.getElementById('message').textContent='端末の保存領域を読み取れません。ブラウザの設定を確認してください。';
+refreshSavedRooms();
+return;
+}
 if(raw){
 try{
 const data=JSON.parse(raw);
 if(!validRoomData(data))throw new Error('invalid room data');
 applyRoom(data);
 }catch(e){
-try{if(!localStorage.getItem('kokoroRoomRecovery'))localStorage.setItem('kokoroRoomRecovery',raw);}catch(recoveryError){console.warn('Room recovery copy could not be saved',recoveryError);}
-document.getElementById('message').textContent=localStorage.getItem('kokoroRoomRecovery')===raw?'保存データに問題があるため、元データを復旧用に保管しました。バックアップから読み込めます。':'保存データに問題があります。復旧用コピーを保存できませんでした。端末データを消さずに保管してください。';
+let recoverySaved=false;
+try{
+if(!localStorage.getItem('kokoroRoomRecovery'))localStorage.setItem('kokoroRoomRecovery',raw);
+recoverySaved=localStorage.getItem('kokoroRoomRecovery')===raw;
+}catch(recoveryError){console.warn('Room recovery copy could not be saved',recoveryError);}
+document.getElementById('message').textContent=recoverySaved?'保存データに問題があるため、元データを復旧用に保管しました。バックアップから読み込めます。':'保存データに問題があります。復旧用コピーを保存できませんでした。端末データを消さずに保管してください。';
 }
 }else{
 autoSaveRoom();
 }
-const savedRaw=localStorage.getItem('kokoroSavedRooms');
+let savedRaw=null;
+try{
+savedRaw=localStorage.getItem('kokoroSavedRooms');
+}catch(storageError){
+console.warn('Saved rooms could not be read',storageError);
+document.getElementById('message').textContent='保存したお部屋の保存領域を読み取れません。元データを消さず、ブラウザの設定を確認してください。';
+refreshSavedRooms();
+return;
+}
 if(savedRaw){
 try{
 if(!validSavedRooms(JSON.parse(savedRaw)))throw new Error('invalid saved rooms');
 }catch(e){
-try{if(!localStorage.getItem('kokoroSavedRoomsRecovery'))localStorage.setItem('kokoroSavedRoomsRecovery',savedRaw);}catch(recoveryError){console.warn('Saved rooms recovery copy could not be saved',recoveryError);}
-document.getElementById('message').textContent=localStorage.getItem('kokoroSavedRoomsRecovery')===savedRaw?'保存したお部屋のデータに問題があります。元データを復旧用に保管しました。':'保存したお部屋のデータに問題があります。復旧用コピーを保存できませんでした。元データを消さないでください。';
+let recoverySaved=false;
+try{
+if(!localStorage.getItem('kokoroSavedRoomsRecovery'))localStorage.setItem('kokoroSavedRoomsRecovery',savedRaw);
+recoverySaved=localStorage.getItem('kokoroSavedRoomsRecovery')===savedRaw;
+}catch(recoveryError){console.warn('Saved rooms recovery copy could not be saved',recoveryError);}
+document.getElementById('message').textContent=recoverySaved?'保存したお部屋のデータに問題があります。元データを復旧用に保管しました。':'保存したお部屋のデータに問題があります。復旧用コピーを保存できませんでした。元データを消さないでください。';
 }
 }
 refreshSavedRooms();
