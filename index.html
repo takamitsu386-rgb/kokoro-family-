@@ -934,7 +934,13 @@ const file=input.files&&input.files[0];
 const message=document.getElementById("backupMessage");
 if(!file){message.textContent="先にバックアップファイルを選んでね。";return;}
 if(file.size>MAX_BACKUP_BYTES){message.textContent="ファイルが大きすぎます。10MB以下のバックアップを選んでね。";input.value="";return;}
-const reader=new FileReader();
+let reader;
+try{reader=new FileReader();}catch(readerError){
+console.error("Backup file reader could not be created",readerError);
+message.textContent="ファイルを読み込む準備ができませんでした。別のバックアップファイルを選んでね。";
+input.value="";
+return;
+}
 reader.onload=()=>{
 try{
 const data=JSON.parse(reader.result);
