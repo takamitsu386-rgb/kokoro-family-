@@ -1323,6 +1323,14 @@ try {
     if (user) status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
     else status("未接続：この端末内に保存しています。");
   });
+  window.addEventListener("offline", () => {
+    if (currentUser) status("通信がオフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再試行します。");
+  });
+  window.addEventListener("online", () => {
+    if (!currentUser) return;
+    status("通信が戻りました。クラウド同期を再試行します…");
+    queueSync();
+  });
   window.kokoroQueueSync = queueSync;
 } catch (error) {
   console.error(error);
