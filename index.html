@@ -729,6 +729,8 @@ if(!confirm("現在のお部屋データをバックアップの内容に置き�
 // Treat storage writes and screen restoration as one import transaction.
 const previousRoom=localStorage.getItem("kokoroRoom");
 const previousSavedRooms=localStorage.getItem("kokoroSavedRooms");
+const previousDisplayRoom=roomData();
+if(!validRoomData(previousDisplayRoom))throw new Error("current display cannot be safely backed up");
 let importCommitted=false;
 try{
 localStorage.setItem("kokoroRoomBeforeImport",previousRoom||"");
@@ -742,10 +744,7 @@ importCommitted=true;
 try{
 if(previousRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",previousRoom);
 if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",previousSavedRooms);
-if(previousRoom!==null){
-const previousRoomData=JSON.parse(previousRoom);
-if(validRoomData(previousRoomData))applyRoom(previousRoomData,false);
-}
+if(applyRoom(previousDisplayRoom,false)!==true)throw new Error("previous room display restore failed");
 refreshSavedRooms();
 }catch(rollbackError){
 console.error("Backup import rollback failed",rollbackError);
