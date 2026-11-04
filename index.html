@@ -401,6 +401,11 @@ const el=room.lastElementChild;
 el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
+// Keep restored furniture inside the room, including imported backups.
+const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
+const maxTop=Math.max(0,room.clientHeight-el.offsetHeight);
+el.style.left=Math.max(0,Math.min(maxLeft,el.offsetLeft))+'px';
+el.style.top=Math.max(0,Math.min(maxTop,el.offsetTop))+'px';
 });
 autoSaveRoom();
 }
