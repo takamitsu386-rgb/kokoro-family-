@@ -556,11 +556,30 @@ let initializedSyncForUid = null;
 function status(message) {
   if (statusEl) statusEl.textContent = message;
 }
+function validRoomData(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value) &&
+    typeof value.wall === "string" && Array.isArray(value.items) && value.items.length <= 300 &&
+    value.items.every(item => item && typeof item === "object" &&
+      typeof item.icon === "string" && typeof item.left === "string" && typeof item.top === "string" &&
+      (item.size === undefined || typeof item.size === "string") &&
+      (item.zIndex === undefined || typeof item.zIndex === "string"));
+}
+function validSavedRooms(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value) &&
+    Object.keys(value).length <= 100 &&
+    Object.entries(value).every(([name, room]) => name.trim().length > 0 && name.length <= 80 && validRoomData(room));
+}
 function localPayload() {
-  let currentRoom = {};
-  let savedRooms = {};
-  try { currentRoom = JSON.parse(localStorage.getItem("kokoroRoom") || "{}"); } catch {}
-  try { savedRooms = JSON.parse(localStorage.getItem("kokoroSavedRooms") || "{}"); } catch {}
+  let currentRoom, savedRooms;
+  try {
+    currentRoom = JSON.parse(localStorage.getItem("kokoroRoom") || "null");
+    savedRooms = JSON.parse(localStorage.getItem("kokoroSavedRooms") || "{}");
+  } catch {
+    throw new Error("端末内の保存データを読み取れません。バックアップを確認してください。");
+  }
+  if (!validRoomData(currentRoom) || !validSavedRooms(savedRooms)) {
+    throw new Error("端末内の保存データの形式が正しくありません。クラウドへの上書きを中止しました。");
+  }
   return { version: 1, currentRoom, savedRooms };
 }
 function cloudRef(uid) {
@@ -584,8 +603,7 @@ async function downloadCloud() {
     return false;
   }
   const data = snapshot.data();
-  if (data.version !== 1 || !data.currentRoom || !Array.isArray(data.currentRoom.items) ||
-      !data.savedRooms || typeof data.savedRooms !== "object" || Array.isArray(data.savedRooms)) {
+  if (data.version !== 1 || !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) {
     throw new Error("クラウドデータの形式を確認できません。端末内データは変更していません。");
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
@@ -612,8 +630,7 @@ async function syncNow() {
       const useCloud = confirm("このアカウントにはクラウドデータがあります。OK：クラウドから読み込む／キャンセル：この端末のデータをクラウドへ保存する");
       if (useCloud) {
         const data = snapshot.data();
-        if (data.version !== 1 || !data.currentRoom || !Array.isArray(data.currentRoom.items) ||
-            !data.savedRooms || typeof data.savedRooms !== "object" || Array.isArray(data.savedRooms)) {
+        if (data.version !== 1 || !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) {
           throw new Error("クラウドデータの形式が違います。端末内データは変更していません。");
         }
         localStorage.setItem("kokoroRoomBeforeCloudImport", localStorage.getItem("kokoroRoom") || "");
