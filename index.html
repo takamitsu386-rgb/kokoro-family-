@@ -729,6 +729,8 @@ document.getElementById('message').textContent='お部屋を復元できませ�
 return;
 }
 document.getElementById('message').textContent='🏡「'+name+'」を開きました。';
+const savedRoomSelect=document.getElementById('savedRooms');
+if(savedRoomSelect)savedRoomSelect.focus();
 }catch(error){
 console.error('Saved room restore failed',error);
 document.getElementById('message').textContent='お部屋の復元中に問題が起きました。保存データは残しています。';
@@ -854,10 +856,14 @@ document.getElementById('floor').style.backgroundColor=floorColors[0];document.g
 updateFurnitureCount();
 if(!autoSaveRoom()){
 const restored=applyRoom(previousRoom,false)===true;
+const resetButton=document.querySelector('button[onclick="resetRoom()"]');
+if(resetButton)resetButton.focus();
 document.getElementById('selectedMessage').textContent='家具をタップして選んでね。';
 document.getElementById('message').textContent=restored?'保存できなかったため、リセット前のお部屋に戻しました。前回の保存データはそのままです。':'保存と画面の復元に失敗しました。端末の保存データを消さずに保管してください。';
 return;
 }
+const resetButton=document.querySelector('button[onclick="resetRoom()"]');
+if(resetButton)resetButton.focus();
 document.getElementById('selectedMessage').textContent='家具をタップして選んでね。';
 document.getElementById('message').textContent='🏡 お部屋を初期状態に戻しました。';
 }
