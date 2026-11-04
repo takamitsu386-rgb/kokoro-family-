@@ -1080,7 +1080,7 @@ if(!validRoomData(previousRoom)||!validSavedRooms(previousSavedRooms)){
 message.textContent="退避データの形式を確認できません。安全のため復元を中止しました。";
 return;
 }
-if(!confirm(keys.label+"の状態に戻します。現在のお部屋と保存一覧は復元用に別途退避します。続けますか？"))return;
+if(!confirm(keys.label+"の状態に戻します。現在のお部屋と保存一覧は復元用に別途退避します。Googleでログイン中の場合、復元した内容はクラウド同期の対象になります。続けますか？"))return;
 let currentRoom,currentSaved;
 try{
 currentRoom=localStorage.getItem("kokoroRoom");
