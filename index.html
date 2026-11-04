@@ -487,6 +487,10 @@ el.style.top=originalTop;
 document.getElementById('selectedMessage').textContent='移動が中断されたため、家具を元の位置に戻しました。';
 return;
 }
+if(el.style.left===originalLeft&&el.style.top===originalTop){
+document.getElementById('selectedMessage').textContent='家具の位置は変わっていません。';
+return;
+}
 if(!autoSaveRoom()){
 el.style.left=originalLeft;
 el.style.top=originalTop;
