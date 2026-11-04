@@ -1,5 +1,5 @@
-// Updated with oversized backup file selection reset.
-const CACHE_NAME="kokoro-family-v44";
+// Updated to skip saving unchanged room designs.
+const CACHE_NAME="kokoro-family-v45";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
