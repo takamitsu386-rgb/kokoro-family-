@@ -146,7 +146,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button class="primary" onclick="saveRoom()">💾 今のお部屋を保存</button>
 <div style="margin-top:10px">
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
-<select id="savedRooms" aria-label="保存したお部屋" onchange="previewSavedRoom()"><option value="">保存したお部屋を選ぶ</option></select>
+<select id="savedRooms" aria-label="保存したお部屋" onchange="previewSavedRoom();loadSavedRoomNote()"><option value="">保存したお部屋を選ぶ</option></select>
 <p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
 <label for="savedRoomCategoryFilter">カテゴリで絞り込み</label>
 <select id="savedRoomCategoryFilter" onchange="refreshSavedRooms()"><option value="">すべてのカテゴリ</option></select>
@@ -154,6 +154,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <input id="savedRoomCategoryName" type="text" maxlength="24" placeholder="例：リビング・寝室・季節もの">
 <button type="button" onclick="setSavedRoomCategory()">カテゴリを設定</button>
 <button type="button" onclick="clearSavedRoomCategory()">カテゴリを解除</button>
+<label for="savedRoomNote">選んだお部屋のメモ（500文字まで）</label>
+<textarea id="savedRoomNote" rows="4" maxlength="500" placeholder="家具の配置メモ、使い方、次に変えたいところなど"></textarea>
+<button type="button" onclick="saveSavedRoomNote()">メモを保存</button>
+<button type="button" onclick="clearSavedRoomNote()">メモを消去</button>
 <div style="margin:12px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px">
 <strong>複数のお部屋をまとめて整理</strong>
 <p id="bulkSavedRoomCount" role="status" aria-live="polite">選択中：0個</p>
@@ -805,10 +809,11 @@ document.getElementById('message').textContent='↩️ 直前のお部屋一覧�
 function readSavedRoomPrefs(){
 try{
 const raw=localStorage.getItem('kokoroSavedRoomPrefs');
-if(raw===null)return {favorites:[],order:[]};
+if(raw===null)return {favorites:[],order:[],categories:{},notes:{}};
 const prefs=JSON.parse(raw);
-if(!prefs||typeof prefs!=='object'||Array.isArray(prefs)||!Array.isArray(prefs.favorites)||!Array.isArray(prefs.order)||prefs.favorites.length>100||prefs.order.length>100||!prefs.favorites.every(name=>typeof name==='string'&&name.length<=80)||!prefs.order.every(name=>typeof name==='string'&&name.length<=80)||new Set(prefs.favorites).size!==prefs.favorites.length||new Set(prefs.order).size!==prefs.order.length||(prefs.categories!==undefined&&(!prefs.categories||typeof prefs.categories!=='object'||Array.isArray(prefs.categories)||Object.keys(prefs.categories).length>100||!Object.entries(prefs.categories).every(([name,category])=>typeof name==='string'&&name.length<=80&&typeof category==='string'&&category.length<=24))) )throw new Error('invalid saved room preferences');
+if(!prefs||typeof prefs!=='object'||Array.isArray(prefs)||!Array.isArray(prefs.favorites)||!Array.isArray(prefs.order)||prefs.favorites.length>100||prefs.order.length>100||!prefs.favorites.every(name=>typeof name==='string'&&name.length<=80)||!prefs.order.every(name=>typeof name==='string'&&name.length<=80)||new Set(prefs.favorites).size!==prefs.favorites.length||new Set(prefs.order).size!==prefs.order.length||(prefs.categories!==undefined&&(!prefs.categories||typeof prefs.categories!=='object'||Array.isArray(prefs.categories)||Object.keys(prefs.categories).length>100||!Object.entries(prefs.categories).every(([name,category])=>typeof name==='string'&&name.length<=80&&typeof category==='string'&&category.length<=24)))||(prefs.notes!==undefined&&(!prefs.notes||typeof prefs.notes!=='object'||Array.isArray(prefs.notes)||Object.keys(prefs.notes).length>100||!Object.entries(prefs.notes).every(([name,note])=>typeof name==='string'&&name.length<=80&&typeof note==='string'&&note.length<=500))) )throw new Error('invalid saved room preferences');
 if(!prefs.categories)prefs.categories={};
+if(!prefs.notes)prefs.notes={};
 return prefs;
 }catch(error){return null;}
 }
@@ -900,6 +905,7 @@ names.forEach(name=>{
 const option=document.createElement('option');option.value=name;option.textContent=(favorites.includes(name)?'⭐ ':'')+name;select.appendChild(option);
 });
 if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
+loadSavedRoomNote();
 document.getElementById('savedRoomCount').textContent='💾 表示中：'+names.length+'個 ／ 全 '+allNames.length+'個'+(favorites.length?'（⭐ お気に入り '+favorites.length+'個）':'')+(selectedCategory?'・カテゴリ：'+selectedCategory:'')+(prefs===null?'・設定データに問題があります。既存データは保護しています。':'');
 
 const bulkList=document.getElementById('bulkSavedRoomList');
@@ -914,6 +920,36 @@ label.appendChild(checkbox);label.appendChild(caption);bulkList.appendChild(labe
 });
 updateBulkSavedRoomCount();
 }}
+function loadSavedRoomNote(){
+const name=document.getElementById('savedRooms')?.value||'';
+const field=document.getElementById('savedRoomNote');
+if(!field)return;
+const prefs=readSavedRoomPrefs();
+field.value=(prefs&&name&&typeof prefs.notes[name]==='string')?prefs.notes[name]:'';
+}
+function saveSavedRoomNote(){
+const name=document.getElementById('savedRooms').value;
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+const field=document.getElementById('savedRoomNote'),note=field.value;
+if(!name||rooms===null||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='メモを保存するお部屋を選んでください。';return;}
+if(prefs===null){document.getElementById('message').textContent='メモ設定を読み取れません。既存データは変更していません。';return;}
+if(note.length>500){document.getElementById('message').textContent='メモは500文字以内にしてください。';return;}
+prefs.notes=prefs.notes||{};
+if(note.trim())prefs.notes[name]=note.trim();else delete prefs.notes[name];
+if(!writeSavedRoomPrefs(prefs))return;
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+document.getElementById('message').textContent='「'+name+'」のメモを保存しました。';
+}
+function clearSavedRoomNote(){
+const name=document.getElementById('savedRooms').value,prefs=readSavedRoomPrefs();
+if(!name){document.getElementById('message').textContent='メモを消すお部屋を選んでください。';return;}
+if(prefs===null){document.getElementById('message').textContent='メモ設定を読み取れません。';return;}
+prefs.notes=prefs.notes||{};delete prefs.notes[name];
+if(!writeSavedRoomPrefs(prefs))return;
+document.getElementById('savedRoomNote').value='';
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+document.getElementById('message').textContent='「'+name+'」のメモを消去しました。';
+}
 function setSavedRoomCategory(){
 const select=document.getElementById('savedRooms'),name=select.value;
 const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
