@@ -500,7 +500,8 @@ if(clean.length>80){document.getElementById('message').textContent='お部屋の
 if(clean!==oldName&&Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
 rooms[clean]=rooms[oldName];
 if(clean!==oldName)delete rooms[oldName];
-localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+if(!validSavedRooms(rooms)){document.getElementById('message').textContent='この変更は保存できません。内容を確認してね。';return;}
+if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();select.value=clean;
 document.getElementById('message').textContent='✏️ お部屋の名前を「'+clean+'」に変更しました！';
@@ -510,7 +511,8 @@ const name=document.getElementById('savedRooms').value;
 if(!name){document.getElementById('message').textContent='削除するお部屋を選んでね。';return;}
 if(!confirm('「'+name+'」を削除しますか？'))return;
 const rooms=savedRoomData();delete rooms[name];
-localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+if(!validSavedRooms(rooms)){document.getElementById('message').textContent='削除内容を保存できません。';return;}
+if(!safeWriteLocalStorage('kokoroSavedRooms',JSON.stringify(rooms)))return;
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 document.getElementById('message').textContent='「'+name+'」を削除しました。'
@@ -555,19 +557,24 @@ loadRoom();
 
 function exportRoomBackup(){
 try{
+const currentRoom=roomData();
+const savedRooms=savedRoomData();
+if(!validRoomData(currentRoom)||!validSavedRooms(savedRooms)){
+throw new Error("invalid local backup data");
+}
 const payload={
 app:"kokoro-family",
 version:1,
 exportedAt:new Date().toISOString(),
-currentRoom:roomData(),
-savedRooms:savedRoomData()
+currentRoom,
+savedRooms
 };
 const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
 const url=URL.createObjectURL(blob);
 const a=document.createElement("a");
 a.href=url;
 a.download="kokoro-family-backup-"+new Date().toISOString().slice(0,10)+".json";
-document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 document.getElementById("backupMessage").textContent="✅ バックアップファイルを書き出しました。";
 }catch(e){
 document.getElementById("backupMessage").textContent="書き出しに失敗しました。";
@@ -588,11 +595,21 @@ if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoomData(data.curr
 throw new Error("invalid backup");
 }
 if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
-// Keep a recovery copy immediately before replacing local data.
-localStorage.setItem("kokoroRoomBeforeImport",localStorage.getItem("kokoroRoom")||"");
-localStorage.setItem("kokoroSavedRoomsBeforeImport",localStorage.getItem("kokoroSavedRooms")||"{}");
+// Preserve both previous values and roll back if either write fails.
+const previousRoom=localStorage.getItem("kokoroRoom");
+const previousSavedRooms=localStorage.getItem("kokoroSavedRooms");
+try{
+localStorage.setItem("kokoroRoomBeforeImport",previousRoom||"");
+localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms||"{}");
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
+}catch(writeError){
+try{
+if(previousRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",previousRoom);
+if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",previousSavedRooms);
+}catch(rollbackError){console.error("Backup import rollback failed",rollbackError);}
+throw writeError;
+}
 applyRoom(data.currentRoom);
 refreshSavedRooms();
 if(window.kokoroQueueSync)window.kokoroQueueSync();
