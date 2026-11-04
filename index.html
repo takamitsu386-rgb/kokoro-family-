@@ -839,7 +839,7 @@ validPosition(item.left)&&validPosition(item.top)&&
 function validSavedRooms(value) {
   return !!value && typeof value === "object" && !Array.isArray(value) &&
     Object.keys(value).length <= 100 &&
-    Object.entries(value).every(([name, room]) => name.trim().length > 0 && name.length <= 80 && validRoomData(room));
+    Object.entries(value).every(([name, room]) => name.trim().length > 0 && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name) && validRoomData(room));
 }
 function localPayload() {
   let currentRoom, savedRooms;
