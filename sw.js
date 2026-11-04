@@ -1,5 +1,5 @@
-// Updated with furniture and room-style save rollback safeguards.
-const CACHE_NAME="kokoro-family-v14";
+// Updated with cloud-sync logout protection and furniture interaction safeguards.
+const CACHE_NAME="kokoro-family-v15";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
