@@ -1161,8 +1161,10 @@ function validSavedRooms(value) {
 function localPayload() {
   let currentRoom, savedRooms;
   try {
-    currentRoom = JSON.parse(localStorage.getItem("kokoroRoom") || "null");
-    savedRooms = JSON.parse(localStorage.getItem("kokoroSavedRooms") || "{}");
+    const currentRaw = localStorage.getItem("kokoroRoom");
+    const savedRaw = localStorage.getItem("kokoroSavedRooms");
+    currentRoom = currentRaw === null ? null : JSON.parse(currentRaw);
+    savedRooms = savedRaw === null ? {} : JSON.parse(savedRaw);
   } catch {
     throw new Error("端末内の保存データを読み取れません。バックアップを確認してください。");
   }
