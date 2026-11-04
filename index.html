@@ -603,7 +603,7 @@ typeof value.wall==="string"&&safePaint(value.wall,500)&&
 (value.floorImage===undefined||safePaint(value.floorImage,1000))&&
 Array.isArray(value.items)&&value.items.length<=300&&
 value.items.every(item=>item&&typeof item==="object"&&!Array.isArray(item)&&
-typeof item.icon==="string"&&item.icon.length>0&&item.icon.length<=8&&
+typeof item.icon==="string"&&furnitureList.includes(item.icon)&&
 validPosition(item.left)&&validPosition(item.top)&&
 (item.size===undefined||validSize(item.size))&&
 (item.zIndex===undefined||validLayer(item.zIndex)));
