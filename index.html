@@ -1385,6 +1385,7 @@ try {
       status("ログアウトできません：" + (error.code || error.message));
     } finally {
       logoutInProgress = false;
+      loginButton.disabled = !!currentUser || !navigator.onLine;
       setSyncBusy(syncInProgress);
     }
   });
