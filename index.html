@@ -153,6 +153,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="previewSavedRoom()">👀 選んだお部屋をプレビュー</button>
 <button type="button" onclick="exportCurrentRoomImage()">🖼️ 今のお部屋を画像保存</button>
 <button type="button" onclick="exportSavedRoomImage()">🖼️ 選んだお部屋を画像保存</button>
+<button type="button" onclick="shareCurrentRoomFile()">📤 今のお部屋を共有</button>
+<button type="button" onclick="shareSavedRoomFile()">📤 選んだお部屋を共有</button>
 <div id="savedRoomPreview" aria-live="polite" style="margin-top:10px;padding:12px;border:1px solid #d8dce5;border-radius:12px;background:#fafaff"><strong>お部屋プレビュー</strong><p style="margin:6px 0;color:#667085">保存したお部屋を選ぶと、ここに見本が表示されます。</p></div>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="duplicateSavedRoom()">📑 選んだお部屋を複製</button>
@@ -991,6 +993,47 @@ if(savedRoomSelect)savedRoomSelect.focus();
 console.error('Saved room restore failed',error);
 document.getElementById('message').textContent='お部屋の復元中に問題が起きました。保存データは残しています。';
 }
+}
+async function shareRoomFile(data,title,savedName){
+if(!validRoomData(data)){document.getElementById('message').textContent='共有するお部屋のデータを確認できません。';return;}
+try{
+const savedRooms=Object.create(null);
+if(savedName)savedRooms[savedName]=data;
+const payload={app:'kokoro-family',version:1,currentRoom:data,savedRooms};
+const json=JSON.stringify(payload,null,2);
+if(new Blob([json]).size>10*1024*1024){document.getElementById('message').textContent='共有ファイルが10MBを超えています。家具や保存データを整理してください。';return;}
+const safeName=(title||'お部屋').replace(/[\\/:*?"<>|]/g,'_').slice(0,60)||'お部屋';
+const fileName='kokoro-family-'+safeName+'.json';
+const file=new File([json],fileName,{type:'application/json'});
+if(typeof navigator!=='undefined'&&typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]})){
+try{
+await navigator.share({files:[file],title:'こころファミリーのお部屋',text:'こころファミリーのお部屋データです。'});
+document.getElementById('message').textContent='📤 共有画面を開きました。';
+return;
+}catch(error){
+if(error&&error.name==='AbortError'){document.getElementById('message').textContent='共有をキャンセルしました。';return;}
+console.warn('Native room sharing unavailable; downloading file instead',error);
+}
+}
+const blob=new Blob([json],{type:'application/json'});
+const url=URL.createObjectURL(blob),link=document.createElement('a');
+link.href=url;link.download=fileName;document.body.appendChild(link);link.click();link.remove();
+setTimeout(()=>URL.revokeObjectURL(url),60000);
+document.getElementById('message').textContent='共有用ファイルを保存しました。このJSONファイルを相手に送ってください。相手はバックアップ読込から取り込めます。';
+}catch(error){
+console.error('Room sharing failed',error);
+document.getElementById('message').textContent='共有ファイルを作成できませんでした。';
+}
+}
+function shareCurrentRoomFile(){
+const data=roomData();
+shareRoomFile(data,'今のお部屋','');
+}
+function shareSavedRoomFile(){
+const name=document.getElementById('savedRooms').value,rooms=savedRoomData();
+if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
+if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='共有するお部屋を選んでね。';return;}
+shareRoomFile(rooms[name],name,name);
 }
 function exportRoomImage(data,title){
 if(!validRoomData(data)){document.getElementById('message').textContent='画像にするお部屋のデータを確認できません。';return;}
