@@ -146,10 +146,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button class="primary" onclick="saveRoom()">💾 今のお部屋を保存</button>
 <div style="margin-top:10px">
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
-<select id="savedRooms" aria-label="保存したお部屋"><option value="">保存したお部屋を選ぶ</option></select>
+<select id="savedRooms" aria-label="保存したお部屋" onchange="previewSavedRoom()"><option value="">保存したお部屋を選ぶ</option></select>
 <p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
+<button type="button" onclick="previewSavedRoom()">👀 選んだお部屋をプレビュー</button>
+<div id="savedRoomPreview" aria-live="polite" style="margin-top:10px;padding:12px;border:1px solid #d8dce5;border-radius:12px;background:#fafaff"><strong>お部屋プレビュー</strong><p style="margin:6px 0;color:#667085">保存したお部屋を選ぶと、ここに見本が表示されます。</p></div>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="duplicateSavedRoom()">📑 選んだお部屋を複製</button>
 <button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
@@ -987,6 +989,35 @@ if(savedRoomSelect)savedRoomSelect.focus();
 console.error('Saved room restore failed',error);
 document.getElementById('message').textContent='お部屋の復元中に問題が起きました。保存データは残しています。';
 }
+}
+function previewSavedRoom(){
+const name=document.getElementById('savedRooms').value;
+const root=document.getElementById('savedRoomPreview');
+if(!root)return;
+root.replaceChildren();
+const heading=document.createElement('strong');heading.textContent='👀 お部屋プレビュー';root.appendChild(heading);
+const rooms=savedRoomData();
+if(rooms===null){const p=document.createElement('p');p.textContent='保存データを読み取れません。元データは変更していません。';root.appendChild(p);return;}
+if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){const p=document.createElement('p');p.textContent='プレビューしたいお部屋を選んでね。';root.appendChild(p);return;}
+const data=rooms[name];
+if(!validRoomData(data)){const p=document.createElement('p');p.textContent='このお部屋のデータを確認できないため、表示を中止しました。';root.appendChild(p);return;}
+const scene=document.createElement('div');
+scene.setAttribute('role','img');scene.setAttribute('aria-label',name+' のお部屋。家具 '+data.items.length+' 個');
+scene.style.cssText='position:relative;width:100%;height:190px;overflow:hidden;border:6px solid #d7c3a7;border-radius:10px;background-color:'+(data.wallColor||'#f5e9d8')+';background-image:'+(data.wallImage||'none')+';background-size:'+(data.wallSize||'auto')+';background-repeat:'+(data.wallRepeat||'repeat')+';';
+const floor=document.createElement('div');
+floor.style.cssText='position:absolute;left:0;bottom:0;width:100%;height:28%;border-top:4px solid #b7855e;background-color:'+(data.floor||'#c89b72')+';background-image:'+(data.floorImage||'none')+';';
+scene.appendChild(floor);
+data.items.slice(0,80).forEach(item=>{
+const piece=document.createElement('span');piece.textContent=item.icon;
+piece.style.cssText='position:absolute;left:'+item.left+';top:'+item.top+';font-size:'+(item.size||'30px')+';line-height:1;z-index:'+(item.zIndex||'1')+';';
+scene.appendChild(piece);
+});
+root.appendChild(scene);
+const info=document.createElement('p');
+info.style.cssText='margin:8px 0 0;color:#667085;font-size:13px';
+info.textContent='「'+name+'」・家具 '+data.items.length+' 個'+(data.items.length>80?'（プレビューは先頭80個を表示）':'');
+root.appendChild(info);
+const note=document.createElement('p');note.style.cssText='margin:4px 0 0;font-size:12px;color:#667085';note.textContent='プレビューでは保存データを変更しません。';root.appendChild(note);
 }
 function duplicateSavedRoom(){
 const select=document.getElementById('savedRooms');
