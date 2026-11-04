@@ -1,5 +1,5 @@
-// Updated with focus newly added furniture for immediate placement.
-const CACHE_NAME="kokoro-family-v40";
+// Updated with announce successful keyboard furniture movement.
+const CACHE_NAME="kokoro-family-v41";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
