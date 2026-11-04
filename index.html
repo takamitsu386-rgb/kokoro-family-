@@ -1090,6 +1090,9 @@ function cloudRef(uid) {
   return doc(db, "users", uid, "kokoro", "data");
 }
 function markCloudSync(uid) {
+  clearTimeout(syncRetryTimer);
+  syncRetryTimer = null;
+  syncRetryCount = 0;
   try {
     localStorage.setItem("kokoroCloudSyncUid", uid);
     return true;
@@ -1344,6 +1347,9 @@ try {
     if (currentUser?.uid !== user?.uid) {
       clearTimeout(window.__kokoroSyncTimer);
       window.__kokoroSyncTimer = null;
+      clearTimeout(syncRetryTimer);
+      syncRetryTimer = null;
+      syncRetryCount = 0;
       syncPending = false;
       initializedSyncForUid = null;
     }
