@@ -1,5 +1,5 @@
-// Updated with keyboard focus restoration after furniture duplication.
-const CACHE_NAME="kokoro-family-v34";
+// Updated with keyboard focus handling after furniture removal and clearing.
+const CACHE_NAME="kokoro-family-v35";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
