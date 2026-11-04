@@ -923,7 +923,7 @@ const url=URL.createObjectURL(blob);
 const a=document.createElement("a");
 a.href=url;
 a.download="kokoro-family-backup-"+new Date().toISOString().slice(0,10)+".json";
-document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 document.getElementById("backupMessage").textContent="✅ バックアップファイルを書き出しました。";
 }catch(e){
 document.getElementById("backupMessage").textContent="書き出しに失敗しました。";
