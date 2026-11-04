@@ -557,12 +557,22 @@ function status(message) {
   if (statusEl) statusEl.textContent = message;
 }
 function validRoomData(value) {
+  const validPosition = v => typeof v === "string" && /^(?:\\d+(?:\\.\\d+)?)(?:px|%)$/.test(v);
+  const validSize = v => typeof v === "string" && /^(?:\\d+(?:\\.\\d+)?)px$/.test(v) &&
+    Number.parseFloat(v) >= 20 && Number.parseFloat(v) <= 80;
+  const validLayer = v => typeof v === "string" && /^-?\\d{1,5}$/.test(v);
   return !!value && typeof value === "object" && !Array.isArray(value) &&
-    typeof value.wall === "string" && Array.isArray(value.items) && value.items.length <= 300 &&
-    value.items.every(item => item && typeof item === "object" &&
-      typeof item.icon === "string" && typeof item.left === "string" && typeof item.top === "string" &&
-      (item.size === undefined || typeof item.size === "string") &&
-      (item.zIndex === undefined || typeof item.zIndex === "string"));
+    typeof value.wall === "string" && value.wall.length <= 500 &&
+    (value.wallColor === undefined || (typeof value.wallColor === "string" && value.wallColor.length <= 100)) &&
+    (value.wallImage === undefined || (typeof value.wallImage === "string" && value.wallImage.length <= 1000)) &&
+    (value.floor === undefined || (typeof value.floor === "string" && value.floor.length <= 100)) &&
+    (value.floorImage === undefined || (typeof value.floorImage === "string" && value.floorImage.length <= 1000)) &&
+    Array.isArray(value.items) && value.items.length <= 300 &&
+    value.items.every(item => item && typeof item === "object" && !Array.isArray(item) &&
+      typeof item.icon === "string" && item.icon.length > 0 && item.icon.length <= 8 &&
+      validPosition(item.left) && validPosition(item.top) &&
+      (item.size === undefined || validSize(item.size)) &&
+      (item.zIndex === undefined || validLayer(item.zIndex)));
 }
 function validSavedRooms(value) {
   return !!value && typeof value === "object" && !Array.isArray(value) &&
