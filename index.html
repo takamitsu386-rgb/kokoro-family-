@@ -314,6 +314,12 @@ item.remove();
 updateFurnitureCount();
 return null;
 }
+if(persist){
+selectFurniture(item);
+const handle=item.querySelector('.drag-handle');
+if(handle)handle.focus();
+document.getElementById('selectedMessage').textContent='家具を追加して選択しました。手のマークを動かして配置できます。';
+}
 return item;
 }
 function selectFurniture(el){
