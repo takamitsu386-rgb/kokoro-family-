@@ -105,10 +105,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <section class="panel" id="furniture-tools">
 <h2>🌟 お部屋のテーマ</h2>
 <div class="items" id="themes">
-<button onclick="applyTheme('sweet')">🍓 かわいい</button>
-<button onclick="applyTheme('nature')">🌿 ナチュラル</button>
-<button onclick="applyTheme('sky')">☁️ そら</button>
-<button onclick="applyTheme('mono')">🐼 シンプル</button>
+<button type="button" onclick="applyTheme('sweet')">🍓 かわいい</button>
+<button type="button" onclick="applyTheme('nature')">🌿 ナチュラル</button>
+<button type="button" onclick="applyTheme('sky')">☁️ そら</button>
+<button type="button" onclick="applyTheme('mono')">🐼 シンプル</button>
 </div>
 <h2>🧸 家具の種類</h2>
 <div class="items" id="furnitureCategories">
@@ -189,7 +189,10 @@ function buttons(id,values,fn){
 const el=document.getElementById(id);
 values.forEach((v,i)=>{
 const b=document.createElement('button');
+b.type='button';
 b.textContent=id==='furniture'?v:v;
+if(id==='walls')b.setAttribute('aria-label',v+' の壁の色を選択');
+if(id==='floors')b.setAttribute('aria-label',v+' の床の色を選択');
 b.onclick=()=>fn(v);
 el.appendChild(b);
 });
@@ -212,7 +215,8 @@ buttons('floors',floorColors,v=>commitStyleChange(()=>{document.getElementById('
 function patternButtons(id,patterns,target){
 const root=document.getElementById(id);
 patterns.forEach(([label,pattern])=>{
-const b=document.createElement('button');b.textContent=label;
+const b=document.createElement('button');b.type='button';b.textContent=label;
+b.setAttribute('aria-label',label+(id==='wallPatterns'?' の壁紙を選択':' の床の模様を選択'));
 b.onclick=()=>commitStyleChange(()=>{target.style.backgroundImage=pattern;if(id==='wallPatterns'){target.style.backgroundSize=label==='水玉'?'32px 32px':'auto';target.style.backgroundRepeat='repeat';document.getElementById('message').textContent=label==='水玉'?'🔴 大きな水玉の壁紙にしたよ！':'壁紙の模様を変更したよ！';}else{document.getElementById('message').textContent='床の模様を変更したよ！';}});
 root.appendChild(b);
 });
