@@ -669,25 +669,38 @@ if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoomData(data.curr
 throw new Error("invalid backup");
 }
 if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
-// Preserve both previous values and roll back if either write fails.
+// Treat storage writes and screen restoration as one import transaction.
 const previousRoom=localStorage.getItem("kokoroRoom");
 const previousSavedRooms=localStorage.getItem("kokoroSavedRooms");
+let importCommitted=false;
 try{
 localStorage.setItem("kokoroRoomBeforeImport",previousRoom||"");
 localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms||"{}");
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
-}catch(writeError){
+if(applyRoom(data.currentRoom,false)!==true)throw new Error("room restore failed");
+refreshSavedRooms();
+importCommitted=true;
+}catch(importError){
 try{
 if(previousRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",previousRoom);
 if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",previousSavedRooms);
-}catch(rollbackError){console.error("Backup import rollback failed",rollbackError);}
-throw writeError;
+if(previousRoom!==null){
+const previousRoomData=JSON.parse(previousRoom);
+if(validRoomData(previousRoomData))applyRoom(previousRoomData,false);
 }
-applyRoom(data.currentRoom,false);
 refreshSavedRooms();
+}catch(rollbackError){
+console.error("Backup import rollback failed",rollbackError);
+message.textContent="読み込みに失敗し、元データの復元も完了できませんでした。端末内の退避データを確認してください。";
+throw importError;
+}
+throw importError;
+}
+if(importCommitted){
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 message.textContent="✅ バックアップを読み込みました。読み込み直前のデータも端末内に退避しました。";
+}
 }catch(e){
 message.textContent="読み込めませんでした。ファイル形式やデータ内容を確認してね。";
 }
