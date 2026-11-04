@@ -117,3 +117,5 @@ Firebase Console の設定後、開発版を HTTPS で開いて確認します�
 Cloud room data uses the same strict room validator as local saves and backup imports. Furniture icons, item positions, sizes, layer values, paint values, and saved-room structure are checked consistently before cloud data is accepted. This prevents the cloud path from accepting room records that the local and backup paths would reject.
 
 - Cloud download handler is explicitly asynchronous so its Firestore read queue can be awaited without a JavaScript parse error.
+
+- Fixed a duplicate `async` keyword in the cloud download function declaration; the declaration is now valid JavaScript syntax.
