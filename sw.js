@@ -1,5 +1,5 @@
-// Preserve the specific warning if backup import rollback also fails.
-const CACHE_NAME="kokoro-family-v55";
+// Reject oversized cloud sync payloads before attempting Firestore writes.
+const CACHE_NAME="kokoro-family-v56";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
