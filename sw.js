@@ -1,5 +1,5 @@
-// Updated with successful pointer furniture movement announcement.
-const CACHE_NAME="kokoro-family-v43";
+// Updated with oversized backup file selection reset.
+const CACHE_NAME="kokoro-family-v44";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
