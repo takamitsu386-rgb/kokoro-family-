@@ -1,5 +1,5 @@
-// Updated to explain safe device switching for cloud sync.
-const CACHE_NAME="kokoro-family-v52";
+// Updated to keep backup download URLs available longer on mobile.
+const CACHE_NAME="kokoro-family-v53";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
