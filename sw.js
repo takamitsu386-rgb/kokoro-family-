@@ -1,5 +1,5 @@
 // Updated with the latest room restore and first-sync safeguards.
-const CACHE_NAME="kokoro-family-v11";
+const CACHE_NAME="kokoro-family-v12";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
