@@ -1,5 +1,5 @@
 // Retry failed automatic cloud sync up to three times with increasing delays.
-const CACHE_NAME="kokoro-family-v82";
+const CACHE_NAME="kokoro-family-v83";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
