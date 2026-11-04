@@ -142,6 +142,18 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="resetRoom()">リセット</button>
 </section>
 
+
+<section class="panel" id="cloud-sync">
+<h2>☁️ スマホ・PC同期</h2>
+<p>Googleアカウントでログインすると、お部屋データをクラウドに保存できます。</p>
+<p id="cloudSyncStatus" role="status" aria-live="polite">未接続：この端末内に保存しています。</p>
+<button class="primary" type="button" id="cloudGoogleLogin">Googleでログイン</button>
+<button type="button" id="cloudSyncNow" disabled>☁️ 同期する</button>
+<button type="button" id="cloudDownload" disabled>クラウドから読み込む</button>
+<button type="button" id="cloudLogout" disabled>ログアウト</button>
+<p style="font-size:13px;color:#667085">初回同期では、端末内とクラウドのどちらのデータを使うか確認します。端末内の保存データは同期後も残ります。</p>
+</section>
+
 <section class="panel" aria-labelledby="backupTitle">
 <h2 id="backupTitle">🛡️ お部屋データのバックアップ</h2>
 <p>保存したお部屋と、今のお部屋をファイルに保存できます。機種変更やデータ移動の前に使ってね。</p>
@@ -382,7 +394,7 @@ if(Object.prototype.hasOwnProperty.call(savedRoomData(),current))select.value=cu
 document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+Object.keys(savedRoomData()).length+'個';
 }
 function autoSaveRoom(){
-try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));}catch(e){}
+try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));if(window.kokoroQueueSync)window.kokoroQueueSync();}catch(e){}
 }
 function saveRoom(){
 localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));
@@ -393,6 +405,7 @@ const name=prompt('お部屋の名前をつけてね（例：ピンクのお部�
 if(!name||!name.trim())return;
 const rooms=savedRoomData();rooms[name.trim()]=roomData();
 localStorage.setItem('kokoroSavedRooms',JSON.stringify(rooms));
+if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 document.getElementById('savedRooms').value=name.trim();
 document.getElementById('message').textContent='✅「'+name.trim()+'」を保存しました！';
@@ -503,6 +516,169 @@ reader.readAsText(file);
 }
 
 </script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ODyTj06wZvJ9t1UQxQ56YfHMqcfj6Y",
+  authDomain: "kokoro-family.firebaseapp.com",
+  projectId: "kokoro-family",
+  storageBucket: "kokoro-family.firebasestorage.app",
+  messagingSenderId: "760866517067",
+  appId: "1:760866517067:web:e1a74a98688c458669ddce",
+  measurementId: "G-N963FJD7E8"
+};
+
+const statusEl = document.getElementById("cloudSyncStatus");
+const loginButton = document.getElementById("cloudGoogleLogin");
+const syncButton = document.getElementById("cloudSyncNow");
+const downloadButton = document.getElementById("cloudDownload");
+const logoutButton = document.getElementById("cloudLogout");
+let auth, db, currentUser = null;
+let initializedSyncForUid = null;
+
+function status(message) {
+  if (statusEl) statusEl.textContent = message;
+}
+function localPayload() {
+  let currentRoom = {};
+  let savedRooms = {};
+  try { currentRoom = JSON.parse(localStorage.getItem("kokoroRoom") || "{}"); } catch {}
+  try { savedRooms = JSON.parse(localStorage.getItem("kokoroSavedRooms") || "{}"); } catch {}
+  return { version: 1, currentRoom, savedRooms };
+}
+function cloudRef(uid) {
+  return doc(db, "users", uid, "kokoro", "data");
+}
+async function uploadLocal() {
+  if (!currentUser) throw new Error("ログインしてください。");
+  const payload = localPayload();
+  await setDoc(cloudRef(currentUser.uid), {
+    ...payload,
+    updatedAt: serverTimestamp()
+  });
+}
+async function downloadCloud() {
+  if (!currentUser) throw new Error("ログインしてください。");
+  const snapshot = await getDoc(cloudRef(currentUser.uid));
+  if (!snapshot.exists()) {
+    status("クラウドにデータはありません。端末内のデータはそのままです。");
+    return false;
+  }
+  const data = snapshot.data();
+  if (data.version !== 1 || !data.currentRoom || !Array.isArray(data.currentRoom.items) ||
+      !data.savedRooms || typeof data.savedRooms !== "object" || Array.isArray(data.savedRooms)) {
+    throw new Error("クラウドデータの形式を確認できません。端末内データは変更していません。");
+  }
+  if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
+  localStorage.setItem("kokoroRoomBeforeCloudImport", localStorage.getItem("kokoroRoom") || "");
+  localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", localStorage.getItem("kokoroSavedRooms") || "{}");
+  localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
+  localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
+  if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
+  if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+  initializedSyncForUid = currentUser.uid;
+  localStorage.setItem("kokoroCloudSyncUid", currentUser.uid);
+  status("クラウドから読み込みました。端末内にも保存済みです。");
+  return true;
+}
+async function syncNow() {
+  if (!currentUser) { status("先にGoogleでログインしてください。"); return; }
+  status("同期を確認しています…");
+  try {
+    const snapshot = await getDoc(cloudRef(currentUser.uid));
+    const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === currentUser.uid;
+    if (snapshot.exists() && !alreadyInitialized) {
+      const useCloud = confirm("このアカウントにはクラウドデータがあります。OK：クラウドから読み込む／キャンセル：この端末のデータをクラウドへ保存する");
+      if (useCloud) {
+        const data = snapshot.data();
+        if (data.version !== 1 || !data.currentRoom || !Array.isArray(data.currentRoom.items) ||
+            !data.savedRooms || typeof data.savedRooms !== "object" || Array.isArray(data.savedRooms)) {
+          throw new Error("クラウドデータの形式が違います。端末内データは変更していません。");
+        }
+        localStorage.setItem("kokoroRoomBeforeCloudImport", localStorage.getItem("kokoroRoom") || "");
+        localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", localStorage.getItem("kokoroSavedRooms") || "{}");
+        localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
+        localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
+        if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
+        if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+        status("クラウドのデータを読み込みました。端末内にも保存済みです。");
+      } else {
+        await uploadLocal();
+        status("この端末のデータをクラウドに保存しました。");
+      }
+    } else {
+      await uploadLocal();
+      status("同期しました。クラウドに保存済みです。");
+    }
+    initializedSyncForUid = currentUser.uid;
+    localStorage.setItem("kokoroCloudSyncUid", currentUser.uid);
+  } catch (error) {
+    console.error(error);
+    status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
+  }
+}
+function queueSync() {
+  if (!currentUser) return;
+  clearTimeout(window.__kokoroSyncTimer);
+  window.__kokoroSyncTimer = setTimeout(async () => {
+    try {
+      await uploadLocal();
+      status("自動同期しました。");
+      localStorage.setItem("kokoroCloudSyncUid", currentUser.uid);
+    } catch (error) {
+      console.error(error);
+      status("クラウド同期に失敗しました。端末内には保存されています。");
+    }
+  }, 900);
+}
+try {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  loginButton.addEventListener("click", async () => {
+    try {
+      status("Googleログイン中…");
+      await signInWithPopup(auth, new GoogleAuthProvider());
+    } catch (error) {
+      if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
+        try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
+        catch (redirectError) { status("ログインできません：" + (redirectError.code || redirectError.message)); }
+      } else {
+        status("ログインできません：" + (error.code || error.message));
+      }
+    }
+  });
+  syncButton.addEventListener("click", syncNow);
+  downloadButton.addEventListener("click", async () => {
+    try { await downloadCloud(); }
+    catch (error) { status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。"); }
+  });
+  logoutButton.addEventListener("click", async () => {
+    try { await signOut(auth); initializedSyncForUid = null; status("ログアウトしました。端末内データは残っています。"); }
+    catch (error) { status("ログアウトできません：" + (error.code || error.message)); }
+  });
+  await getRedirectResult(auth).catch(error => status("ログイン結果を確認できません：" + (error.code || error.message)));
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    loginButton.disabled = !!user;
+    syncButton.disabled = !user;
+    downloadButton.disabled = !user;
+    logoutButton.disabled = !user;
+    if (user) status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
+    else status("未接続：この端末内に保存しています。");
+  });
+  window.kokoroQueueSync = queueSync;
+} catch (error) {
+  console.error(error);
+  status("Firebaseを初期化できません。設定値やドメインを確認してください。");
+  loginButton.disabled = true;
+}
+</script>
+
 <script>
 if("serviceWorker" in navigator && location.protocol==="https"){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
