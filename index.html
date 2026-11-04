@@ -290,6 +290,11 @@ item.style.left=(15+Math.random()*65)+'%';
 item.style.top=(15+Math.random()*48)+'%';
 item.title='手のマークでつかんで、そのままスライドして移動';
 room.appendChild(item);
+// Keep the entire new furniture item inside the visible room on narrow screens.
+const maxLeft=Math.max(0,room.clientWidth-item.offsetWidth);
+const maxTop=Math.max(0,room.clientHeight-item.offsetHeight);
+item.style.left=Math.min(maxLeft,Math.max(0,item.offsetLeft))+'px';
+item.style.top=Math.min(maxTop,Math.max(0,item.offsetTop))+'px';
 drag(item);
 updateFurnitureCount();
 if(persist&&!autoSaveRoom()){
