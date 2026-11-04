@@ -233,7 +233,7 @@ button.classList.toggle('primary',active);
 });
 const root=document.getElementById('furniture');root.innerHTML='';
 list.forEach(icon=>{
-const b=document.createElement('button');b.textContent=icon;b.title=icon+' を追加';
+const b=document.createElement('button');b.type='button';b.textContent=icon;b.title=icon+' を追加';b.setAttribute('aria-label',icon+' をお部屋に追加');
 b.onclick=()=>addFurniture(icon);root.appendChild(b);
 });
 }
