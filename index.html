@@ -153,6 +153,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="duplicateSavedRoom()">📑 選んだお部屋を複製</button>
 <button onclick="deleteSavedRoom()">選んだお部屋を削除</button>
+<button type="button" onclick="toggleSavedRoomFavorite()">☆ お気に入り切替</button>
+<button type="button" onclick="moveSavedRoom(-1)">⬆️ 上へ</button>
+<button type="button" onclick="moveSavedRoom(1)">⬇️ 下へ</button>
 </div>
 <button onclick="resetRoom()">リセット</button>
 </section>
@@ -775,6 +778,19 @@ refreshSavedRooms();
 document.getElementById('savedRooms').focus();
 document.getElementById('message').textContent='↩️ 直前のお部屋一覧の変更を取り消しました。もう一度押すと、取り消し前に戻せます。';
 }
+function readSavedRoomPrefs(){
+try{
+const raw=localStorage.getItem('kokoroSavedRoomPrefs');
+if(raw===null)return {favorites:[],order:[]};
+const prefs=JSON.parse(raw);
+if(!prefs||typeof prefs!=='object'||Array.isArray(prefs)||!Array.isArray(prefs.favorites)||!Array.isArray(prefs.order)||prefs.favorites.length>100||prefs.order.length>100||!prefs.favorites.every(name=>typeof name==='string'&&name.length<=80)||!prefs.order.every(name=>typeof name==='string'&&name.length<=80)||new Set(prefs.favorites).size!==prefs.favorites.length||new Set(prefs.order).size!==prefs.order.length)throw new Error('invalid saved room preferences');
+return prefs;
+}catch(error){return null;}
+}
+function writeSavedRoomPrefs(prefs){
+try{localStorage.setItem('kokoroSavedRoomPrefs',JSON.stringify(prefs));return true;}
+catch(error){document.getElementById('message').textContent='お気に入り・並び順を保存できませんでした。保存したお部屋本体は変更していません。';return false;}
+}
 function refreshSavedRooms(){
 const select=document.getElementById('savedRooms');
 if(!select)return;
@@ -784,12 +800,51 @@ if(rooms===null){
 document.getElementById('savedRoomCount').textContent='⚠️ 保存データを読み取れません。元データを保護しています。';
 return;
 }
+const prefs=readSavedRoomPrefs();
+const names=Object.keys(rooms);
+const favorites=prefs?prefs.favorites.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
+const order=prefs?prefs.order.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
+names.sort((a,b)=>{
+const af=favorites.includes(a)?0:1,bf=favorites.includes(b)?0:1;
+if(af!==bf)return af-bf;
+const ai=order.indexOf(a),bi=order.indexOf(b);
+if(ai<0&&bi<0)return 0;
+if(ai<0)return 1;
+if(bi<0)return -1;
+return ai-bi;
+});
 select.innerHTML='<option value="">保存したお部屋を選ぶ</option>';
-Object.keys(rooms).forEach(name=>{
-const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);
+names.forEach(name=>{
+const option=document.createElement('option');option.value=name;option.textContent=(favorites.includes(name)?'⭐ ':'')+name;select.appendChild(option);
 });
 if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
-document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+Object.keys(rooms).length+'個';
+document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+names.length+'個'+(favorites.length?'（⭐ お気に入り '+favorites.length+'個）':'')+(prefs===null?'・並び順データに問題があります。既存データは保護しています。':'');
+}
+function toggleSavedRoomFavorite(){
+const name=document.getElementById('savedRooms').value;
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(!name||rooms===null||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='お気に入りにするお部屋を選んでね。';return;}
+if(prefs===null){document.getElementById('message').textContent='お気に入り設定を読み取れません。既存データは変更していません。';return;}
+const index=prefs.favorites.indexOf(name);
+if(index>=0)prefs.favorites.splice(index,1);else prefs.favorites.push(name);
+if(!writeSavedRoomPrefs(prefs))return;
+refreshSavedRooms();document.getElementById('savedRooms').value=name;
+document.getElementById('message').textContent=index>=0?'お気に入りを解除しました。':'⭐ お気に入りに登録しました。';
+}
+function moveSavedRoom(direction){
+const select=document.getElementById('savedRooms'),name=select.value;
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(!name||rooms===null||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='並べ替えるお部屋を選んでね。';return;}
+if(prefs===null){document.getElementById('message').textContent='並び順データを読み取れません。既存データは変更していません。';return;}
+const names=Object.keys(rooms);
+const ordered=[...prefs.order.filter(item=>names.includes(item)),...names.filter(item=>!prefs.order.includes(item))];
+const index=ordered.indexOf(name),target=index+direction;
+if(target<0||target>=ordered.length){document.getElementById('message').textContent='これ以上移動できません。';return;}
+[ordered[index],ordered[target]]=[ordered[target],ordered[index]];
+prefs.order=ordered;
+if(!writeSavedRoomPrefs(prefs))return;
+refreshSavedRooms();select.value=name;
+document.getElementById('message').textContent='お部屋の並び順を変更しました。';
 }
 const ROOM_HISTORY_LIMIT=30;
 function readRoomHistory(key){
