@@ -377,9 +377,13 @@ if(!autoSaveRoom()){
 copy.remove();
 selectFurniture(original);
 updateFurnitureCount();
+const originalHandle=original.querySelector('.drag-handle');
+if(originalHandle)originalHandle.focus();
 document.getElementById('selectedMessage').textContent='保存できなかったため、コピーを取り消しました。';
 return;
 }
+const copiedHandle=copy.querySelector('.drag-handle');
+if(copiedHandle)copiedHandle.focus();
 document.getElementById('selectedMessage').textContent=copy.dataset.icon+' をコピーしたよ！';
 }
 function clearFurniture(){
