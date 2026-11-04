@@ -148,6 +148,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="saveAsRoom()">➕ 別のお部屋として保存</button>
 <select id="savedRooms" aria-label="保存したお部屋" onchange="previewSavedRoom();loadSavedRoomNote()"><option value="">保存したお部屋を選ぶ</option></select>
 <p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
+<div id="savedRoomGallery" aria-label="保存したお部屋のビジュアル一覧" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin:12px 0"></div>
 <label for="savedRoomCategoryFilter">カテゴリで絞り込み</label>
 <select id="savedRoomCategoryFilter" onchange="refreshSavedRooms()"><option value="">すべてのカテゴリ</option></select>
 <label for="savedRoomCategoryName">選んだお部屋のカテゴリ</label>
@@ -877,6 +878,35 @@ if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を削除しました。取り消すとカテゴリやお気に入り設定も再表示されます。';
 }
+function renderSavedRoomGallery(names,rooms,prefs){
+const root=document.getElementById('savedRoomGallery');if(!root)return;
+root.replaceChildren();
+names.forEach(name=>{
+const data=rooms[name];if(!validRoomData(data))return;
+const card=document.createElement('button');card.type='button';card.style.cssText='display:flex;flex-direction:column;align-items:stretch;text-align:left;min-width:0;padding:8px;border:1px solid #e2def5;background:#fff;color:#263247;border-radius:12px;white-space:normal';
+card.setAttribute('aria-label',name+' を選択してプレビュー');
+const scene=document.createElement('div');scene.setAttribute('aria-hidden','true');
+scene.style.cssText='position:relative;width:100%;height:105px;overflow:hidden;border:4px solid #d7c3a7;border-radius:8px;background-color:'+(data.wallColor||'#f5e9d8')+';background-image:'+(data.wallImage||'none')+';background-size:'+(data.wallSize||'auto')+';background-repeat:'+(data.wallRepeat||'repeat')+';';
+const floor=document.createElement('div');floor.style.cssText='position:absolute;left:0;bottom:0;width:100%;height:28%;border-top:3px solid #b7855e;background-color:'+(data.floor||'#c89b72')+';background-image:'+(data.floorImage||'none')+';';scene.appendChild(floor);
+data.items.slice(0,18).forEach(item=>{
+const piece=document.createElement('span');piece.textContent=item.icon;
+piece.style.cssText='position:absolute;left:'+item.left+';top:'+item.top+';font-size:clamp(13px,3vw,23px);line-height:1;z-index:'+(item.zIndex||'1')+';';scene.appendChild(piece);
+});
+const title=document.createElement('strong');title.textContent=(prefs&&prefs.favorites.includes(name)?'⭐ ':'')+name;title.style.cssText='display:block;margin-top:7px;overflow-wrap:anywhere';
+const meta=document.createElement('span');meta.textContent='家具 '+data.items.length+' 個'+(prefs&&prefs.categories[name]?' ・ '+prefs.categories[name]:'');meta.style.cssText='font-size:12px;color:#667085;margin-top:2px';
+card.appendChild(scene);card.appendChild(title);card.appendChild(meta);
+if(prefs&&prefs.notes[name]){
+const note=document.createElement('span');note.textContent=prefs.notes[name].slice(0,48)+(prefs.notes[name].length>48?'…':'');note.style.cssText='font-size:12px;color:#667085;margin-top:4px;overflow-wrap:anywhere';card.appendChild(note);
+}
+card.addEventListener('click',()=>{
+const select=document.getElementById('savedRooms');select.value=name;
+previewSavedRoom();loadSavedRoomNote();
+select.focus();
+});
+root.appendChild(card);
+});
+if(!names.length){const empty=document.createElement('p');empty.textContent='保存したお部屋はまだありません。';empty.style.cssText='color:#667085;font-size:13px';root.appendChild(empty);}
+}
 function refreshSavedRooms(){
 const select=document.getElementById('savedRooms');
 if(!select)return;
@@ -912,6 +942,7 @@ const option=document.createElement('option');option.value=name;option.textConte
 if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
 loadSavedRoomNote();
 document.getElementById('savedRoomCount').textContent='💾 表示中：'+names.length+'個 ／ 全 '+allNames.length+'個'+(favorites.length?'（⭐ お気に入り '+favorites.length+'個）':'')+(selectedCategory?'・カテゴリ：'+selectedCategory:'')+(prefs===null?'・設定データに問題があります。既存データは保護しています。':'');
+renderSavedRoomGallery(names,rooms,prefs);
 
 const bulkList=document.getElementById('bulkSavedRoomList');
 if(bulkList){
