@@ -185,7 +185,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button class="primary" type="button" onclick="exportRoomBackup()">⬇️ バックアップを書き出す</button>
 <div style="margin-top:10px">
 <label for="backupFile">バックアップファイルを読み込む</label><br>
-<input id="backupFile" type="file" accept="application/json,.json">
+<input id="backupFile" type="file" accept="application/json,.json" onchange="previewRoomBackup()">
+<div id="backupImportPreview" aria-live="polite" style="margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px;background:#fafaff"><strong>読み込み内容のプレビュー</strong><p>バックアップファイルを選ぶと、取り込むお部屋と保存件数を確認できます。</p></div>
 <button type="button" onclick="importRoomBackup()">⬆️ 読み込む</button>
 </div>
 <p id="backupMessage" role="status" aria-live="polite">※読み込み時は、現在のお部屋データがバックアップの内容に置き換わります。</p>
@@ -1281,6 +1282,45 @@ a.remove();
 }catch(e){
 document.getElementById("backupMessage").textContent="書き出しに失敗しました。";
 }
+}
+let backupPreviewRequest=0;
+function previewRoomBackup(){
+const request=++backupPreviewRequest;
+const input=document.getElementById('backupFile'),root=document.getElementById('backupImportPreview');
+if(!root)return;
+root.replaceChildren();
+const heading=document.createElement('strong');heading.textContent='📦 読み込み内容のプレビュー';root.appendChild(heading);
+const file=input.files&&input.files[0];
+const show=(message)=>{const p=document.createElement('p');p.textContent=message;root.appendChild(p);};
+if(!file){show('バックアップファイルを選ぶと内容を確認できます。');return;}
+if(file.size>MAX_BACKUP_BYTES){show('ファイルが10MBを超えています。読み込みできません。');return;}
+const reader=new FileReader();
+reader.onload=()=>{
+if(request!==backupPreviewRequest)return;
+try{
+const data=JSON.parse(reader.result);
+if(!data||data.app!=='kokoro-family'||data.version!==1||!validRoomData(data.currentRoom)||!validSavedRooms(data.savedRooms))throw new Error('invalid backup');
+const names=Object.keys(data.savedRooms);
+const summary=document.createElement('p');
+summary.textContent='今のお部屋：家具 '+data.currentRoom.items.length+' 個 ／ 保存したお部屋：'+names.length+' 個';
+root.appendChild(summary);
+if(names.length){
+const list=document.createElement('ul');
+names.slice(0,20).forEach(name=>{const li=document.createElement('li');li.textContent=name+'（家具 '+data.savedRooms[name].items.length+' 個）';list.appendChild(li);});
+root.appendChild(list);
+if(names.length>20)show('ほか '+(names.length-20)+' 個のお部屋があります。');
+}
+const scene=document.createElement('div');
+scene.setAttribute('role','img');scene.setAttribute('aria-label','読み込み予定のお部屋の簡易プレビュー');
+scene.style.cssText='position:relative;height:150px;overflow:hidden;border:5px solid #d7c3a7;border-radius:9px;background-color:'+(data.currentRoom.wallColor||'#f5e9d8')+';';
+const floor=document.createElement('div');floor.style.cssText='position:absolute;left:0;bottom:0;width:100%;height:28%;background-color:'+(data.currentRoom.floor||'#c89b72')+';border-top:3px solid #b7855e;';scene.appendChild(floor);
+data.currentRoom.items.slice(0,50).forEach(item=>{const piece=document.createElement('span');piece.textContent=item.icon;piece.style.cssText='position:absolute;left:'+item.left+';top:'+item.top+';font-size:'+(item.size||'28px')+';line-height:1;z-index:'+(item.zIndex||'1')+';';scene.appendChild(piece);});
+root.appendChild(scene);
+const note=document.createElement('p');note.textContent='上の見本は現在のお部屋に取り込まれる内容です。保存済みのお部屋 '+names.length+' 個も一緒に取り込みます。';root.appendChild(note);
+}catch(error){show('このファイルは対応するバックアップ形式ではないか、データに問題があります。');}
+};
+reader.onerror=()=>{if(request===backupPreviewRequest)show('ファイルを読み込めませんでした。');};
+try{reader.readAsText(file);}catch(error){show('ファイルを読み込めませんでした。');}
 }
 function importRoomBackup(){
 const input=document.getElementById("backupFile");
