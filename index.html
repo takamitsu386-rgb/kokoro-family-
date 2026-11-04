@@ -191,13 +191,26 @@ b.onclick=()=>fn(v);
 el.appendChild(b);
 });
 }
-buttons('walls',wallColors,v=>{room.style.background=v;autoSaveRoom();});
-buttons('floors',floorColors,v=>{document.getElementById('floor').style.backgroundColor=v;autoSaveRoom();});
+function commitStyleChange(change){
+const wallBefore=room.style.cssText;
+const floor=document.getElementById('floor');
+const floorBefore=floor.style.cssText;
+change();
+if(!autoSaveRoom()){
+room.style.cssText=wallBefore;
+floor.style.cssText=floorBefore;
+document.getElementById('message').textContent='保存できなかったため、デザインを変更前に戻しました。';
+return false;
+}
+return true;
+}
+buttons('walls',wallColors,v=>commitStyleChange(()=>{room.style.background=v;}));
+buttons('floors',floorColors,v=>commitStyleChange(()=>{document.getElementById('floor').style.backgroundColor=v;}));
 function patternButtons(id,patterns,target){
 const root=document.getElementById(id);
 patterns.forEach(([label,pattern])=>{
 const b=document.createElement('button');b.textContent=label;
-b.onclick=()=>{target.style.backgroundImage=pattern;if(id==='wallPatterns'){target.style.backgroundSize=label==='水玉'?'32px 32px':'auto';target.style.backgroundRepeat='repeat';document.getElementById('message').textContent=label==='水玉'?'🔴 大きな水玉の壁紙にしたよ！':'壁紙の模様を変更したよ！';}else{document.getElementById('message').textContent='床の模様を変更したよ！';}autoSaveRoom();};
+b.onclick=()=>commitStyleChange(()=>{target.style.backgroundImage=pattern;if(id==='wallPatterns'){target.style.backgroundSize=label==='水玉'?'32px 32px':'auto';target.style.backgroundRepeat='repeat';document.getElementById('message').textContent=label==='水玉'?'🔴 大きな水玉の壁紙にしたよ！':'壁紙の模様を変更したよ！';}else{document.getElementById('message').textContent='床の模様を変更したよ！';}});
 root.appendChild(b);
 });
 }
@@ -220,17 +233,17 @@ b.onclick=()=>addFurniture(icon);root.appendChild(b);
 }
 showFurnitureCategory('all');
 function setDotWallpaper(){
+if(commitStyleChange(()=>{
 room.style.backgroundImage='radial-gradient(circle at 8px 8px,#b52f70 0 5px,transparent 5.5px)';
 room.style.backgroundSize='32px 32px';
 room.style.backgroundRepeat='repeat';
-autoSaveRoom();
-document.getElementById('message').textContent='🔴 水玉の壁紙に変更したよ！';
+}))document.getElementById('message').textContent='🔴 水玉の壁紙に変更したよ！';
 }
 function setCustomColor(target,color){
+if(commitStyleChange(()=>{
 if(target==='wall'){room.style.backgroundColor=color;}
 if(target==='floor'){document.getElementById('floor').style.backgroundColor=color;}
-autoSaveRoom();
-document.getElementById('message').textContent='🎨 好きな色に変更したよ！';
+}))document.getElementById('message').textContent='🎨 好きな色に変更したよ！';
 }
 function applyTheme(theme){
 const themes={
@@ -240,11 +253,11 @@ sky:{wall:'#dceeff',floor:'#c8d7e8',wallImage:'linear-gradient(135deg,#ffffff66 
 mono:{wall:'#eeeeee',floor:'#a9a9a9',wallImage:'none'}
 };
 const t=themes[theme];if(!t)return;
+if(commitStyleChange(()=>{
 room.style.background=t.wall;room.style.backgroundImage=t.wallImage;room.style.backgroundSize='auto';room.style.backgroundRepeat='repeat';
 document.getElementById('floor').style.backgroundColor=t.floor;
 document.getElementById('floor').style.backgroundImage='none';
-autoSaveRoom();
-document.getElementById('message').textContent='🌟 お部屋のテーマを変更したよ！家具はそのままだよ。';
+}))document.getElementById('message').textContent='🌟 お部屋のテーマを変更したよ！家具はそのままだよ。';
 }
 function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
