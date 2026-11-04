@@ -283,9 +283,14 @@ document.getElementById('selectedMessage').textContent=direction>0?'家具を手
 function duplicateSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にコピーしたい家具をタップしてね。';return;}
 const copy=selectedFurniture.cloneNode(true);
-copy.style.left=(parseFloat(selectedFurniture.style.left)||20)+24+'px';
-copy.style.top=(parseFloat(selectedFurniture.style.top)||20)+18+'px';
+// offsetLeft/Top are pixel coordinates even when the original uses percentages.
+const left=Math.min(Math.max(0,room.clientWidth-copy.offsetWidth),selectedFurniture.offsetLeft+24);
+const top=Math.min(Math.max(0,room.clientHeight-copy.offsetHeight),selectedFurniture.offsetTop+18);
+copy.style.left=left+'px';
+copy.style.top=top+'px';
 copy.style.outline='none';
+// cloneNode does not copy event listeners, so restore the selection handler.
+copy.querySelector('.item-icon').addEventListener('click',()=>selectFurniture(copy));
 room.appendChild(copy);
 drag(copy);
 selectFurniture(copy);
