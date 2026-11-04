@@ -761,6 +761,7 @@ document.getElementById('message').textContent='🏡 お部屋を初期状態に
 }
 loadRoom();
 
+const MAX_BACKUP_BYTES=10*1024*1024;
 function exportRoomBackup(){
 try{
 const currentRoom=roomData();
@@ -776,6 +777,10 @@ currentRoom,
 savedRooms
 };
 const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+if(blob.size>MAX_BACKUP_BYTES){
+document.getElementById("backupMessage").textContent="バックアップが10MBを超えています。保存したお部屋や家具を整理してから、もう一度お試しください。";
+return;
+}
 const url=URL.createObjectURL(blob);
 const a=document.createElement("a");
 a.href=url;
@@ -791,7 +796,7 @@ const input=document.getElementById("backupFile");
 const file=input.files&&input.files[0];
 const message=document.getElementById("backupMessage");
 if(!file){message.textContent="先にバックアップファイルを選んでね。";return;}
-if(file.size>2*1024*1024){message.textContent="ファイルが大きすぎます。2MB以下のバックアップを選んでね。";return;}
+if(file.size>MAX_BACKUP_BYTES){message.textContent="ファイルが大きすぎます。10MB以下のバックアップを選んでね。";return;}
 const reader=new FileReader();
 reader.onload=()=>{
 try{
