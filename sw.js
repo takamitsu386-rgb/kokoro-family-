@@ -1,5 +1,5 @@
-// Updated with clearer furniture movement accessibility labels.
-const CACHE_NAME="kokoro-family-v28";
+// Updated with furniture resize boundary protection.
+const CACHE_NAME="kokoro-family-v29";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
