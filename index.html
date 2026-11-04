@@ -447,8 +447,13 @@ const previousLeft=el.style.left,previousTop=el.style.top;
 const step=e.shiftKey?30:10;
 const left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),el.offsetLeft+move[0]*step));
 const top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),el.offsetTop+move[1]*step));
+if(left===el.offsetLeft&&top===el.offsetTop){
+document.getElementById('selectedMessage').textContent='家具はこれ以上その方向へ移動できません。';
+return;
+}
 el.style.left=left+'px';
 el.style.top=top+'px';
+selectFurniture(el);
 if(!autoSaveRoom()){
 el.style.left=previousLeft;
 el.style.top=previousTop;
