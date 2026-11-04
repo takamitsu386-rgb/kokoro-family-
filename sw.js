@@ -1,5 +1,5 @@
-// Updated to preserve saved-room choices when stored data is invalid.
-const CACHE_NAME="kokoro-family-v48";
+// Updated to validate restored furniture against the supported catalog.
+const CACHE_NAME="kokoro-family-v49";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
