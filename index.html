@@ -121,6 +121,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <h2>🛋️ 家具を追加</h2>
 <div class="items" id="furniture"></div>
+<p id="furnitureCategoryStatus" role="status" aria-live="polite" style="font-size:13px;color:#667085;margin:6px 2px">家具を70種類表示中</p>
 <h2>🔎 選んだ家具の大きさ</h2>
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
@@ -233,6 +234,7 @@ button.setAttribute('aria-pressed',String(active));
 button.classList.toggle('primary',active);
 });
 const root=document.getElementById('furniture');root.innerHTML='';
+document.getElementById('furnitureCategoryStatus').textContent=(category==='all'?'ぜんぶ':document.querySelector('#furnitureCategories [data-category="'+category+'"]').textContent.trim())+'：'+list.length+'種類';
 list.forEach(icon=>{
 const b=document.createElement('button');b.type='button';b.textContent=icon;b.title=icon+' を追加';b.setAttribute('aria-label',icon+' をお部屋に追加');
 b.onclick=()=>addFurniture(icon);root.appendChild(b);
