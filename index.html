@@ -818,7 +818,12 @@ return prefs;
 }catch(error){return null;}
 }
 function writeSavedRoomPrefs(prefs){
-try{localStorage.setItem('kokoroSavedRoomPrefs',JSON.stringify(prefs));return true;}
+try{
+if(!validSavedRoomPrefs(prefs))throw new Error('invalid saved room preferences');
+localStorage.setItem('kokoroSavedRoomPrefs',JSON.stringify(prefs));
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+return true;
+}
 catch(error){document.getElementById('message').textContent='お気に入り・並び順を保存できませんでした。保存したお部屋本体は変更していません。';return false;}
 }
 let bulkSavedRoomSelection=new Set();
