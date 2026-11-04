@@ -90,7 +90,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p id="message" role="status" aria-live="polite">家具を追加して、好きな場所に動かしてみよう。</p>
 <div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
 <p id="furnitureCount" role="status" aria-live="polite">🪑 お部屋の家具：0個</p>
-<button type="button" onclick="undoRoomChange()">↩️ お部屋の変更を取り消す</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+<button type="button" onclick="undoRoomChange()">↩️ 1つ戻す</button>
+<button type="button" onclick="redoRoomChange()">↪️ 1つ進む</button>
+</div>
+<p style="font-size:13px;color:#667085">お部屋の変更履歴は最大30段階まで、この端末に保存されます。</p>
 <p id="furnitureMoveHelp" style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。</p>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
@@ -787,6 +791,14 @@ const option=document.createElement('option');option.value=name;option.textConte
 if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
 document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+Object.keys(rooms).length+'個';
 }
+const ROOM_HISTORY_LIMIT=30;
+function readRoomHistory(key){
+const raw=localStorage.getItem(key);
+if(raw===null)return [];
+const list=JSON.parse(raw);
+if(!Array.isArray(list)||list.length>ROOM_HISTORY_LIMIT||!list.every(entry=>typeof entry==='string'&&validRoomData(JSON.parse(entry))))throw new Error('invalid room history');
+return list;
+}
 function autoSaveRoom(){
 const data=roomData();
 if(!validRoomData(data)){
@@ -794,59 +806,77 @@ document.getElementById('message').textContent='お部屋の状態を保存で�
 return false;
 }
 const nextRaw=JSON.stringify(data);
-let previousRaw,previousUndo;
+let previousRaw,oldHistory,oldRedo;
 try{
 previousRaw=localStorage.getItem('kokoroRoom');
-previousUndo=localStorage.getItem('kokoroRoomUndo');
-if(previousRaw!==null&&!validRoomData(JSON.parse(previousRaw))){
-document.getElementById('message').textContent='保存済みのお部屋データを確認できないため、上書きを中止しました。元データを保護しています。';
-return false;
-}
+oldHistory=localStorage.getItem('kokoroRoomHistory');
+oldRedo=localStorage.getItem('kokoroRoomRedo');
+if(previousRaw!==null&&!validRoomData(JSON.parse(previousRaw)))throw new Error('invalid current room');
 if(previousRaw!==null&&previousRaw!==nextRaw){
-localStorage.setItem('kokoroRoomUndo',JSON.stringify({raw:previousRaw}));
+const history=readRoomHistory('kokoroRoomHistory');
+history.push(previousRaw);
+if(history.length>ROOM_HISTORY_LIMIT)history.shift();
+localStorage.setItem('kokoroRoomHistory',JSON.stringify(history));
+localStorage.removeItem('kokoroRoomRedo');
 }
 localStorage.setItem('kokoroRoom',nextRaw);
 }catch(error){
 try{
-if(previousUndo===null)localStorage.removeItem('kokoroRoomUndo');
-else if(previousUndo!==undefined)localStorage.setItem('kokoroRoomUndo',previousUndo);
-}catch(restoreError){console.warn('Room undo snapshot rollback failed',restoreError);}
+if(oldHistory===null)localStorage.removeItem('kokoroRoomHistory');else if(oldHistory!==undefined)localStorage.setItem('kokoroRoomHistory',oldHistory);
+if(oldRedo===null)localStorage.removeItem('kokoroRoomRedo');else if(oldRedo!==undefined)localStorage.setItem('kokoroRoomRedo',oldRedo);
+}catch(restoreError){console.warn('Room history rollback failed',restoreError);}
 document.getElementById('message').textContent='保存できませんでした。前回のお部屋データは保護しています。端末の空き容量を確認してください。';
 return false;
 }
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 return true;
 }
-function undoRoomChange(){
-let snapshot,currentRaw,previousUndo,currentDisplay;
+function changeRoomHistory(direction){
+let currentRaw,currentData,history,redo,targetRaw,oldHistory,oldRedo;
 try{
-const undoRaw=localStorage.getItem('kokoroRoomUndo');
-if(undoRaw===null){document.getElementById('message').textContent='取り消せるお部屋の変更はありません。';return;}
-snapshot=JSON.parse(undoRaw);
 currentRaw=localStorage.getItem('kokoroRoom');
-currentDisplay=roomData();
-if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||typeof snapshot.raw!=='string')throw new Error('invalid room undo snapshot');
-const previous=JSON.parse(snapshot.raw);
-const current=currentRaw===null?null:JSON.parse(currentRaw);
-if(!validRoomData(previous)||(current!==null&&!validRoomData(current))||!validRoomData(currentDisplay))throw new Error('invalid room data');
-if(!confirm('直前のお部屋の変更を取り消しますか？'))return;
-previousUndo=undoRaw;
-localStorage.setItem('kokoroRoomUndo',JSON.stringify({raw:currentRaw===null?JSON.stringify(roomData()):currentRaw}));
-if(applyRoom(previous,false)!==true)throw new Error('room restore failed');
-localStorage.setItem('kokoroRoom',snapshot.raw);
-}catch(error){
-if(currentDisplay&&validRoomData(currentDisplay)){
-try{applyRoom(currentDisplay,false);}catch(restoreDisplayError){console.warn('Room display rollback failed',restoreDisplayError);}
+if(currentRaw===null)throw new Error('no current room');
+currentData=JSON.parse(currentRaw);
+if(!validRoomData(currentData))throw new Error('invalid current room');
+history=readRoomHistory('kokoroRoomHistory');
+redo=readRoomHistory('kokoroRoomRedo');
+const source=direction==='undo'?history:redo;
+const destination=direction==='undo'?redo:history;
+if(!source.length){
+document.getElementById('message').textContent=direction==='undo'?'これ以上前のお部屋の状態はありません。':'やり直せるお部屋の変更はありません。';
+return;
 }
+targetRaw=source[source.length-1];
+const target=JSON.parse(targetRaw);
+if(!validRoomData(target))throw new Error('invalid target room');
+if(!confirm(direction==='undo'?'お部屋の変更を1段階戻しますか？':'お部屋の変更を1段階やり直しますか？'))return;
+oldHistory=localStorage.getItem('kokoroRoomHistory');
+oldRedo=localStorage.getItem('kokoroRoomRedo');
+source.pop();
+destination.push(currentRaw);
+if(destination.length>ROOM_HISTORY_LIMIT)destination.shift();
+if(applyRoom(target,false)!==true)throw new Error('room display update failed');
 try{
-if(previousUndo!==undefined)localStorage.setItem('kokoroRoomUndo',previousUndo);
-}catch(restoreError){console.warn('Room undo snapshot restore failed',restoreError);}
-document.getElementById('message').textContent='取り消しに失敗しました。現在のお部屋データを保護しています。';
+localStorage.setItem('kokoroRoom',targetRaw);
+localStorage.setItem('kokoroRoomHistory',JSON.stringify(history));
+localStorage.setItem('kokoroRoomRedo',JSON.stringify(redo));
+}catch(storageError){
+applyRoom(currentData,false);
+localStorage.setItem('kokoroRoom',currentRaw);
+if(oldHistory===null)localStorage.removeItem('kokoroRoomHistory');else localStorage.setItem('kokoroRoomHistory',oldHistory);
+if(oldRedo===null)localStorage.removeItem('kokoroRoomRedo');else localStorage.setItem('kokoroRoomRedo',oldRedo);
+throw storageError;
+}
+}catch(error){
+console.warn('Room history operation failed',error);
+document.getElementById('message').textContent='履歴の変更に失敗しました。現在のお部屋データを保護しています。';
 return;
 }
 if(window.kokoroQueueSync)window.kokoroQueueSync();
-document.getElementById('message').textContent='↩️ 直前のお部屋の変更を取り消しました。もう一度押すと、取り消し前に戻せます。';
+document.getElementById('message').textContent=direction==='undo'?'↩️ お部屋を1段階前の状態に戻しました。':'↪️ お部屋を1段階先の状態に進めました。';
 }
+function undoRoomChange(){changeRoomHistory('undo');}
+function redoRoomChange(){changeRoomHistory('redo');}
 function safeWriteLocalStorage(key,value){
 try{
 localStorage.setItem(key,value);
