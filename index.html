@@ -1416,6 +1416,11 @@ try {
   });
   window.addEventListener("offline", () => {
     loginButton.disabled = true;
+    if (syncRetryTimer) {
+      clearTimeout(syncRetryTimer);
+      syncRetryTimer = null;
+      syncRetryCount = Math.max(0, syncRetryCount - 1);
+    }
     setSyncBusy(syncInProgress);
     status(currentUser
       ? "通信がオフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再試行します。"
