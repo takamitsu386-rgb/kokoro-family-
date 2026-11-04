@@ -24,6 +24,8 @@ button:active{transform:scale(.97)}
 /* こころファミリー：スマホ・PC共通レイアウト改善 */
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{min-width:320px;line-height:1.55;overflow-wrap:anywhere}
+.skip-link{position:fixed;top:8px;left:8px;z-index:1000;transform:translateY(-160%);padding:12px 16px;border-radius:10px;background:#263247;color:#fff;font-weight:700;text-decoration:none;box-shadow:0 3px 12px #0003}
+.skip-link:focus{transform:translateY(0);outline:3px solid #a99fff;outline-offset:3px}
 header{padding:clamp(16px,3vw,28px)}
 .app-nav{position:sticky;top:0;z-index:50;display:flex;gap:8px;overflow-x:auto;padding:10px max(12px,calc((100vw - 1100px)/2));background:#ffffffed;backdrop-filter:blur(10px);border-bottom:1px solid #e6e8f0}
 .app-nav a{flex:0 0 auto;text-decoration:none;background:#eeeaff;color:#40358e;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:700}
@@ -65,6 +67,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 </head>
 <body>
+<a class="skip-link" href="#main-content">メインコンテンツへ移動</a>
 <header>
 <h1>🏡 こころファミリー</h1>
 <p>自分だけのお部屋をつくろう！</p>
@@ -72,7 +75,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <nav class="app-nav" aria-label="アプリ内メニュー">
 <a href="#home">ホーム</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
-<main>
+<main id="main-content">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
