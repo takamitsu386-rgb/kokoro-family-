@@ -888,6 +888,10 @@ async function downloadCloud() {
   setSyncBusy(true);
   try {
   const uid = currentUser.uid;
+  clearTimeout(window.__kokoroSyncTimer);
+  window.__kokoroSyncTimer = null;
+  await uploadQueue.catch(() => {});
+  if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み前にGoogleアカウントが切り替わりました。もう一度お試しください。");
   const snapshot = await getDoc(cloudRef(uid));
   if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!snapshot.exists()) {
@@ -917,6 +921,10 @@ async function syncNow() {
   const uid = currentUser.uid;
   status("同期を確認しています…");
   try {
+    clearTimeout(window.__kokoroSyncTimer);
+    window.__kokoroSyncTimer = null;
+    await uploadQueue.catch(() => {});
+    if (!currentUser || currentUser.uid !== uid) throw new Error("同期前にGoogleアカウントが切り替わりました。もう一度お試しください。");
     const snapshot = await getDoc(cloudRef(uid));
     if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === uid;
