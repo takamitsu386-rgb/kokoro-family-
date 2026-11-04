@@ -395,12 +395,18 @@ handle.addEventListener('pointerdown',e=>{
 if(moving)return;
 e.preventDefault();
 e.stopPropagation();
-moving=true;
-activePointerId=e.pointerId;
 const itemRect=el.getBoundingClientRect();
 grabX=e.clientX-itemRect.left;
 grabY=e.clientY-itemRect.top;
+try{
 handle.setPointerCapture(e.pointerId);
+}catch(captureError){
+console.warn('Furniture pointer capture failed',captureError);
+document.getElementById('selectedMessage').textContent='この操作では家具をつかめませんでした。もう一度試してね。';
+return;
+}
+moving=true;
+activePointerId=e.pointerId;
 });
 handle.addEventListener('pointermove',e=>{
 if(!moving||e.pointerId!==activePointerId)return;
@@ -658,12 +664,23 @@ refreshSavedRooms();
 }
 function resetRoom(){
 if(!confirm('お部屋を初期状態に戻しますか？家具と壁・床のデザインが初期状態になります。'))return;
+const previousRoom=roomData();
+if(!validRoomData(previousRoom)){
+document.getElementById('message').textContent='現在のお部屋を安全に退避できないため、リセットを中止しました。';
+return;
+}
 room.querySelectorAll('.furniture').forEach(el=>el.remove());
 selectedFurniture=null;
 room.style.background=wallColors[0];room.style.backgroundImage='none';
+room.style.backgroundSize='auto';room.style.backgroundRepeat='repeat';
 document.getElementById('floor').style.backgroundColor=floorColors[0];document.getElementById('floor').style.backgroundImage='none';
 updateFurnitureCount();
-autoSaveRoom();
+if(!autoSaveRoom()){
+const restored=applyRoom(previousRoom,false)===true;
+document.getElementById('selectedMessage').textContent='家具をタップして選んでね。';
+document.getElementById('message').textContent=restored?'保存できなかったため、リセット前のお部屋に戻しました。前回の保存データはそのままです。':'保存と画面の復元に失敗しました。端末の保存データを消さずに保管してください。';
+return;
+}
 document.getElementById('selectedMessage').textContent='家具をタップして選んでね。';
 document.getElementById('message').textContent='🏡 お部屋を初期状態に戻しました。';
 }
