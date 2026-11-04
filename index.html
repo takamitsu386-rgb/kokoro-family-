@@ -14,7 +14,7 @@ main{max-width:850px;margin:auto;padding:16px}
 h2{font-size:19px;margin-top:0}
 .room{height:290px;border:8px solid #d7c3a7;border-radius:12px;position:relative;overflow:hidden;background:#f5e9d8}
 .floor{position:absolute;bottom:0;left:0;width:100%;height:28%;background:#c89b72;border-top:5px solid #b7855e}
-.furniture{position:absolute;display:flex;align-items:center;gap:2px;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture .drag-handle{font-size:20px;background:#fff;border:2px solid #6759d8;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;box-shadow:0 1px 5px #3335;touch-action:none}.furniture:active{cursor:grabbing}
+.furniture{position:absolute;display:flex;align-items:center;gap:2px;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture .drag-handle{font-size:20px;background:#fff;border:2px solid #6759d8;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;box-shadow:0 1px 5px #3335;touch-action:none}.furniture:active{cursor:grabbing}.furniture .drag-handle:focus-visible{outline:3px solid #d94b91;outline-offset:3px}
 button,select{border:0;border-radius:10px;padding:11px 14px;margin:4px;background:#eeeaff;color:#40358e;font-size:15px}
 button:active{transform:scale(.97)}
 .primary{background:#6759d8;color:white}
@@ -435,12 +435,20 @@ el.style.top=top+'px';
 if(!autoSaveRoom()){
 el.style.left=previousLeft;
 el.style.top=previousTop;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元の位置に戻しました。';
 }
 });
 const stop=e=>{
 if(!moving||(e&&e.pointerId!==activePointerId))return;
+const wasCancelled=!!e&&e.type!=='pointerup';
 moving=false;
 activePointerId=null;
+if(wasCancelled){
+el.style.left=originalLeft;
+el.style.top=originalTop;
+document.getElementById('selectedMessage').textContent='移動が中断されたため、家具を元の位置に戻しました。';
+return;
+}
 if(!autoSaveRoom()){
 el.style.left=originalLeft;
 el.style.top=originalTop;
