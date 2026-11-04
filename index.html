@@ -627,7 +627,7 @@ if(raw){
 try{
 const data=JSON.parse(raw);
 if(!validRoomData(data))throw new Error('invalid room data');
-applyRoom(data,false);
+if(applyRoom(data,false)!==true)throw new Error('saved room could not be applied');
 }catch(e){
 let recoverySaved=false;
 try{
