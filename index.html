@@ -689,6 +689,27 @@ function localPayload() {
 function cloudRef(uid) {
   return doc(db, "users", uid, "kokoro", "data");
 }
+function storeCloudDataSafely(data) {
+  const previousRoom = localStorage.getItem("kokoroRoom");
+  const previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
+  try {
+    localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom || "");
+    localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms || "{}");
+    localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
+    localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
+    return true;
+  } catch (writeError) {
+    try {
+      if (previousRoom === null) localStorage.removeItem("kokoroRoom");
+      else localStorage.setItem("kokoroRoom", previousRoom);
+      if (previousSavedRooms === null) localStorage.removeItem("kokoroSavedRooms");
+      else localStorage.setItem("kokoroSavedRooms", previousSavedRooms);
+    } catch (rollbackError) {
+      console.error("Cloud import rollback failed", rollbackError);
+    }
+    throw new Error("端末への保存に失敗しました。元のデータを保持するよう処理しました。空き容量を確認してください。");
+  }
+}
 async function uploadLocal(uid = currentUser?.uid) {
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
   const payload = localPayload();
