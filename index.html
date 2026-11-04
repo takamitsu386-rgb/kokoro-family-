@@ -1093,6 +1093,8 @@ try {
     if (currentUser?.uid !== user?.uid) {
       clearTimeout(window.__kokoroSyncTimer);
       window.__kokoroSyncTimer = null;
+      syncPending = false;
+      initializedSyncForUid = null;
     }
     currentUser = user;
     loginButton.disabled = !!user;
