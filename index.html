@@ -409,8 +409,14 @@ document.getElementById('selectedMessage').textContent=icon+' をお部屋から
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
 const previousLeft=selectedFurniture.style.left,previousTop=selectedFurniture.style.top;
-selectedFurniture.style.left=Math.max(0,(room.clientWidth-selectedFurniture.offsetWidth)/2)+'px';
-selectedFurniture.style.top=Math.max(0,(room.clientHeight-selectedFurniture.offsetHeight)/2)+'px';
+const nextLeft=Math.max(0,(room.clientWidth-selectedFurniture.offsetWidth)/2)+'px';
+const nextTop=Math.max(0,(room.clientHeight-selectedFurniture.offsetHeight)/2)+'px';
+if(nextLeft===previousLeft&&nextTop===previousTop){
+document.getElementById('selectedMessage').textContent='家具はすでに中央にあるよ。';
+return;
+}
+selectedFurniture.style.left=nextLeft;
+selectedFurniture.style.top=nextTop;
 if(!autoSaveRoom()){
 selectedFurniture.style.left=previousLeft;
 selectedFurniture.style.top=previousTop;
@@ -423,7 +429,12 @@ function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
 const previous=selectedFurniture.style.fontSize;
 const current=parseFloat(previous)||38;
-selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
+const next=Math.max(20,Math.min(80,current*factor))+'px';
+if(next===previous){
+document.getElementById('selectedMessage').textContent='これ以上、大きさを変更できません。';
+return;
+}
+selectedFurniture.style.fontSize=next;
 if(!autoSaveRoom()){
 selectedFurniture.style.fontSize=previous;
 document.getElementById('selectedMessage').textContent='保存できなかったため、家具の大きさを元に戻しました。';
