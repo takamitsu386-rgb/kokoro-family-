@@ -249,7 +249,7 @@ document.getElementById('message').textContent='🌟 お部屋のテーマを変
 function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
 }
-function addFurniture(icon){
+function addFurniture(icon,persist=true){
 if(room.querySelectorAll('.furniture').length>=300){
 document.getElementById('selectedMessage').textContent='家具は300個まで置けます。';
 return;
@@ -274,7 +274,7 @@ item.title='手のマークでつかんで、そのままスライドして移�
 room.appendChild(item);
 drag(item);
 updateFurnitureCount();
-autoSaveRoom();
+if(persist)autoSaveRoom();
 
 }
 function selectFurniture(el){
@@ -438,6 +438,10 @@ icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,
 };
 }
 function applyRoom(data){
+if(!validRoomData(data)){
+document.getElementById('message').textContent='お部屋データに問題があるため、読み込みを中止しました。';
+return false;
+}
 room.querySelectorAll('.furniture').forEach(el=>el.remove());
 selectedFurniture=null;
 if(data.wallColor){room.style.backgroundColor=data.wallColor;}else{room.style.background=data.wall||wallColors[0];}
@@ -447,18 +451,18 @@ room.style.backgroundRepeat=data.wallRepeat||'repeat';
 document.getElementById('floor').style.backgroundColor=data.floor||floorColors[0];
 document.getElementById('floor').style.backgroundImage=data.floorImage||'none';
 (data.items||[]).forEach(v=>{
-addFurniture(v.icon);
+addFurniture(v.icon,false);
 const el=room.lastElementChild;
 el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
-// Keep restored furniture inside the room, including imported backups.
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
 const maxTop=Math.max(0,room.clientHeight-el.offsetHeight);
 el.style.left=Math.max(0,Math.min(maxLeft,el.offsetLeft))+'px';
 el.style.top=Math.max(0,Math.min(maxTop,el.offsetTop))+'px';
 });
-autoSaveRoom();
+updateFurnitureCount();
+return autoSaveRoom();
 }
 function savedRoomData(){
 try{
