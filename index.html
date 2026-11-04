@@ -1169,6 +1169,7 @@ function storeCloudDataSafely(data) {
 }
 let uploadQueue = Promise.resolve();
 let syncInProgress = false;
+let logoutInProgress = false;
 let syncPending = false;
 let syncRetryCount = 0;
 let syncRetryTimer = null;
@@ -1178,10 +1179,10 @@ function flushPendingSync() {
   if (currentUser) queueSync();
 }
 function setSyncBusy(busy) {
-  const unavailable = busy || !currentUser || !navigator.onLine;
+  const unavailable = busy || logoutInProgress || !currentUser || !navigator.onLine;
   if (syncButton) syncButton.disabled = unavailable;
   if (downloadButton) downloadButton.disabled = unavailable;
-  if (logoutButton) logoutButton.disabled = busy || !currentUser;
+  if (logoutButton) logoutButton.disabled = busy || logoutInProgress || !currentUser;
 }
 async function uploadLocal(uid = currentUser?.uid) {
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
@@ -1290,7 +1291,7 @@ async function syncNow() {
   }
 }
 function queueSync() {
-  if (!currentUser) return;
+  if (!currentUser || logoutInProgress) return;
   const queuedUid = currentUser.uid;
   let syncWasInitialized = initializedSyncForUid === queuedUid;
   if (!syncWasInitialized) {
@@ -1335,7 +1336,7 @@ function queueSync() {
           clearTimeout(syncRetryTimer);
           syncRetryTimer = setTimeout(() => {
             syncRetryTimer = null;
-            if (currentUser && currentUser.uid === queuedUid) queueSync();
+            if (currentUser && currentUser.uid === queuedUid && !logoutInProgress) queueSync();
           }, delay);
         } else {
           status("自動再試行を3回行いました。端末内データは保存済みです。通信復帰後か「同期する」から再試行できます。");
@@ -1349,6 +1350,7 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
   loginButton.addEventListener("click", async () => {
+    if (logoutInProgress) return;
     try {
       status("Googleログイン中…");
       await signInWithPopup(auth, new GoogleAuthProvider());
@@ -1369,9 +1371,22 @@ try {
     catch (error) { status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。"); }
   });
   logoutButton.addEventListener("click", async () => {
-    if (syncInProgress) { status("同期処理が終わってからログアウトしてください。"); return; }
-    try { clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null; await signOut(auth); initializedSyncForUid = null; status("ログアウトしました。端末内データは残っています。"); }
-    catch (error) { status("ログアウトできません：" + (error.code || error.message)); }
+    if (syncInProgress || logoutInProgress) { status("同期・ログアウト処理が終わってからお試しください。"); return; }
+    logoutInProgress = true;
+    clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null;
+    clearTimeout(syncRetryTimer); syncRetryTimer = null;
+    syncRetryCount = 0; syncPending = false;
+    setSyncBusy(syncInProgress);
+    try {
+      await signOut(auth);
+      initializedSyncForUid = null;
+      status("ログアウトしました。端末内データは残っています。");
+    } catch (error) {
+      status("ログアウトできません：" + (error.code || error.message));
+    } finally {
+      logoutInProgress = false;
+      setSyncBusy(syncInProgress);
+    }
   });
   await getRedirectResult(auth).catch(error => status("ログイン結果を確認できません：" + (error.code || error.message)));
   onAuthStateChanged(auth, user => {
@@ -1385,9 +1400,9 @@ try {
       initializedSyncForUid = null;
     }
     currentUser = user;
-    loginButton.disabled = !!user || !navigator.onLine;
+    loginButton.disabled = !!user || !navigator.onLine || logoutInProgress;
     setSyncBusy(syncInProgress);
-    logoutButton.disabled = syncInProgress || !user;
+    logoutButton.disabled = syncInProgress || logoutInProgress || !user;
     if (!navigator.onLine) {
       status(user
         ? "オフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再開できます。"
@@ -1406,7 +1421,7 @@ try {
       : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
   });
   window.addEventListener("online", () => {
-    loginButton.disabled = !!currentUser;
+    loginButton.disabled = !!currentUser || logoutInProgress;
     setSyncBusy(syncInProgress);
     if (!currentUser) {
       status("通信が戻りました。Googleログインを利用できます。");
