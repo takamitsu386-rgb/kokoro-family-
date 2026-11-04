@@ -1,5 +1,5 @@
-// Check pending cloud sync when the app returns to the foreground.
-const CACHE_NAME="kokoro-family-v57";
+// Retry failed automatic cloud sync up to three times with increasing delays.
+const CACHE_NAME="kokoro-family-v58";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
