@@ -1,5 +1,5 @@
-// Updated with automatic furniture selection on drag and drag no-op guard.
-const CACHE_NAME="kokoro-family-v27";
+// Updated with clearer furniture movement accessibility labels.
+const CACHE_NAME="kokoro-family-v28";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
