@@ -378,6 +378,7 @@ el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
 });
+autoSaveRoom();
 }
 function savedRoomData(){
 try{return JSON.parse(localStorage.getItem('kokoroSavedRooms')||'{}')}catch(e){return {}}
