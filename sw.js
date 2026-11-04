@@ -1,5 +1,5 @@
-// Updated with room-restore selection reset and furniture/cloud-sync safeguards.
-const CACHE_NAME="kokoro-family-v18";
+// Updated with saved-room duplication and room-restore selection safeguards.
+const CACHE_NAME="kokoro-family-v19";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
