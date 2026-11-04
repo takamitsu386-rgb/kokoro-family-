@@ -576,7 +576,9 @@ async function uploadLocal(uid = currentUser?.uid) {
 }
 async function downloadCloud() {
   if (!currentUser) throw new Error("ログインしてください。");
-  const snapshot = await getDoc(cloudRef(currentUser.uid));
+  const uid = currentUser.uid;
+  const snapshot = await getDoc(cloudRef(uid));
+  if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!snapshot.exists()) {
     status("クラウドにデータはありません。端末内のデータはそのままです。");
     return false;
@@ -593,17 +595,19 @@ async function downloadCloud() {
   localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
   if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
   if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
-  initializedSyncForUid = currentUser.uid;
-  localStorage.setItem("kokoroCloudSyncUid", currentUser.uid);
+  initializedSyncForUid = uid;
+  localStorage.setItem("kokoroCloudSyncUid", uid);
   status("クラウドから読み込みました。端末内にも保存済みです。");
   return true;
 }
 async function syncNow() {
   if (!currentUser) { status("先にGoogleでログインしてください。"); return; }
+  const uid = currentUser.uid;
   status("同期を確認しています…");
   try {
-    const snapshot = await getDoc(cloudRef(currentUser.uid));
-    const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === currentUser.uid;
+    const snapshot = await getDoc(cloudRef(uid));
+    if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === uid;
     if (snapshot.exists() && !alreadyInitialized) {
       const useCloud = confirm("このアカウントにはクラウドデータがあります。OK：クラウドから読み込む／キャンセル：この端末のデータをクラウドへ保存する");
       if (useCloud) {
@@ -620,15 +624,18 @@ async function syncNow() {
         if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
-        await uploadLocal();
+        await uploadLocal(uid);
+        if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
         status("この端末のデータをクラウドに保存しました。");
       }
     } else {
-      await uploadLocal();
+      await uploadLocal(uid);
+      if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
       status("同期しました。クラウドに保存済みです。");
     }
-    initializedSyncForUid = currentUser.uid;
-    localStorage.setItem("kokoroCloudSyncUid", currentUser.uid);
+    if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    initializedSyncForUid = uid;
+    localStorage.setItem("kokoroCloudSyncUid", uid);
   } catch (error) {
     console.error(error);
     status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
