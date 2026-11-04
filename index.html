@@ -369,6 +369,22 @@ autoSaveRoom();
 function drag(el){
 let moving=false,grabX=0,grabY=0,activePointerId=null;
 const handle=el.querySelector('.drag-handle');
+handle.setAttribute('role','button');
+handle.setAttribute('tabindex','0');
+handle.setAttribute('aria-label','矢印キーで家具を移動');
+handle.setAttribute('aria-keyshortcuts','ArrowUp ArrowDown ArrowLeft ArrowRight');
+handle.addEventListener('keydown',e=>{
+const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+const move=moves[e.key];
+if(!move)return;
+e.preventDefault();
+const step=e.shiftKey?30:10;
+const left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),el.offsetLeft+move[0]*step));
+const top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),el.offsetTop+move[1]*step));
+el.style.left=left+'px';
+el.style.top=top+'px';
+autoSaveRoom();
+});
 const stop=e=>{
 if(!moving||(e&&e.pointerId!==activePointerId))return;
 moving=false;
