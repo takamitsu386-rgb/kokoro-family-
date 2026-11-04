@@ -557,8 +557,8 @@ function status(message) {
   if (statusEl) statusEl.textContent = message;
 }
 function validRoomData(value) {
-  const validPosition = v => typeof v === "string" && /^(?:\d+(?:\\.\d+)?)(?:px|%)$/.test(v);
-  const validSize = v => typeof v === "string" && /^(?:\d+(?:\\.\d+)?)px$/.test(v) &&
+  const validPosition = v => typeof v === "string" && /^(?:\d+(?:[.]\d+)?)(?:px|%)$/.test(v);
+  const validSize = v => typeof v === "string" && /^(?:\d+(?:[.]\d+)?)px$/.test(v) &&
     Number.parseFloat(v) >= 20 && Number.parseFloat(v) <= 80;
   const validLayer = v => typeof v === "string" && /^-?\d{1,5}$/.test(v);
   return !!value && typeof value === "object" && !Array.isArray(value) &&
