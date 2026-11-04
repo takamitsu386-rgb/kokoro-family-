@@ -781,8 +781,13 @@ function markCloudSync(uid) {
   }
 }
 function storeCloudDataSafely(data) {
-  const previousRoom = localStorage.getItem("kokoroRoom");
-  const previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
+  let previousRoom, previousSavedRooms;
+  try {
+    previousRoom = localStorage.getItem("kokoroRoom");
+    previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
+  } catch (readError) {
+    throw new Error("端末内の保存データを読み取れないため、クラウドの内容は反映しませんでした。");
+  }
   try {
     localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom || "");
     localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms || "{}");
@@ -797,17 +802,25 @@ function storeCloudDataSafely(data) {
       else localStorage.setItem("kokoroSavedRooms", previousSavedRooms);
     } catch (rollbackError) {
       console.error("Cloud import rollback failed", rollbackError);
+      throw new Error("端末への保存と元データの復元に失敗しました。ブラウザの保存領域を消去せず、復旧用コピーを確認してください。");
     }
     throw new Error("端末への保存に失敗しました。元のデータを保持するよう処理しました。空き容量を確認してください。");
   }
 }
+let uploadQueue = Promise.resolve();
 async function uploadLocal(uid = currentUser?.uid) {
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
   const payload = localPayload();
-  await setDoc(cloudRef(uid), {
-    ...payload,
-    updatedAt: serverTimestamp()
+  const task = uploadQueue.catch(() => {}).then(async () => {
+    if (!currentUser || currentUser.uid !== uid) throw new Error("同期待ちの間にGoogleアカウントが切り替わりました。もう一度同期してください。");
+    await setDoc(cloudRef(uid), {
+      ...payload,
+      updatedAt: serverTimestamp()
+    });
+    if (!currentUser || currentUser.uid !== uid) throw new Error("保存後にGoogleアカウントが切り替わりました。");
   });
+  uploadQueue = task;
+  await task;
 }
 async function downloadCloud() {
   if (!currentUser) throw new Error("ログインしてください。");
