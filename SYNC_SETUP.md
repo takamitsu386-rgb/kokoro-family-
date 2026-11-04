@@ -110,3 +110,8 @@ Firebase Console の設定後、開発版を HTTPS で開いて確認します�
 - アプリを別タブやバックグラウンドから再表示したとき、ログイン済みで初回同期済みなら自動同期キューを確認する。通信復帰時の再試行と同様、未同期変更の取りこぼしを減らす
 
 - 自動クラウド同期に失敗した場合、3秒・10秒・30秒の間隔で最大3回まで再試行する。成功時またはGoogleアカウント切替時に再試行状態を解除し、失敗が続く場合は通信復帰時か手動同期を案内する
+
+
+## Cloud data validation
+
+Cloud room data uses the same strict room validator as local saves and backup imports. Furniture icons, item positions, sizes, layer values, paint values, and saved-room structure are checked consistently before cloud data is accepted. This prevents the cloud path from accepting room records that the local and backup paths would reject.
