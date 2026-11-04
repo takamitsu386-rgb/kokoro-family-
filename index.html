@@ -439,7 +439,7 @@ icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,
 }))
 };
 }
-function applyRoom(data){
+function applyRoom(data,persist=true){
 if(!validRoomData(data)){
 document.getElementById('message').textContent='お部屋データに問題があるため、読み込みを中止しました。';
 return false;
@@ -464,7 +464,7 @@ el.style.left=Math.max(0,Math.min(maxLeft,el.offsetLeft))+'px';
 el.style.top=Math.max(0,Math.min(maxTop,el.offsetTop))+'px';
 });
 updateFurnitureCount();
-return autoSaveRoom();
+return persist?autoSaveRoom():true;
 }
 function savedRoomData(){
 try{
@@ -581,7 +581,7 @@ if(raw){
 try{
 const data=JSON.parse(raw);
 if(!validRoomData(data))throw new Error('invalid room data');
-applyRoom(data);
+applyRoom(data,false);
 }catch(e){
 let recoverySaved=false;
 try{
@@ -684,7 +684,7 @@ if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else lo
 }catch(rollbackError){console.error("Backup import rollback failed",rollbackError);}
 throw writeError;
 }
-applyRoom(data.currentRoom);
+applyRoom(data.currentRoom,false);
 refreshSavedRooms();
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 message.textContent="✅ バックアップを読み込みました。読み込み直前のデータも端末内に退避しました。";
@@ -824,7 +824,7 @@ async function downloadCloud() {
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
   storeCloudDataSafely(data);
-  if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
+  if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom,false);
   if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
   initializedSyncForUid = uid;
   markCloudSync(uid);
@@ -847,7 +847,7 @@ async function syncNow() {
           throw new Error("クラウドデータの形式が違います。端末内データは変更していません。");
         }
         storeCloudDataSafely(data);
-        if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
+        if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom,false);
         if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
