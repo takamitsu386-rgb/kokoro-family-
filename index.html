@@ -953,8 +953,7 @@ try {
     }
     currentUser = user;
     loginButton.disabled = !!user;
-    syncButton.disabled = !user;
-    downloadButton.disabled = !user;
+    setSyncBusy(syncInProgress);
     logoutButton.disabled = !user;
     if (user) status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
     else status("未接続：この端末内に保存しています。");
