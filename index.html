@@ -449,7 +449,9 @@ if(Object.prototype.hasOwnProperty.call(savedRoomData(),current))select.value=cu
 document.getElementById('savedRoomCount').textContent='💾 保存したお部屋：'+Object.keys(savedRoomData()).length+'個';
 }
 function autoSaveRoom(){
-try{localStorage.setItem('kokoroRoom',JSON.stringify(roomData()));if(window.kokoroQueueSync)window.kokoroQueueSync();}catch(e){}
+if(!safeWriteLocalStorage('kokoroRoom',JSON.stringify(roomData())))return false;
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+return true;
 }
 function safeWriteLocalStorage(key,value){
 try{
@@ -525,7 +527,7 @@ const data=JSON.parse(raw);
 if(!validRoomData(data))throw new Error('invalid room data');
 applyRoom(data);
 }catch(e){
-if(!localStorage.getItem('kokoroRoomRecovery'))localStorage.setItem('kokoroRoomRecovery',raw);
+try{if(!localStorage.getItem('kokoroRoomRecovery'))localStorage.setItem('kokoroRoomRecovery',raw);}catch(recoveryError){console.warn('Room recovery copy could not be saved',recoveryError);}
 document.getElementById('message').textContent='保存データに問題があるため、元データを復旧用に保管しました。バックアップから読み込めます。';
 }
 }else{
@@ -536,7 +538,7 @@ if(savedRaw){
 try{
 if(!validSavedRooms(JSON.parse(savedRaw)))throw new Error('invalid saved rooms');
 }catch(e){
-if(!localStorage.getItem('kokoroSavedRoomsRecovery'))localStorage.setItem('kokoroSavedRoomsRecovery',savedRaw);
+try{if(!localStorage.getItem('kokoroSavedRoomsRecovery'))localStorage.setItem('kokoroSavedRoomsRecovery',savedRaw);}catch(recoveryError){console.warn('Saved rooms recovery copy could not be saved',recoveryError);}
 document.getElementById('message').textContent='保存したお部屋のデータに問題があります。元データは復旧用に保管しました。';
 }
 }
