@@ -815,6 +815,25 @@ function markCloudSync(uid) {
     return false;
   }
 }
+function applyCloudDataSafely(data) {
+  const previousRoom = window.roomData();
+  if (!validRoomData(previousRoom)) {
+    throw new Error("現在のお部屋を安全に退避できないため、クラウドデータは反映しませんでした。");
+  }
+  if (typeof window.applyRoom !== "function" || window.applyRoom(data.currentRoom, false) !== true) {
+    window.applyRoom(previousRoom, false);
+    throw new Error("クラウドのお部屋を画面に反映できませんでした。端末内データは変更していません。");
+  }
+  try {
+    storeCloudDataSafely(data);
+  } catch (error) {
+    window.applyRoom(previousRoom, false);
+    if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+    throw error;
+  }
+  if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+  return true;
+}
 function storeCloudDataSafely(data) {
   let previousRoom, previousSavedRooms;
   try {
@@ -880,9 +899,7 @@ async function downloadCloud() {
     throw new Error("クラウドデータの形式を確認できません。端末内データは変更していません。");
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
-  storeCloudDataSafely(data);
-  if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom,false);
-  if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+  applyCloudDataSafely(data);
   initializedSyncForUid = uid;
   markCloudSync(uid);
   status("クラウドから読み込みました。端末内にも保存済みです。");
@@ -910,9 +927,7 @@ async function syncNow() {
         if (data.version !== 1 || !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) {
           throw new Error("クラウドデータの形式が違います。端末内データは変更していません。");
         }
-        storeCloudDataSafely(data);
-        if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom,false);
-        if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
+        applyCloudDataSafely(data);
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
         await uploadLocal(uid);
