@@ -83,7 +83,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p id="message" role="status" aria-live="polite">家具を追加して、好きな場所に動かしてみよう。</p>
 <div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
 <p id="furnitureCount" role="status" aria-live="polite">🪑 お部屋の家具：0個</p>
-<p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。</p>
+<p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできる ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。よ。</p>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
@@ -729,7 +729,8 @@ if(!newName||!newName.trim())return;
 const clean=newName.trim();
 if(["__proto__","constructor","prototype"].includes(clean)){document.getElementById('message').textContent='この名前は使えません。別の名前にしてね。';return;}
 if(clean.length>80){document.getElementById('message').textContent='お部屋の名前は80文字以内にしてね。';return;}
-if(clean!==oldName&&Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
+if(clean===oldName){document.getElementById('message').textContent='お部屋の名前は変更されていません。';return;}
+if(Object.prototype.hasOwnProperty.call(rooms,clean)){document.getElementById('message').textContent='同じ名前のお部屋があるよ。別の名前にしてね。';return;}
 rooms[clean]=rooms[oldName];
 if(clean!==oldName)delete rooms[oldName];
 if(!validSavedRooms(rooms)){document.getElementById('message').textContent='この変更は保存できません。内容を確認してね。';return;}
