@@ -278,7 +278,11 @@ item.title='手のマークでつかんで、そのままスライドして移�
 room.appendChild(item);
 drag(item);
 updateFurnitureCount();
-if(persist)autoSaveRoom();
+if(persist&&!autoSaveRoom()){
+item.remove();
+updateFurnitureCount();
+return null;
+}
 return item;
 }
 function selectFurniture(el){
@@ -299,8 +303,9 @@ const items=[...room.querySelectorAll('.furniture')];
 const levels=items.map(el=>Number.parseInt(el.style.zIndex||0)).filter(Number.isFinite);
 const current=Number.parseInt(selectedFurniture.style.zIndex||0)||0;
 const next=direction>0?Math.max(0,...levels,current)+1:Math.min(0,...levels,current)-1;
+const previous=selectedFurniture.style.zIndex;
 selectedFurniture.style.zIndex=Math.max(-99999,Math.min(99999,next));
-autoSaveRoom();
+if(!autoSaveRoom())selectedFurniture.style.zIndex=previous;
 document.getElementById('selectedMessage').textContent=direction>0?'家具を手前に表示したよ。かさなった家具も見やすくなるよ！':'家具を後ろに表示したよ。';
 }
 function duplicateSelected(){
@@ -329,42 +334,72 @@ const top=Math.min(Math.max(0,room.clientHeight-copy.offsetHeight),selectedFurni
 copy.style.left=left+'px';
 copy.style.top=top+'px';
 drag(copy);
+const original=selectedFurniture;
 selectFurniture(copy);
 updateFurnitureCount();
-autoSaveRoom();
+if(!autoSaveRoom()){
+copy.remove();
+selectFurniture(original);
+updateFurnitureCount();
+document.getElementById('selectedMessage').textContent='保存できなかったため、コピーを取り消しました。';
+return;
+}
 document.getElementById('selectedMessage').textContent=copy.dataset.icon+' をコピーしたよ！';
 }
 function clearFurniture(){
 const items=room.querySelectorAll('.furniture');
 if(!items.length){document.getElementById('selectedMessage').textContent='お部屋に家具はないよ。';return;}
 if(!confirm('家具を全部片づけますか？壁と床のデザインは残ります。'))return;
+const previousSelection=selectedFurniture;
 items.forEach(el=>el.remove());
 selectedFurniture=null;
 updateFurnitureCount();
-autoSaveRoom();
+if(!autoSaveRoom()){
+items.forEach(el=>room.appendChild(el));
+selectedFurniture=previousSelection;
+updateFurnitureCount();
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元に戻しました。';
+return;
+}
 document.getElementById('selectedMessage').textContent='家具を全部片づけたよ。壁と床はそのままだよ！';
 }
 function removeSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に削除したい家具をタップしてね。';return;}
-const icon=selectedFurniture.dataset.icon;
-selectedFurniture.remove();
+const item=selectedFurniture;
+const icon=item.dataset.icon;
+const parent=item.parentNode;
+const next=item.nextSibling;
+item.remove();
 selectedFurniture=null;
 updateFurnitureCount();
-autoSaveRoom();
+if(!autoSaveRoom()){
+parent.insertBefore(item,next);
+selectFurniture(item);
+updateFurnitureCount();
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元に戻しました。';
+return;
+}
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
 }
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
+const previousLeft=selectedFurniture.style.left,previousTop=selectedFurniture.style.top;
 selectedFurniture.style.left=Math.max(0,(room.clientWidth-selectedFurniture.offsetWidth)/2)+'px';
 selectedFurniture.style.top=Math.max(0,(room.clientHeight-selectedFurniture.offsetHeight)/2)+'px';
-autoSaveRoom();
+if(!autoSaveRoom()){
+selectedFurniture.style.left=previousLeft;
+selectedFurniture.style.top=previousTop;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元の位置に戻しました。';
+return;
+}
 document.getElementById('selectedMessage').textContent='家具をお部屋の真ん中に移動したよ！';
 }
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
-const current=parseFloat(selectedFurniture.style.fontSize)||38;
+const previous=selectedFurniture.style.fontSize;
+const current=parseFloat(previous)||38;
 selectedFurniture.style.fontSize=Math.max(20,Math.min(80,current*factor))+'px';
-autoSaveRoom();
+if(!autoSaveRoom())selectedFurniture.style.fontSize=previous;
 }
 function drag(el){
 let moving=false,grabX=0,grabY=0,activePointerId=null,originalLeft='',originalTop='';
