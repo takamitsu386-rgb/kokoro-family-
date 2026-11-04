@@ -1005,7 +1005,7 @@ if(!validRoomData(previousDisplayRoom))throw new Error("current display cannot b
 let importCommitted=false;
 try{
 localStorage.setItem("kokoroRoomBeforeImport",previousRoom===null?JSON.stringify(previousDisplayRoom):previousRoom);
-localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms||"{}");
+localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms===null?"{}":previousSavedRooms);
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
 if(applyRoom(data.currentRoom,false)!==true)throw new Error("room restore failed");
@@ -1096,7 +1096,7 @@ return;
 }
 try{
 localStorage.setItem("kokoroRoomBeforeRecovery",currentRoom||JSON.stringify(currentDisplay));
-localStorage.setItem("kokoroSavedRoomsBeforeRecovery",currentSaved||"{}");
+localStorage.setItem("kokoroSavedRoomsBeforeRecovery",currentSaved===null?"{}":currentSaved);
 localStorage.setItem("kokoroRoom",JSON.stringify(previousRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(previousSavedRooms));
 if(applyRoom(previousRoom,false)!==true)throw new Error("recovery display failed");
