@@ -397,18 +397,20 @@ handle.addEventListener('lostpointercapture',stop);
 function validRoomData(value) {
 const validPosition = v => {
 if(typeof v!=="string")return false;
-const match=v.match(/^(\\d+(?:[.]\\d+)?)(px|%)$/);
+const match=v.match(/^(\d+(?:[.]\d+)?)(px|%)$/);
 if(!match)return false;
 const amount=Number(match[1]);
 return Number.isFinite(amount)&&amount>=0&&amount<=(match[2]==="%"?100:2000);
 };
-const validSize=v=>v===""||(typeof v==="string"&&/^(?:\\d+(?:[.]\\d+)?)px$/.test(v)&&Number.parseFloat(v)>=20&&Number.parseFloat(v)<=80);
-const validLayer=v=>v===""||(typeof v==="string"&&/^-?\\d{1,5}$/.test(v));
-const safePaint=(v,max)=>typeof v==="string"&&v.length<=max&&!/(?:url\\s*\\(|expression\\s*\\(|javascript\\s*:)/i.test(v);
+const validSize=v=>v===""||(typeof v==="string"&&/^(\d+(?:[.]\d+)?)px$/.test(v)&&Number.parseFloat(v)>=20&&Number.parseFloat(v)<=80);
+const validLayer=v=>v===""||(typeof v==="string"&&/^-?\d{1,5}$/.test(v));
+const safePaint=(v,max)=>typeof v==="string"&&v.length<=max&&!/(?:url\s*\(|expression\s*\(|javascript\s*:)/i.test(v);
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
 typeof value.wall==="string"&&safePaint(value.wall,500)&&
 (value.wallColor===undefined||safePaint(value.wallColor,100))&&
 (value.wallImage===undefined||safePaint(value.wallImage,1000))&&
+(value.wallSize===undefined||value.wallSize==="auto"||value.wallSize==="32px 32px")&&
+(value.wallRepeat===undefined||value.wallRepeat==="repeat"||value.wallRepeat==="no-repeat")&&
 (value.floor===undefined||safePaint(value.floor,100))&&
 (value.floorImage===undefined||safePaint(value.floorImage,1000))&&
 Array.isArray(value.items)&&value.items.length<=300&&
@@ -725,18 +727,20 @@ function status(message) {
 function validRoomData(value) {
 const validPosition = v => {
 if(typeof v!=="string")return false;
-const match=v.match(/^(\\d+(?:[.]\\d+)?)(px|%)$/);
+const match=v.match(/^(\d+(?:[.]\d+)?)(px|%)$/);
 if(!match)return false;
 const amount=Number(match[1]);
 return Number.isFinite(amount)&&amount>=0&&amount<=(match[2]==="%"?100:2000);
 };
-const validSize=v=>v===""||(typeof v==="string"&&/^(?:\\d+(?:[.]\\d+)?)px$/.test(v)&&Number.parseFloat(v)>=20&&Number.parseFloat(v)<=80);
-const validLayer=v=>v===""||(typeof v==="string"&&/^-?\\d{1,5}$/.test(v));
-const safePaint=(v,max)=>typeof v==="string"&&v.length<=max&&!/(?:url\\s*\\(|expression\\s*\\(|javascript\\s*:)/i.test(v);
+const validSize=v=>v===""||(typeof v==="string"&&/^(\d+(?:[.]\d+)?)px$/.test(v)&&Number.parseFloat(v)>=20&&Number.parseFloat(v)<=80);
+const validLayer=v=>v===""||(typeof v==="string"&&/^-?\d{1,5}$/.test(v));
+const safePaint=(v,max)=>typeof v==="string"&&v.length<=max&&!/(?:url\s*\(|expression\s*\(|javascript\s*:)/i.test(v);
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
 typeof value.wall==="string"&&safePaint(value.wall,500)&&
 (value.wallColor===undefined||safePaint(value.wallColor,100))&&
 (value.wallImage===undefined||safePaint(value.wallImage,1000))&&
+(value.wallSize===undefined||value.wallSize==="auto"||value.wallSize==="32px 32px")&&
+(value.wallRepeat===undefined||value.wallRepeat==="repeat"||value.wallRepeat==="no-repeat")&&
 (value.floor===undefined||safePaint(value.floor,100))&&
 (value.floorImage===undefined||safePaint(value.floorImage,1000))&&
 Array.isArray(value.items)&&value.items.length<=300&&
