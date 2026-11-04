@@ -119,3 +119,5 @@ Cloud room data uses the same strict room validator as local saves and backup im
 - Cloud download handler is explicitly asynchronous so its Firestore read queue can be awaited without a JavaScript parse error.
 
 - Fixed a duplicate `async` keyword in the cloud download function declaration; the declaration is now valid JavaScript syntax.
+
+- スマホ・PC同期セクションへのリンクを上部の固定ナビゲーションとホーム画面のショートカットに追加し、スマートフォンでも同期設定へ直接移動できるようにする
