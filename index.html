@@ -258,8 +258,16 @@ const item=document.createElement('div');
 item.className='furniture';
 item.dataset.icon=icon;
 item.innerHTML='<span class="item-icon"></span><span class="drag-handle" aria-label="つかんで移動">✋</span>';
-item.querySelector('.item-icon').textContent=icon;
-item.querySelector('.item-icon').addEventListener('click',()=>selectFurniture(item));
+const iconButton=item.querySelector('.item-icon');
+iconButton.textContent=icon;
+iconButton.setAttribute('role','button');
+iconButton.setAttribute('tabindex','0');
+iconButton.setAttribute('aria-label',icon+' を選択');
+iconButton.setAttribute('aria-pressed','false');
+iconButton.addEventListener('click',()=>selectFurniture(item));
+iconButton.addEventListener('keydown',e=>{
+if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFurniture(item);}
+});
 item.style.left=(15+Math.random()*65)+'%';
 item.style.top=(15+Math.random()*48)+'%';
 item.title='手のマークでつかんで、そのままスライドして移動';
@@ -272,7 +280,13 @@ autoSaveRoom();
 function selectFurniture(el){
 selectedFurniture=el;
 document.getElementById('selectedMessage').textContent='選択中：'+el.dataset.icon;
-room.querySelectorAll('.furniture').forEach(x=>x.style.outline='none');
+room.querySelectorAll('.furniture').forEach(x=>{
+x.style.outline='none';
+const button=x.querySelector('.item-icon');
+if(button)button.setAttribute('aria-pressed','false');
+});
+const activeButton=el.querySelector('.item-icon');
+if(activeButton)activeButton.setAttribute('aria-pressed','true');
 el.style.outline='2px dashed #6759d8';
 }
 function layerSelected(direction){
@@ -294,7 +308,15 @@ const copy=selectedFurniture.cloneNode(true);
 // offsetLeft/Top are pixel coordinates even when the original uses percentages.
 copy.style.outline='none';
 // cloneNode does not copy event listeners, so restore the selection handler.
-copy.querySelector('.item-icon').addEventListener('click',()=>selectFurniture(copy));
+const copyIcon=copy.querySelector('.item-icon');
+copyIcon.setAttribute('role','button');
+copyIcon.setAttribute('tabindex','0');
+copyIcon.setAttribute('aria-label',copy.dataset.icon+' を選択');
+copyIcon.setAttribute('aria-pressed','false');
+copyIcon.addEventListener('click',()=>selectFurniture(copy));
+copyIcon.addEventListener('keydown',e=>{
+if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFurniture(copy);}
+});
 room.appendChild(copy);
 // Measure only after insertion so the clone has its real rendered dimensions.
 const left=Math.min(Math.max(0,room.clientWidth-copy.offsetWidth),selectedFurniture.offsetLeft+24);
