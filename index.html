@@ -151,6 +151,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button type="button" onclick="previewSavedRoom()">👀 選んだお部屋をプレビュー</button>
+<button type="button" onclick="exportCurrentRoomImage()">🖼️ 今のお部屋を画像保存</button>
+<button type="button" onclick="exportSavedRoomImage()">🖼️ 選んだお部屋を画像保存</button>
 <div id="savedRoomPreview" aria-live="polite" style="margin-top:10px;padding:12px;border:1px solid #d8dce5;border-radius:12px;background:#fafaff"><strong>お部屋プレビュー</strong><p style="margin:6px 0;color:#667085">保存したお部屋を選ぶと、ここに見本が表示されます。</p></div>
 <button onclick="renameSavedRoom()">✏️ 名前を変更</button>
 <button onclick="duplicateSavedRoom()">📑 選んだお部屋を複製</button>
@@ -989,6 +991,53 @@ if(savedRoomSelect)savedRoomSelect.focus();
 console.error('Saved room restore failed',error);
 document.getElementById('message').textContent='お部屋の復元中に問題が起きました。保存データは残しています。';
 }
+}
+function exportRoomImage(data,title){
+if(!validRoomData(data)){document.getElementById('message').textContent='画像にするお部屋のデータを確認できません。';return;}
+try{
+const canvas=document.createElement('canvas');
+canvas.width=1200;canvas.height=800;
+const ctx=canvas.getContext('2d');
+if(!ctx)throw new Error('Canvas unavailable');
+ctx.fillStyle=data.wallColor||'#f5e9d8';ctx.fillRect(0,0,canvas.width,canvas.height);
+const floorY=600;
+ctx.fillStyle=data.floor||'#c89b72';ctx.fillRect(0,floorY,canvas.width,200);
+ctx.fillStyle='#b7855e';ctx.fillRect(0,floorY-5,canvas.width,10);
+const sourceWidth=Math.max(1,room.clientWidth),sourceHeight=Math.max(1,room.clientHeight);
+const sx=canvas.width/sourceWidth,sy=canvas.height/sourceHeight;
+ctx.textAlign='center';ctx.textBaseline='middle';
+data.items.forEach(item=>{
+const position=(value,dimension)=>value.endsWith('%')?parseFloat(value)*dimension/100:parseFloat(value);
+const x=position(item.left,sourceWidth)*sx;
+const y=position(item.top,sourceHeight)*sy;
+const size=item.size?parseFloat(item.size)*Math.min(sx,sy):34*Math.min(sx,sy);
+ctx.font=Math.max(18,Math.min(110,size))+'px sans-serif';
+ctx.fillText(item.icon,x,y);
+});
+ctx.fillStyle='#263247';ctx.font='bold 28px sans-serif';ctx.textAlign='left';ctx.fillText(title||'こころファミリー',32,38);
+canvas.toBlob(blob=>{
+if(!blob){document.getElementById('message').textContent='画像を書き出せませんでした。';return;}
+try{
+const url=URL.createObjectURL(blob),link=document.createElement('a');
+const safeName=(title||'お部屋').replace(/[\\/:*?"<>|]/g,'_').slice(0,60)||'お部屋';
+link.href=url;link.download='kokoro-family-'+safeName+'.png';
+document.body.appendChild(link);link.click();link.remove();
+setTimeout(()=>URL.revokeObjectURL(url),60000);
+document.getElementById('message').textContent='🖼️ お部屋の画像を保存しました。壁紙・床の画像模様は簡略表示です。';
+}catch(error){document.getElementById('message').textContent='画像の保存に失敗しました。';}
+},'image/png');
+}catch(error){console.error('Room image export failed',error);document.getElementById('message').textContent='画像を書き出せませんでした。端末の空き容量やブラウザ設定を確認してください。';}
+}
+function exportCurrentRoomImage(){
+const data=roomData();
+if(!validRoomData(data)){document.getElementById('message').textContent='今のお部屋を画像にできません。';return;}
+exportRoomImage(data,'今のお部屋');
+}
+function exportSavedRoomImage(){
+const name=document.getElementById('savedRooms').value,rooms=savedRoomData();
+if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
+if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='画像にするお部屋を選んでね。';return;}
+exportRoomImage(rooms[name],name);
 }
 function previewSavedRoom(){
 const name=document.getElementById('savedRooms').value;
