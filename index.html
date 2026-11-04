@@ -689,6 +689,15 @@ function localPayload() {
 function cloudRef(uid) {
   return doc(db, "users", uid, "kokoro", "data");
 }
+function markCloudSync(uid) {
+  try {
+    markCloudSync(uid);
+    return true;
+  } catch (error) {
+    console.warn("Cloud sync marker could not be saved", error);
+    return false;
+  }
+}
 function storeCloudDataSafely(data) {
   const previousRoom = localStorage.getItem("kokoroRoom");
   const previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
@@ -736,7 +745,7 @@ async function downloadCloud() {
   if (typeof window.applyRoom === "function") window.applyRoom(data.currentRoom);
   if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
   initializedSyncForUid = uid;
-  localStorage.setItem("kokoroCloudSyncUid", uid);
+  markCloudSync(uid);
   status("クラウドから読み込みました。端末内にも保存済みです。");
   return true;
 }
@@ -771,7 +780,7 @@ async function syncNow() {
     }
     if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     initializedSyncForUid = uid;
-    localStorage.setItem("kokoroCloudSyncUid", uid);
+    markCloudSync(uid);
   } catch (error) {
     console.error(error);
     status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
@@ -788,7 +797,7 @@ function queueSync() {
       await uploadLocal(queuedUid);
       if (currentUser && currentUser.uid === queuedUid) {
         status("自動同期しました。");
-        localStorage.setItem("kokoroCloudSyncUid", queuedUid);
+        markCloudSync(queuedUid);
       }
     } catch (error) {
       console.error(error);
