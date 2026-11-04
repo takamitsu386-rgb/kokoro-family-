@@ -1,5 +1,5 @@
-// Updated with accessible movement instructions for furniture controls.
-const CACHE_NAME="kokoro-family-v38";
+// Updated with accessible labels and explicit button types for design controls.
+const CACHE_NAME="kokoro-family-v39";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
