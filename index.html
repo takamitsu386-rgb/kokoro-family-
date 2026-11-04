@@ -1345,6 +1345,19 @@ try {
     status("通信が戻りました。クラウド同期を再試行します…");
     queueSync();
   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !currentUser) return;
+    const uid = currentUser.uid;
+    let initialized = initializedSyncForUid === uid;
+    if (!initialized) {
+      try { initialized = localStorage.getItem("kokoroCloudSyncUid") === uid; }
+      catch (storageError) { console.warn("Cloud sync state could not be read on return", storageError); }
+    }
+    if (initialized) {
+      status("アプリに戻りました。未同期の変更があれば同期を確認します…");
+      queueSync();
+    }
+  });
   window.kokoroQueueSync = queueSync;
 } catch (error) {
   console.error(error);
