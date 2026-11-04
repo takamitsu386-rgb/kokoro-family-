@@ -452,7 +452,7 @@ let moving=false,grabX=0,grabY=0,activePointerId=null,originalLeft='',originalTo
 const handle=el.querySelector('.drag-handle');
 handle.setAttribute('role','button');
 handle.setAttribute('tabindex','0');
-handle.setAttribute('aria-label','矢印キーで家具を移動');
+handle.setAttribute('aria-label',el.dataset.icon+' を移動。矢印キーでも操作できます');
 handle.setAttribute('aria-keyshortcuts','ArrowUp ArrowDown ArrowLeft ArrowRight');
 handle.addEventListener('keydown',e=>{
 const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
