@@ -250,6 +250,10 @@ function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
 }
 function addFurniture(icon){
+if(room.querySelectorAll('.furniture').length>=300){
+document.getElementById('selectedMessage').textContent='家具は300個まで置けます。';
+return;
+}
 const item=document.createElement('div');
 item.className='furniture';
 item.dataset.icon=icon;
@@ -282,6 +286,10 @@ document.getElementById('selectedMessage').textContent=direction>0?'家具を手
 }
 function duplicateSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にコピーしたい家具をタップしてね。';return;}
+if(room.querySelectorAll('.furniture').length>=300){
+document.getElementById('selectedMessage').textContent='家具は300個までです。これ以上コピーできません。';
+return;
+}
 const copy=selectedFurniture.cloneNode(true);
 // offsetLeft/Top are pixel coordinates even when the original uses percentages.
 copy.style.outline='none';
