@@ -83,7 +83,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p id="message" role="status" aria-live="polite">家具を追加して、好きな場所に動かしてみよう。</p>
 <div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
 <p id="furnitureCount" role="status" aria-live="polite">🪑 お部屋の家具：0個</p>
-<p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできる ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。よ。</p>
+<p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。</p>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
@@ -111,12 +111,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <h2>🧸 家具の種類</h2>
 <div class="items" id="furnitureCategories">
-<button onclick="showFurnitureCategory('all')">ぜんぶ</button>
-<button onclick="showFurnitureCategory('room')">🛋️ 家具</button>
-<button onclick="showFurnitureCategory('plant')">🌿 植物</button>
-<button onclick="showFurnitureCategory('animal')">🐱 動物</button>
-<button onclick="showFurnitureCategory('food')">🍓 食べ物</button>
-<button onclick="showFurnitureCategory('other')">🎁 その他</button>
+<button type="button" data-category="all" aria-pressed="true" class="primary" onclick="showFurnitureCategory('all')">ぜんぶ</button>
+<button type="button" data-category="room" aria-pressed="false" onclick="showFurnitureCategory('room')">🛋️ 家具</button>
+<button type="button" data-category="plant" aria-pressed="false" onclick="showFurnitureCategory('plant')">🌿 植物</button>
+<button type="button" data-category="animal" aria-pressed="false" onclick="showFurnitureCategory('animal')">🐱 動物</button>
+<button type="button" data-category="food" aria-pressed="false" onclick="showFurnitureCategory('food')">🍓 食べ物</button>
+<button type="button" data-category="other" aria-pressed="false" onclick="showFurnitureCategory('other')">🎁 その他</button>
 </div>
 <h2>🛋️ 家具を追加</h2>
 <div class="items" id="furniture"></div>
@@ -226,6 +226,11 @@ food:['🍓','🧁','🍰','🍉','🍊','🥛','☕','🫖'],
 other:['🎀','🧩','🎨','🖌️','🎻','🎸','🧿','🪅','🎁','🎹','🧶','🧵','🪡','🧷','🪬']
 };
 const list=category==='all'?furnitureList:groups[category]||furnitureList;
+document.querySelectorAll('#furnitureCategories [data-category]').forEach(button=>{
+const active=button.dataset.category===category;
+button.setAttribute('aria-pressed',String(active));
+button.classList.toggle('primary',active);
+});
 const root=document.getElementById('furniture');root.innerHTML='';
 list.forEach(icon=>{
 const b=document.createElement('button');b.textContent=icon;b.title=icon+' を追加';
