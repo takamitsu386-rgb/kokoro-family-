@@ -1412,7 +1412,8 @@ function exportRoomBackup(){
 try{
 const currentRoom=roomData();
 const savedRooms=savedRoomData();
-if(savedRooms===null||!validRoomData(currentRoom)||!validSavedRooms(savedRooms)){
+const savedRoomPrefs=readSavedRoomPrefs();
+if(savedRooms===null||!validRoomData(currentRoom)||!validSavedRooms(savedRooms)||!validSavedRoomPrefs(savedRoomPrefs)){
 throw new Error("invalid local backup data");
 }
 const payload={
@@ -1420,7 +1421,8 @@ app:"kokoro-family",
 version:1,
 exportedAt:new Date().toISOString(),
 currentRoom,
-savedRooms
+savedRooms,
+savedRoomPrefs
 };
 const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
 if(blob.size>MAX_BACKUP_BYTES){
@@ -1461,7 +1463,9 @@ reader.onload=()=>{
 if(request!==backupPreviewRequest)return;
 try{
 const data=JSON.parse(reader.result);
-if(!data||data.app!=='kokoro-family'||data.version!==1||!validRoomData(data.currentRoom)||!validSavedRooms(data.savedRooms))throw new Error('invalid backup');
+const previewPrefs=data&&data.savedRoomPrefs===undefined?defaultSavedRoomPrefs():data.savedRoomPrefs;
+if(!data||data.app!=='kokoro-family'||data.version!==1||!validRoomData(data.currentRoom)||!validSavedRooms(data.savedRooms)||!validSavedRoomPrefs(previewPrefs))throw new Error('invalid backup');
+data.savedRoomPrefs=previewPrefs;
 pendingBackupPreviewData=data;
 const names=Object.keys(data.savedRooms);
 const summary=document.createElement('p');
@@ -1533,22 +1537,27 @@ reader.onload=()=>{
 let rollbackFailed=false;
 try{
 const data=JSON.parse(reader.result);
+const incomingPrefs=data&&data.savedRoomPrefs===undefined?defaultSavedRoomPrefs():data.savedRoomPrefs;
 if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoomData(data.currentRoom)||
-!validSavedRooms(data.savedRooms)){
+!validSavedRooms(data.savedRooms)||!validSavedRoomPrefs(incomingPrefs)){
 throw new Error("invalid backup");
 }
 if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
 // Treat storage writes and screen restoration as one import transaction.
 const previousRoom=localStorage.getItem("kokoroRoom");
 const previousSavedRooms=localStorage.getItem("kokoroSavedRooms");
+const previousPrefs=localStorage.getItem("kokoroSavedRoomPrefs");
 const previousDisplayRoom=roomData();
-if(!validRoomData(previousDisplayRoom))throw new Error("current display cannot be safely backed up");
+const previousDisplayPrefs=readSavedRoomPrefs();
+if(!validRoomData(previousDisplayRoom)||previousDisplayPrefs===null)throw new Error("current display or preferences cannot be safely backed up");
 let importCommitted=false;
 try{
 localStorage.setItem("kokoroRoomBeforeImport",previousRoom===null?JSON.stringify(previousDisplayRoom):previousRoom);
 localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms===null?"{}":previousSavedRooms);
+localStorage.setItem("kokoroSavedRoomPrefsBeforeImport",previousPrefs===null?JSON.stringify(previousDisplayPrefs):previousPrefs);
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
+localStorage.setItem("kokoroSavedRoomPrefs",JSON.stringify(incomingPrefs));
 if(applyRoom(data.currentRoom,false)!==true)throw new Error("room restore failed");
 refreshSavedRooms();
 importCommitted=true;
@@ -1556,6 +1565,7 @@ importCommitted=true;
 try{
 if(previousRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",previousRoom);
 if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",previousSavedRooms);
+if(previousPrefs===null)localStorage.removeItem("kokoroSavedRoomPrefs");else localStorage.setItem("kokoroSavedRoomPrefs",previousPrefs);
 if(applyRoom(previousDisplayRoom,false)!==true)throw new Error("previous room display restore failed");
 refreshSavedRooms();
 }catch(rollbackError){
