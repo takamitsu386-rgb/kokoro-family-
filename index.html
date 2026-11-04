@@ -405,7 +405,10 @@ if(v.zIndex)el.style.zIndex=v.zIndex;
 autoSaveRoom();
 }
 function savedRoomData(){
-try{return JSON.parse(localStorage.getItem('kokoroSavedRooms')||'{}')}catch(e){return {}}
+try{
+const data=JSON.parse(localStorage.getItem('kokoroSavedRooms')||'{}');
+return validSavedRooms(data)?data:{};
+}catch(e){return {}}
 }
 function refreshSavedRooms(){
 const select=document.getElementById('savedRooms');
@@ -478,8 +481,27 @@ document.getElementById('message').textContent='「'+name+'」を削除しまし
 }
 function loadRoom(){
 const raw=localStorage.getItem('kokoroRoom');
-if(raw){try{applyRoom(JSON.parse(raw));}catch(e){}}
-else{autoSaveRoom();}
+if(raw){
+try{
+const data=JSON.parse(raw);
+if(!validRoomData(data))throw new Error('invalid room data');
+applyRoom(data);
+}catch(e){
+if(!localStorage.getItem('kokoroRoomRecovery'))localStorage.setItem('kokoroRoomRecovery',raw);
+document.getElementById('message').textContent='保存データに問題があるため、元データを復旧用に保管しました。バックアップから読み込めます。';
+}
+}else{
+autoSaveRoom();
+}
+const savedRaw=localStorage.getItem('kokoroSavedRooms');
+if(savedRaw){
+try{
+if(!validSavedRooms(JSON.parse(savedRaw)))throw new Error('invalid saved rooms');
+}catch(e){
+if(!localStorage.getItem('kokoroSavedRoomsRecovery'))localStorage.setItem('kokoroSavedRoomsRecovery',savedRaw);
+document.getElementById('message').textContent='保存したお部屋のデータに問題があります。元データは復旧用に保管しました。';
+}
+}
 refreshSavedRooms();
 }
 function resetRoom(){
