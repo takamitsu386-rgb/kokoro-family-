@@ -985,7 +985,13 @@ reader.onerror=()=>{
 message.textContent="ファイルを読み込めませんでした。";
 input.value="";
 };
+try{
 reader.readAsText(file);
+}catch(readError){
+console.error("Backup file read could not start",readError);
+message.textContent="ファイルの読み込みを開始できませんでした。別のバックアップファイルを選んでね。";
+input.value="";
+}
 }
 
 </script>
