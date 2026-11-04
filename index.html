@@ -1167,7 +1167,7 @@ async function uploadLocal(uid = currentUser?.uid) {
   uploadQueue = task;
   await task;
 }
-async async function downloadCloud() {
+async function downloadCloud() {
   if (!currentUser) throw new Error("ログインしてください。");
   if (syncInProgress) { status("別の同期処理が進行中です。完了してからお試しください。"); return false; }
   syncInProgress = true;
