@@ -1331,9 +1331,11 @@ try {
       status("Googleログイン中…");
       await signInWithPopup(auth, new GoogleAuthProvider());
     } catch (error) {
-      if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
+      if (error.code === "auth/popup-blocked") {
         try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
         catch (redirectError) { status("ログインできません：" + (redirectError.code || redirectError.message)); }
+      } else if (error.code === "auth/popup-closed-by-user") {
+        status("ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。");
       } else {
         status("ログインできません：" + (error.code || error.message));
       }
