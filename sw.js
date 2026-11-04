@@ -1,5 +1,5 @@
-// Updated offline fallback to serve the app shell only for navigation requests.
-const CACHE_NAME="kokoro-family-v50";
+// Updated to retry cloud sync when network connectivity returns.
+const CACHE_NAME="kokoro-family-v51";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
