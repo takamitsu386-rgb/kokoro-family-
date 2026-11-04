@@ -84,7 +84,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p id="message" role="status" aria-live="polite">家具を追加して、好きな場所に動かしてみよう。</p>
 <div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
 <p id="furnitureCount" role="status" aria-live="polite">🪑 お部屋の家具：0個</p>
-<p style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。</p>
+<p id="furnitureMoveHelp" style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。</p>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
@@ -480,6 +480,7 @@ const handle=el.querySelector('.drag-handle');
 handle.setAttribute('role','button');
 handle.setAttribute('tabindex','0');
 handle.setAttribute('aria-label',el.dataset.icon+' を移動。矢印キーでも操作できます');
+handle.setAttribute('aria-describedby','furnitureMoveHelp');
 handle.setAttribute('aria-keyshortcuts','ArrowUp ArrowDown ArrowLeft ArrowRight');
 handle.addEventListener('keydown',e=>{
 const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
