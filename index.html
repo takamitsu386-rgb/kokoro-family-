@@ -1296,6 +1296,10 @@ function queueSync() {
   window.__kokoroSyncTimer = setTimeout(async () => {
     window.__kokoroSyncTimer = null;
     if (!currentUser || currentUser.uid !== queuedUid) return;
+    if (syncInProgress) {
+      syncPending = true;
+      return;
+    }
     if (!navigator.onLine) {
       status("オフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再開します。");
       return;
