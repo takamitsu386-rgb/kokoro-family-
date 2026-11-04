@@ -1003,7 +1003,7 @@ const previousDisplayRoom=roomData();
 if(!validRoomData(previousDisplayRoom))throw new Error("current display cannot be safely backed up");
 let importCommitted=false;
 try{
-localStorage.setItem("kokoroRoomBeforeImport",previousRoom||"");
+localStorage.setItem("kokoroRoomBeforeImport",previousRoom===null?JSON.stringify(previousDisplayRoom):previousRoom);
 localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms||"{}");
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
@@ -1229,7 +1229,7 @@ function storeCloudDataSafely(data) {
     throw new Error("端末内の保存データを読み取れないため、クラウドの内容は反映しませんでした。");
   }
   try {
-    localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom || "");
+    localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom === null ? JSON.stringify(window.roomData()) : previousRoom);
     localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms || "{}");
     localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
     localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
