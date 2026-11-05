@@ -92,7 +92,8 @@ exports.aiConsultation = onRequest({
         input,
         max_output_tokens: 500,
         store: false
-      })
+      }),
+      signal: AbortSignal.timeout(45000)
     });
 
     if (!upstream.ok) {
@@ -113,6 +114,9 @@ exports.aiConsultation = onRequest({
     return sendJson(res, 200, { reply });
   } catch (error) {
     console.error("AI consultation error:", error?.message || error);
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      return sendJson(res, 504, { error: "AIの返答に時間がかかっています。少し時間をおいて再度お試しください。" });
+    }
     if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
       return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
     }
