@@ -2201,6 +2201,82 @@ try {
 }
 </script>
 
+<script type="module">
+import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+
+const aiLog = document.getElementById("aiChatLog");
+const aiInput = document.getElementById("aiMessage");
+const aiSend = document.getElementById("aiSend");
+const aiClear = document.getElementById("aiClear");
+const aiStatus = document.getElementById("aiStatus");
+const aiHistory = [];
+let aiBusy = false;
+
+function addAiMessage(role, text) {
+  const p = document.createElement("p");
+  p.className = role === "user" ? "ai-user" : "ai-assistant";
+  p.textContent = text;
+  aiLog.appendChild(p);
+  aiLog.scrollTop = aiLog.scrollHeight;
+}
+aiClear?.addEventListener("click", () => {
+  aiHistory.length = 0;
+  aiLog.replaceChildren();
+  const welcome = document.createElement("p");
+  welcome.className = "ai-welcome";
+  welcome.textContent = "会話を消しました。新しい相談を入力できます。";
+  aiLog.appendChild(welcome);
+  aiStatus.textContent = "この画面の会話を消しました。";
+});
+aiSend?.addEventListener("click", async () => {
+  if (aiBusy) return;
+  const message = aiInput.value.trim();
+  if (!message) { aiStatus.textContent = "相談内容を入力してください。"; return; }
+  if (message.length > 1200) { aiStatus.textContent = "1200文字以内で入力してください。"; return; }
+  let user;
+  try {
+    const app = getApps()[0];
+    if (!app) throw new Error("Firebase未初期化");
+    user = getAuth(app).currentUser;
+    if (!user) { aiStatus.textContent = "先に「スマホ・PC同期」からGoogleログインしてください。"; return; }
+  } catch (error) {
+    aiStatus.textContent = "ログイン機能を準備できません。ページを再読み込みしてください。";
+    return;
+  }
+  aiBusy = true;
+  aiSend.disabled = true;
+  aiStatus.textContent = "返答を確認しています…";
+  aiInput.disabled = true;
+  const previous = aiHistory.slice(-6);
+  addAiMessage("user", message);
+  aiInput.value = "";
+  try {
+    const token = await user.getIdToken();
+    const response = await fetch("/api/ai-consultation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ message, history: previous })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "現在、相談機能を利用できません。");
+    const answer = typeof data.reply === "string" ? data.reply : "";
+    if (!answer) throw new Error("返答を受け取れませんでした。");
+    aiHistory.push({ role: "user", content: message }, { role: "assistant", content: answer });
+    addAiMessage("assistant", answer);
+    aiStatus.textContent = "返答しました。";
+  } catch (error) {
+    aiInput.value = message;
+    aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
+  } finally {
+    aiBusy = false;
+    aiSend.disabled = false;
+    aiInput.disabled = false;
+    aiInput.focus();
+  }
+});
+</script>
+
 <script>
 if("serviceWorker" in navigator && location.protocol==="https"){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
