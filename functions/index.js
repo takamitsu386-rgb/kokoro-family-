@@ -53,7 +53,13 @@ exports.aiConsultation = onRequest({
       .filter(item => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string")
       .map(item => ({ role: item.role, content: item.content.slice(0, 1200) }));
     const now = new Date();
-    const dayKey = now.toISOString().slice(0, 10);
+    const tokyoDate = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(now).reduce((parts, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
     const usageRef = getFirestore().doc(`users/${decoded.uid}/aiUsage/${dayKey}`);
 
     const allowed = await getFirestore().runTransaction(async tx => {
