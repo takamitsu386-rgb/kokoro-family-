@@ -2104,9 +2104,14 @@ try {
       if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(error.code)) {
         try {
           status("このブラウザでは別画面でログインします…");
+          try { sessionStorage.setItem("kokoroReturnToAiAfterLogin", "1"); } catch (storageError) {}
           await signInWithRedirect(auth, new GoogleAuthProvider());
         } catch (redirectError) {
-          status("ログインできません：" + (redirectError.code || redirectError.message) + "。ブラウザで開き直してお試しください。");
+          try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
+          const detail = redirectError.code === "auth/unauthorized-domain"
+            ? "Firebase Authenticationの承認済みドメインに、このサイトのドメインを追加してください。"
+            : "ブラウザで開き直してお試しください。";
+          status("ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail);
         }
       } else if (error.code === "auth/popup-closed-by-user") {
         status("ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。");
@@ -2143,7 +2148,25 @@ try {
       setSyncBusy(syncInProgress);
     }
   });
-  await getRedirectResult(auth).catch(error => status("ログイン結果を確認できません：" + (error.code || error.message)));
+  let redirectResult = null;
+  try {
+    redirectResult = await getRedirectResult(auth);
+  } catch (error) {
+    try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
+    const detail = error.code === "auth/unauthorized-domain"
+      ? "Firebase Authenticationの承認済みドメイン設定を確認してください。"
+      : "もう一度ログインをお試しください。";
+    status("ログイン結果を確認できません：" + (error.code || error.message) + "。" + detail);
+  }
+  let returnToAi = false;
+  try {
+    returnToAi = sessionStorage.getItem("kokoroReturnToAiAfterLogin") === "1";
+    if (returnToAi) sessionStorage.removeItem("kokoroReturnToAiAfterLogin");
+  } catch (storageError) {}
+  if (returnToAi && (redirectResult?.user || auth.currentUser)) {
+    location.hash = "ai-consultation";
+    requestAnimationFrame(() => document.getElementById("ai-consultation")?.scrollIntoView({ behavior: "auto", block: "start" }));
+  }
   onAuthStateChanged(auth, user => {
     if (currentUser?.uid !== user?.uid) {
       clearTimeout(window.__kokoroSyncTimer);
