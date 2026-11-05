@@ -2309,8 +2309,14 @@ aiSend?.addEventListener("click", async () => {
     aiStatus.textContent = "返答しました。";
   } catch (error) {
     userBubble.remove();
-    aiInput.value = message;
-    aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
+    const sameAccount = getAuth(user.auth.app).currentUser?.uid === user.uid;
+    if (sameAccount) {
+      aiInput.value = message;
+      aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
+    } else {
+      aiInput.value = "";
+      aiStatus.textContent = "アカウントが切り替わったため、前のアカウントの相談文は引き継ぎませんでした。";
+    }
   } finally {
     aiBusy = false;
     aiSend.disabled = false;
