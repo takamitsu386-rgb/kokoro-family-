@@ -30,5 +30,5 @@ Secretの入力はFirebase CLIの対話画面で行い、チャット・GitHub�
 
 - この機能はまだデプロイされておらず、実際のAI応答テストも未実施。
 - Firebase Functionsの課金設定とSecret登録は管理者による作業が必要。
-- デプロイ前にService Workerのキャッシュバージョンを更新する。
+- Service Workerのキャッシュバージョンは v106 に更新済み。
 - 既存の公開版・開発版・バックアップ版はこのブランチから自動変更されない。
