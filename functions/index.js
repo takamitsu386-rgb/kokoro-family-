@@ -42,7 +42,7 @@ exports.aiConsultation = onRequest({
     const match = authHeader.match(/^Bearer (.+)$/);
     if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
 
-    const decoded = await getAuth().verifyIdToken(match[1]);
+    const decoded = await getAuth().verifyIdToken(match[1], true);
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
     if (!message || message.length > 1200) {
       return sendJson(res, 400, { error: "相談内容は1〜1200文字で入力してください。" });
@@ -111,7 +111,7 @@ exports.aiConsultation = onRequest({
     return sendJson(res, 200, { reply });
   } catch (error) {
     console.error("AI consultation error:", error?.message || error);
-    if (error?.code === "auth/argument-error" || error?.code === "auth/id-token-expired" || error?.code === "auth/invalid-id-token") {
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
       return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
     }
     return sendJson(res, 500, { error: "相談機能でエラーが発生しました。入力内容は画面に残して再試行できます。" });
