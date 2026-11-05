@@ -2101,9 +2101,13 @@ try {
       status("Googleログイン中…");
       await signInWithPopup(auth, new GoogleAuthProvider());
     } catch (error) {
-      if (error.code === "auth/popup-blocked") {
-        try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
-        catch (redirectError) { status("ログインできません：" + (redirectError.code || redirectError.message)); }
+      if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(error.code)) {
+        try {
+          status("このブラウザでは別画面でログインします…");
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+        } catch (redirectError) {
+          status("ログインできません：" + (redirectError.code || redirectError.message) + "。ブラウザで開き直してお試しください。");
+        }
       } else if (error.code === "auth/popup-closed-by-user") {
         status("ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。");
       } else {
