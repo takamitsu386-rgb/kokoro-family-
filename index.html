@@ -2226,7 +2226,17 @@ let aiCurrentUid = null;
 const aiFirebaseApp = getApps()[0];
 if (aiFirebaseApp) {
   onAuthStateChanged(getAuth(aiFirebaseApp), user => {
-    aiCurrentUid = user ? user.uid : null;
+    const nextUid = user ? user.uid : null;
+    if (aiCurrentUid !== null && aiCurrentUid !== nextUid) {
+      aiHistory.length = 0;
+      aiLog.replaceChildren();
+      const welcome = document.createElement("p");
+      welcome.className = "ai-welcome";
+      welcome.textContent = "ログインアカウントが変わったため、前の会話をこの画面から消しました。新しい相談を入力できます。";
+      aiLog.appendChild(welcome);
+      aiStatus.textContent = "アカウント切り替えに伴い、会話をリセットしました。";
+    }
+    aiCurrentUid = nextUid;
   });
 }
 
