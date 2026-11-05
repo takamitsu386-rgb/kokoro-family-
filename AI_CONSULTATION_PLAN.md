@@ -20,6 +20,7 @@
 - 利用回数記録はCloud FunctionsのAdmin SDKで扱い、クライアント向けFirestoreルールでは許可しない。
 - OpenAI APIキーはコードに含めず、Firebase Secret Managerの `OPENAI_API_KEY` から取得する構成。
 - OpenAI Responses APIでは `store:false` を指定する。
+- AI事業者への通信は45秒でタイムアウトし、時間切れは504として画面に再試行可能な案内を返す。
 - 許可するHostingオリジンをサーバー側で確認する。
 - 未成年者に配慮した応答方針をサーバー側に設定し、診断や危険な手順の案内を避ける。
 
