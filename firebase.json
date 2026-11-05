@@ -1,0 +1,24 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/ai-consultation",
+        "function": {
+          "functionId": "aiConsultation",
+          "region": "asia-northeast1"
+        }
+      }
+    ]
+  }
+}
