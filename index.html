@@ -87,7 +87,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <section class="panel" id="ai-consultation">
 <h2>💬 AI相談</h2>
 <p>気持ちや日々の困りごとを、落ち着いて整理するための相談スペースです。</p>
-<p class="ai-notice">相談内容は返答のため外部AIサービスへ送信されます。アプリ内の会話履歴としては保存しません。名前・住所・学校名・電話番号など、個人が特定される情報は入力しないでください。AIの返答は専門家による診断や助言の代わりではありません。</p>
+<p class="ai-notice">相談内容は返答のため外部AIサービスへ送信されます。会話履歴はアプリ内に保存されず、ページを再読み込みしたり閉じたりすると消えます。名前・住所・学校名・電話番号など、個人が特定される情報は入力しないでください。AIの返答は専門家による診断や助言の代わりではありません。</p>
 <div id="aiChatLog" class="ai-chat-log" role="log" aria-live="polite" aria-label="相談の会話">
 <p class="ai-welcome">こんにちは。話したいことを、書ける範囲で入力してください。うまくまとまっていなくても大丈夫です。</p>
 </div>
@@ -2289,6 +2289,7 @@ aiSend?.addEventListener("click", async () => {
   if (aiClear) aiClear.disabled = true;
   aiStatus.textContent = "返答を確認しています…";
   aiInput.disabled = true;
+  aiLog.setAttribute("aria-busy", "true");
   const previous = aiHistory.slice(-6);
   const userBubble = addAiMessage("user", message);
   aiInput.value = "";
@@ -2324,6 +2325,7 @@ aiSend?.addEventListener("click", async () => {
     }
   } finally {
     aiBusy = false;
+    aiLog.setAttribute("aria-busy", "false");
     aiSend.disabled = false;
     if (aiClear) aiClear.disabled = false;
     aiInput.disabled = false;
