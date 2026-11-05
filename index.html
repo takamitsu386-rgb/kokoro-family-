@@ -60,7 +60,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 @media(min-width:900px){main{max-width:1100px}.room{height:420px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
-</style>
+\n.ai-notice{padding:12px;border-radius:10px;background:#fff7e8;border:1px solid #f0d39b;color:#704b1b;font-size:14px}.ai-chat-log{display:flex;flex-direction:column;gap:10px;min-height:90px;max-height:360px;overflow-y:auto;padding:12px;margin:12px 0;background:#f7f7fc;border-radius:12px}.ai-chat-log p{margin:0;padding:10px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}.ai-chat-log .ai-welcome,.ai-chat-log .ai-assistant{background:#fff;align-self:flex-start;max-width:95%}.ai-chat-log .ai-user{background:#e9e5ff;align-self:flex-end;max-width:95%}#aiStatus{font-size:13px;color:#596579}\n</style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#6759d8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -74,13 +74,29 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#ai-consultation">AI相談</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-actions"><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+</section>
+<section class="panel" id="ai-consultation">
+<h2>💬 AI相談</h2>
+<p>気持ちや日々の困りごとを、落ち着いて整理するための相談スペースです。</p>
+<p class="ai-notice">相談内容はこの画面では保存しません。名前・住所・学校名・電話番号など、個人が特定される情報は入力しないでください。AIの返答は専門家による診断や助言の代わりではありません。</p>
+<div id="aiChatLog" class="ai-chat-log" role="log" aria-live="polite" aria-label="相談の会話">
+<p class="ai-welcome">こんにちは。話したいことを、書ける範囲で入力してください。うまくまとまっていなくても大丈夫です。</p>
+</div>
+<label for="aiMessage">相談したいこと</label>
+<textarea id="aiMessage" rows="3" maxlength="1200" placeholder="ここに入力（最大1200文字）" style="display:block;width:100%;padding:12px;border:1px solid #cbd2e1;border-radius:10px;font:inherit"></textarea>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<button class="primary" id="aiSend" type="button">送信する</button>
+<button id="aiClear" type="button">この画面の会話を消す</button>
+<span id="aiStatus" role="status" aria-live="polite">送信にはGoogleログインとAI機能の公開設定が必要です。</span>
+</div>
+<p style="font-size:13px;color:#667085">つらさが強いときや、身の安全に不安があるときは、AIだけで抱えず、近くの信頼できる大人にも伝えてください。</p>
 </section>
 <section class="panel" id="cloud-sync">
 <h2>☁️ スマホ・PC同期</h2>
