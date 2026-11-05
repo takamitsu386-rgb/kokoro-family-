@@ -98,7 +98,14 @@ exports.aiConsultation = onRequest({
       return sendJson(res, 502, { error: "AIから返答を受け取れませんでした。少し時間をおいて再度お試しください。" });
     }
     const result = await upstream.json();
-    const reply = typeof result.output_text === "string" ? result.output_text.trim() : "";
+    const replyFromOutput = Array.isArray(result.output)
+      ? result.output.flatMap(item =>
+          item?.type === "message" && Array.isArray(item.content)
+            ? item.content.filter(part => part?.type === "output_text" && typeof part.text === "string").map(part => part.text)
+            : []
+        ).join("\\n").trim()
+      : "";
+    const reply = replyFromOutput || (typeof result.output_text === "string" ? result.output_text.trim() : "");
     if (!reply) return sendJson(res, 502, { error: "返答を受け取れませんでした。もう一度お試しください。" });
 
     return sendJson(res, 200, { reply });
