@@ -9,13 +9,14 @@
 - `functions/package.json`: Cloud Functionsの依存関係とNode.js 22を設定。
 - `firebase.json`: FunctionsのNode.js 22設定と、`/api/ai-consultation` の関数への転送を設定。
 - AI相談の会話内容はアプリ側で永続保存せず、ページ内メモリで扱う設計。
-- Service Workerのキャッシュバージョンは v106。
+- Service Workerのキャッシュバージョンは v107。
 
 ## サーバー側の保護
 
 - Firebase IDトークンを検証し、失効済み・無効化済みアカウントのトークンも拒否する。
 - 相談文の長さを1〜1200文字に制限する。
 - 会話履歴として扱うメッセージ数を直近6件に制限する。
+- AI応答の送受信中に認証状態が一度でも切り替わった場合、同じUIDへ戻っても古い応答や入力内容を引き継がないよう、認証切替世代を検証する。
 - 利用回数はユーザーごとに日本時間の日付単位で管理し、1日10回を上限とする。カウンター値が不正な場合は安全側に倒して利用を拒否する。
 - 利用回数記録はCloud FunctionsのAdmin SDKで扱い、クライアント向けFirestoreルールでは許可しない。
 - OpenAI APIキーはコードに含めず、Firebase Secret Managerの `OPENAI_API_KEY` から取得する構成。
