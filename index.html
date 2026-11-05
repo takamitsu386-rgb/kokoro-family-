@@ -2128,6 +2128,10 @@ try {
     syncRetryCount = 0; syncPending = false;
     setSyncBusy(syncInProgress);
     try {
+      // Finish any already-started automatic upload before ending the auth session.
+      await uploadQueue.catch(error => {
+        console.warn("Pending cloud upload did not finish before logout", error);
+      });
       await signOut(auth);
       initializedSyncForUid = null;
       status("ログアウトしました。端末内データは残っています。");
