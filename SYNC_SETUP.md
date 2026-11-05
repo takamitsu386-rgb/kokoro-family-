@@ -59,7 +59,7 @@
 
 1. Authentication の Sign-in method で Google プロバイダを有効化し、サポートメールを指定する。
 2. Firestore Database を作成する。
-3. このリポジトリの `firestore.rules` の内容を Firestore の Rules に反映して Publish する。
+3. Firebase Console上の現在のFirestore Rulesを先に確認し、既存ルールとデータアクセスへの影響を管理者が比較する。一致・安全性を確認できた場合に限り、必要な変更を承認してPublishする。
 4. Authentication の Settings にある承認済みドメインに、実際にアプリを配信するホスト名が登録されていることを確認する。
 
 Firestore のルールは、ログイン中の UID とパス内の UID が一致し、対象ドキュメント名が `data` の場合だけ読み書きを許可します。
