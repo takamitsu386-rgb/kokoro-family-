@@ -82,6 +82,18 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
 <div class="home-actions"><a href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
 </section>
+<section class="panel" id="cloud-sync">
+<h2>☁️ スマホ・PC同期</h2>
+<p>Googleアカウントでログインすると、お部屋データをクラウドに保存できます。</p>
+<p id="cloudSyncStatus" role="status" aria-live="polite">未接続：この端末内に保存しています。</p>
+<button class="primary" type="button" id="cloudGoogleLogin" disabled>Googleでログイン</button>
+<button type="button" id="cloudSyncNow" disabled>☁️ 同期する</button>
+<button type="button" id="cloudDownload" disabled>クラウドから読み込む</button>
+<button type="button" id="cloudLogout" disabled>ログアウト</button>
+<p style="font-size:13px;color:#667085">初回同期では、端末内とクラウドのどちらのデータを使うか確認します。端末内の保存データは同期後も残ります。</p>
+<p role="note" style="font-size:13px;color:#8a4b16;background:#fff7e8;border:1px solid #f0d39b;border-radius:10px;padding:10px">⚠️ 複数の端末で同時にお部屋を編集しないでください。現状は最後にクラウドへ保存された内容が優先され、別端末の変更が上書きされる場合があります。端末を切り替えるときは、作業を終えた端末で「同期する」を押し、次の端末では「クラウドから読み込む」を使ってください。</p>
+</section>
+
 <section class="panel" id="room-design">
 <h2>🎨 お部屋のデザイン</h2>
 <div class="room" id="room">
@@ -189,17 +201,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </section>
 
 
-<section class="panel" id="cloud-sync">
-<h2>☁️ スマホ・PC同期</h2>
-<p>Googleアカウントでログインすると、お部屋データをクラウドに保存できます。</p>
-<p id="cloudSyncStatus" role="status" aria-live="polite">未接続：この端末内に保存しています。</p>
-<button class="primary" type="button" id="cloudGoogleLogin" disabled>Googleでログイン</button>
-<button type="button" id="cloudSyncNow" disabled>☁️ 同期する</button>
-<button type="button" id="cloudDownload" disabled>クラウドから読み込む</button>
-<button type="button" id="cloudLogout" disabled>ログアウト</button>
-<p style="font-size:13px;color:#667085">初回同期では、端末内とクラウドのどちらのデータを使うか確認します。端末内の保存データは同期後も残ります。</p>
-<p role="note" style="font-size:13px;color:#8a4b16;background:#fff7e8;border:1px solid #f0d39b;border-radius:10px;padding:10px">⚠️ 複数の端末で同時にお部屋を編集しないでください。現状は最後にクラウドへ保存された内容が優先され、別端末の変更が上書きされる場合があります。端末を切り替えるときは、作業を終えた端末で「同期する」を押し、次の端末では「クラウドから読み込む」を使ってください。</p>
-</section>
+
 
 <section class="panel" aria-labelledby="backupTitle">
 <h2 id="backupTitle">🛡️ お部屋データのバックアップ</h2>
