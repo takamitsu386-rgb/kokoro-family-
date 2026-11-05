@@ -10,6 +10,7 @@
 - `firebase.json`: FunctionsのNode.js 22設定と、`/api/ai-consultation` の関数への転送を設定。
 - AI相談の会話内容はアプリ側で永続保存せず、ページ内メモリで扱う設計。ページ再読み込み・終了で会話が消えることを画面に明記し、送信中は支援技術にも処理中と伝える。
 - Service Workerのキャッシュバージョンは v107。
+- `.github/workflows/source-validation.yml`: Node.js 22でCloud FunctionsのJavaScript構文とFirebase・FunctionsのJSON設定を自動確認するGitHub Actionsを追加。ワークフローの実行結果はGitHub Actions上で別途確認する。
 
 ## サーバー側の保護
 
