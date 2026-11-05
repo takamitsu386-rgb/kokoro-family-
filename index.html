@@ -2221,6 +2221,7 @@ function addAiMessage(role, text) {
   aiLog.scrollTop = aiLog.scrollHeight;
 }
 aiClear?.addEventListener("click", () => {
+  if (aiBusy) return;
   aiHistory.length = 0;
   aiLog.replaceChildren();
   const welcome = document.createElement("p");
@@ -2228,6 +2229,12 @@ aiClear?.addEventListener("click", () => {
   welcome.textContent = "会話を消しました。新しい相談を入力できます。";
   aiLog.appendChild(welcome);
   aiStatus.textContent = "この画面の会話を消しました。";
+});
+aiInput?.addEventListener("keydown", event => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    aiSend?.click();
+  }
 });
 aiSend?.addEventListener("click", async () => {
   if (aiBusy) return;
@@ -2246,6 +2253,7 @@ aiSend?.addEventListener("click", async () => {
   }
   aiBusy = true;
   aiSend.disabled = true;
+  if (aiClear) aiClear.disabled = true;
   aiStatus.textContent = "返答を確認しています…";
   aiInput.disabled = true;
   const previous = aiHistory.slice(-6);
@@ -2271,6 +2279,7 @@ aiSend?.addEventListener("click", async () => {
   } finally {
     aiBusy = false;
     aiSend.disabled = false;
+    if (aiClear) aiClear.disabled = false;
     aiInput.disabled = false;
     aiInput.focus();
   }
