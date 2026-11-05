@@ -2213,7 +2213,7 @@ try {
 
 <script type="module">
 import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 
 const aiLog = document.getElementById("aiChatLog");
 const aiInput = document.getElementById("aiMessage");
@@ -2222,6 +2222,13 @@ const aiClear = document.getElementById("aiClear");
 const aiStatus = document.getElementById("aiStatus");
 const aiHistory = [];
 let aiBusy = false;
+let aiCurrentUid = null;
+const aiFirebaseApp = getApps()[0];
+if (aiFirebaseApp) {
+  onAuthStateChanged(getAuth(aiFirebaseApp), user => {
+    aiCurrentUid = user ? user.uid : null;
+  });
+}
 
 function addAiMessage(role, text) {
   const p = document.createElement("p");
@@ -2272,6 +2279,9 @@ aiSend?.addEventListener("click", async () => {
   aiInput.value = "";
   try {
     const token = await user.getIdToken();
+    if (getAuth(user.auth.app).currentUser?.uid !== user.uid) {
+      throw new Error("ログインアカウントが切り替わりました。相談内容を確認して再送してください。");
+    }
     const response = await fetch("/api/ai-consultation", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
@@ -2279,6 +2289,9 @@ aiSend?.addEventListener("click", async () => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "現在、相談機能を利用できません。");
+    if (getAuth(user.auth.app).currentUser?.uid !== user.uid) {
+      throw new Error("ログインアカウントが切り替わったため、返答を表示しませんでした。相談内容を確認して再送してください。");
+    }
     const answer = typeof data.reply === "string" ? data.reply : "";
     if (!answer) throw new Error("返答を受け取れませんでした。");
     aiHistory.push({ role: "user", content: message }, { role: "assistant", content: answer });
