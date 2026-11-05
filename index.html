@@ -2223,10 +2223,14 @@ const aiStatus = document.getElementById("aiStatus");
 const aiHistory = [];
 let aiBusy = false;
 let aiCurrentUid = null;
+let aiAuthGeneration = 0;
 const aiFirebaseApp = getApps()[0];
 if (aiFirebaseApp) {
   onAuthStateChanged(getAuth(aiFirebaseApp), user => {
     const nextUid = user ? user.uid : null;
+    if (aiCurrentUid !== nextUid) {
+      aiAuthGeneration += 1;
+    }
     if (aiCurrentUid !== null && aiCurrentUid !== nextUid) {
       aiHistory.length = 0;
       aiLog.replaceChildren();
@@ -2279,6 +2283,7 @@ aiSend?.addEventListener("click", async () => {
     aiStatus.textContent = "ログイン機能を準備できません。ページを再読み込みしてください。";
     return;
   }
+  const requestAuthGeneration = aiAuthGeneration;
   aiBusy = true;
   aiSend.disabled = true;
   if (aiClear) aiClear.disabled = true;
@@ -2289,7 +2294,7 @@ aiSend?.addEventListener("click", async () => {
   aiInput.value = "";
   try {
     const token = await user.getIdToken();
-    if (getAuth(user.auth.app).currentUser?.uid !== user.uid) {
+    if (aiAuthGeneration !== requestAuthGeneration || getAuth(user.auth.app).currentUser?.uid !== user.uid) {
       throw new Error("ログインアカウントが切り替わりました。相談内容を確認して再送してください。");
     }
     const response = await fetch("/api/ai-consultation", {
@@ -2299,7 +2304,7 @@ aiSend?.addEventListener("click", async () => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "現在、相談機能を利用できません。");
-    if (getAuth(user.auth.app).currentUser?.uid !== user.uid) {
+    if (aiAuthGeneration !== requestAuthGeneration || getAuth(user.auth.app).currentUser?.uid !== user.uid) {
       throw new Error("ログインアカウントが切り替わったため、返答を表示しませんでした。相談内容を確認して再送してください。");
     }
     const answer = typeof data.reply === "string" ? data.reply : "";
@@ -2309,7 +2314,7 @@ aiSend?.addEventListener("click", async () => {
     aiStatus.textContent = "返答しました。";
   } catch (error) {
     userBubble.remove();
-    const sameAccount = getAuth(user.auth.app).currentUser?.uid === user.uid;
+    const sameAccount = aiAuthGeneration === requestAuthGeneration && getAuth(user.auth.app).currentUser?.uid === user.uid;
     if (sameAccount) {
       aiInput.value = message;
       aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
