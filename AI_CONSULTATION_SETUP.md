@@ -4,8 +4,8 @@
 
 - `index.html`: AI相談画面。スマホ幅で折り返し、会話は画面上のメモリだけに保持。
 - `functions/index.js`: Firebase AuthenticationのIDトークン確認、1日10回の利用制限、OpenAI Responses APIへのサーバー側リクエスト。
-- `functions/package.json`: Cloud Functions依存関係。
-- `firebase.json`: `/api/ai-consultation` を asia-northeast1 の関数へ転送する設定。
+- `functions/package.json`: Cloud Functions依存関係。Node.js 22を使用。
+- `firebase.json`: Node.js 22のFunctions設定と、`/api/ai-consultation` を asia-northeast1 の関数へ転送する設定。
 
 ## 公開前に必要なこと
 
@@ -15,9 +15,10 @@
 4. FirebaseプロジェクトでCloud Functionsを利用できる請求・権限設定を確認する。利用料金が発生する可能性があるため、プロジェクト管理者が確認する。
 5. OpenAI APIの利用条件・料金を管理者が確認する。
 6. APIキーをコードへ書かず、Firebase Secret Managerへ `OPENAI_API_KEY` として登録する。
-7. Firebase CLIでFunctionsとHostingをデプロイする。
-8. Googleログイン、未ログイン拒否、日次上限、AI応答、エラー時の再試行、スマホ表示をテストする。
-9. 問題がなければ公開版への反映を別途判断する。
+7. Cloud FunctionsのランタイムはNode.js 22に設定済み。Firebase CLIがNode.js 22のランタイムに対応していることを確認する。
+8. Firebase CLIでFunctionsとHostingをデプロイする。
+9. Googleログイン、未ログイン拒否、日次上限、AI応答、エラー時の再試行、スマホ表示をテストする。
+10. 問題がなければ公開版への反映を別途判断する。
 
 ## 管理者が実行するコマンド例
 
@@ -28,6 +29,10 @@ firebase deploy --only functions,hosting
 ```
 
 Secretの入力はFirebase CLIの対話画面で行い、チャット・GitHub・ソースコードへ貼り付けない。
+
+## Firestoreルールについて
+
+`firestore.rules` はリポジトリにありますが、現在の `firebase.json` ではFirestoreルールをデプロイ対象として指定していません。既存のFirebase Console上のルールとファイルの内容が一致するか管理者が確認するまで、Firestoreルールを含むデプロイは行わないでください。
 
 ## 未完了の確認事項
 
