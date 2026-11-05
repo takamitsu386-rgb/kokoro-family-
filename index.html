@@ -60,7 +60,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 @media(min-width:900px){main{max-width:1100px}.room{height:420px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
-\n.ai-notice{padding:12px;border-radius:10px;background:#fff7e8;border:1px solid #f0d39b;color:#704b1b;font-size:14px}.ai-chat-log{display:flex;flex-direction:column;gap:10px;min-height:90px;max-height:360px;overflow-y:auto;padding:12px;margin:12px 0;background:#f7f7fc;border-radius:12px}.ai-chat-log p{margin:0;padding:10px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}.ai-chat-log .ai-welcome,.ai-chat-log .ai-assistant{background:#fff;align-self:flex-start;max-width:95%}.ai-chat-log .ai-user{background:#e9e5ff;align-self:flex-end;max-width:95%}#aiStatus{font-size:13px;color:#596579}\n</style>
+
+.ai-notice{padding:12px;border-radius:10px;background:#fff7e8;border:1px solid #f0d39b;color:#704b1b;font-size:14px}.ai-chat-log{display:flex;flex-direction:column;gap:10px;min-height:90px;max-height:360px;overflow-y:auto;padding:12px;margin:12px 0;background:#f7f7fc;border-radius:12px}.ai-chat-log p{margin:0;padding:10px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}.ai-chat-log .ai-welcome,.ai-chat-log .ai-assistant{background:#fff;align-self:flex-start;max-width:95%}.ai-chat-log .ai-user{background:#e9e5ff;align-self:flex-end;max-width:95%}#aiStatus{font-size:13px;color:#596579}
+</style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#6759d8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2219,6 +2221,7 @@ function addAiMessage(role, text) {
   p.textContent = text;
   aiLog.appendChild(p);
   aiLog.scrollTop = aiLog.scrollHeight;
+  return p;
 }
 aiClear?.addEventListener("click", () => {
   if (aiBusy) return;
@@ -2257,7 +2260,7 @@ aiSend?.addEventListener("click", async () => {
   aiStatus.textContent = "返答を確認しています…";
   aiInput.disabled = true;
   const previous = aiHistory.slice(-6);
-  addAiMessage("user", message);
+  const userBubble = addAiMessage("user", message);
   aiInput.value = "";
   try {
     const token = await user.getIdToken();
@@ -2274,6 +2277,7 @@ aiSend?.addEventListener("click", async () => {
     addAiMessage("assistant", answer);
     aiStatus.textContent = "返答しました。";
   } catch (error) {
+    userBubble.remove();
     aiInput.value = message;
     aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
   } finally {
@@ -2281,7 +2285,6 @@ aiSend?.addEventListener("click", async () => {
     aiSend.disabled = false;
     if (aiClear) aiClear.disabled = false;
     aiInput.disabled = false;
-    aiInput.focus();
   }
 });
 </script>
