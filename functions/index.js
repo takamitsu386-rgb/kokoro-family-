@@ -64,7 +64,9 @@ exports.aiConsultation = onRequest({
 
     const allowed = await getFirestore().runTransaction(async tx => {
       const snap = await tx.get(usageRef);
-      const count = snap.exists ? Number(snap.data().count || 0) : 0;
+      const storedCount = snap.exists ? snap.data().count : 0;
+      // Treat malformed counters as exhausted rather than accidentally allowing unlimited requests.
+      const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 10;
       if (count >= 10) return false;
       tx.set(usageRef, {
         count: count + 1,
