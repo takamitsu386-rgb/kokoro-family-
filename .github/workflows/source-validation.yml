@@ -91,6 +91,38 @@ jobs:
           }
           console.log('Firebase project, AI rewrite, and server-side secret wiring are consistent.');
           NODE
+      - name: Validate app navigation and PWA assets
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, existsSync } from 'node:fs';
+
+          const html = readFileSync('index.html', 'utf8');
+          const ids = [...html.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+          if (duplicateIds.length) {
+            throw new Error('Duplicate HTML IDs: ' + duplicateIds.join(', '));
+          }
+
+          const idSet = new Set(ids);
+          const anchors = [...html.matchAll(/href=["']#([^"']+)["']/g)].map(match => match[1]);
+          const missingTargets = [...new Set(anchors.filter(target => !idSet.has(target)))];
+          if (missingTargets.length) {
+            throw new Error('Navigation links point to missing IDs: ' + missingTargets.join(', '));
+          }
+
+          const manifest = JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));
+          if (!manifest.name || !manifest.start_url || !Array.isArray(manifest.icons)) {
+            throw new Error('PWA manifest is missing required app metadata.');
+          }
+
+          for (const asset of ['./', './index.html', './manifest.webmanifest', './icon.svg']) {
+            const path = asset === './' ? 'index.html' : asset.slice(2);
+            if (!existsSync(path)) {
+              throw new Error('Service Worker app-shell asset is missing: ' + asset);
+            }
+          }
+          console.log('Checked unique HTML IDs, in-page navigation, PWA manifest, and app-shell assets.');
+          NODE
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
