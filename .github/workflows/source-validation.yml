@@ -97,7 +97,7 @@ jobs:
           import { readFileSync, existsSync } from 'node:fs';
 
           const html = readFileSync('index.html', 'utf8');
-          const ids = [...html.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
           const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
           if (duplicateIds.length) {
             throw new Error('Duplicate HTML IDs: ' + duplicateIds.join(', '));
