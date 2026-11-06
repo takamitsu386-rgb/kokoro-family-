@@ -296,12 +296,54 @@ describe('posts', () => {
   });
 });
 
+describe('blocks', () => {
+  it('allows a user to block another user and read their own block list', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/alice/blocks/bob'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertSucceeds(getDoc(doc(db, 'users/alice/blocks/bob')));
+    await assertSucceeds(getDocs(collection(db, 'users/alice/blocks')));
+  });
+
+  it('denies self-blocking, spoofed block records, and access to another user block list', async () => {
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(alice, 'users/alice/blocks/alice'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(alice, 'users/bob/blocks/charlie'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(alice, 'users/alice/blocks/bob'), {
+      createdAt: serverTimestamp(),
+      note: 'extra data'
+    }));
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(bob, 'users/alice/blocks/bob')));
+    await assertFails(getDocs(collection(bob, 'users/alice/blocks')));
+  });
+
+  it('allows the owner to unblock and prevents others from removing a block', async () => {
+    await seed('users/alice/blocks/bob', { createdAt: new Date() });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(bob, 'users/alice/blocks/bob'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertFails((async () => {
+      const { deleteDoc } = await import('firebase/firestore');
+      return deleteDoc(doc(bob, 'users/alice/blocks/bob'));
+    })());
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    const { deleteDoc } = await import('firebase/firestore');
+    await assertSucceeds(deleteDoc(doc(alice, 'users/alice/blocks/bob')));
+  });
+});
+
 describe('SNS features not yet implemented remain denied', () => {
   const deniedPaths = [
     'posts/post-1/comments/comment-1',
     'posts/post-1/likes/alice',
     'users/alice/following/bob',
-    'users/alice/blocks/bob',
     'friendRequests/request-1',
     'reports/report-1'
   ];
