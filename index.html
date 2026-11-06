@@ -2422,7 +2422,7 @@ if("serviceWorker" in navigator && location.protocol==="https"){
 <script type="module">
 import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const snsStatus = document.getElementById("snsStatus");
 const snsSignedOut = document.getElementById("snsSignedOut");
@@ -2462,7 +2462,12 @@ function snsRenderPosts(items) {
     body.textContent = item.text;
     const meta = document.createElement("small");
     meta.textContent = item.visibility === "public" ? "公開投稿" : "自分のみ";
-    article.append(body, meta);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "この投稿を削除";
+    remove.setAttribute("aria-label", "投稿を削除");
+    remove.addEventListener("click", () => snsDeletePost(item.id));
+    article.append(body, meta, document.createElement("br"), remove);
     snsPostList.appendChild(article);
   }
 }
@@ -2485,10 +2490,30 @@ async function snsLoadProfile(user) {
 async function snsLoadPosts(user) {
   const result = await getDocs(query(collection(snsDb, "posts"), where("authorUid", "==", user.uid)));
   if (!snsUser || snsUser.uid !== user.uid) return;
-  const posts = result.docs.map(snapshot => snapshot.data())
+  const posts = result.docs.map(snapshot => ({ id: snapshot.id, ...snapshot.data() }))
     .filter(post => post.status === "active")
     .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   snsRenderPosts(posts);
+}
+async function snsDeletePost(postId) {
+  if (!snsUser || snsBusy || !postId) return;
+  if (!window.confirm("この投稿を削除しますか？")) return;
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await updateDoc(doc(snsDb, "posts", postId), {
+      status: "deleted",
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    await snsLoadPosts(user);
+    snsMessage("投稿を削除しました。");
+  } catch (error) {
+    console.error("SNS post delete failed", error);
+    snsMessage("削除できませんでした。投稿者本人でログインしているか確認してください。");
+  } finally {
+    snsSetBusy(false);
+  }
 }
 if (snsApp) {
   snsDb = getFirestore(snsApp);
