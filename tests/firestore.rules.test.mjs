@@ -216,6 +216,32 @@ describe('posts', () => {
     await assertSucceeds(getDoc(postRef));
   });
 
+  it('allows only the author to edit post text', async () => {
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    const postRef = doc(alice, 'posts/post-edit');
+    await assertSucceeds(setDoc(postRef, {
+      authorUid: 'alice',
+      text: 'Original text',
+      visibility: 'private',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(bob, 'posts/post-edit'), {
+      text: 'Changed by another user',
+      updatedAt: serverTimestamp()
+    }));
+
+    await assertSucceeds(updateDoc(postRef, {
+      text: 'Edited by author',
+      updatedAt: serverTimestamp()
+    }));
+    const saved = await getDoc(postRef);
+    assert.equal(saved.data().text, 'Edited by author');
+  });
+
   it('allows an author-scoped query and denies a global public timeline query for now', async () => {
     await seed('posts/post-for-feed', {
       authorUid: 'alice',
