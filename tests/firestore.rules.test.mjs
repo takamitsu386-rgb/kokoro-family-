@@ -8,12 +8,14 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where
 } from 'firebase/firestore';
 
@@ -239,10 +241,139 @@ describe('posts', () => {
   });
 });
 
+
+
+describe('comments', () => {
+  async function seedPublicPost(postId = 'comment-parent') {
+    await seed(`posts/${postId}`, {
+      authorUid: 'alice',
+      text: 'Parent post',
+      visibility: 'public',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+
+  it('allows a signed-in viewer to comment on a readable active public post', async () => {
+    await seedPublicPost();
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertSucceeds(setDoc(doc(bob, 'posts/comment-parent/comments/bob-comment'), {
+      authorUid: 'bob',
+      text: 'Nice post',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+    await assertSucceeds(getDoc(doc(bob, 'posts/comment-parent/comments/bob-comment')));
+  });
+
+  it('rejects unauthenticated comments, UID spoofing, extra fields, and text over 300 chars', async () => {
+    await seedPublicPost('comment-validation');
+    const guest = testEnv.unauthenticatedContext().firestore();
+    await assertFails(setDoc(doc(guest, 'posts/comment-validation/comments/guest'), {
+      authorUid: 'guest', text: 'Hi', status: 'active',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    const base = { text: 'Hi', status: 'active', createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+    await assertFails(setDoc(doc(bob, 'posts/comment-validation/comments/spoof'), { ...base, authorUid: 'alice' }));
+    await assertFails(setDoc(doc(bob, 'posts/comment-validation/comments/long'), {
+      ...base, authorUid: 'bob', text: 'x'.repeat(301)
+    }));
+    await assertFails(setDoc(doc(bob, 'posts/comment-validation/comments/extra'), {
+      ...base, authorUid: 'bob', email: 'private@example.invalid'
+    }));
+  });
+
+  it('denies comments on private, deleted, or blocked posts', async () => {
+    await seed('posts/private-comment-parent', {
+      authorUid: 'alice', text: 'Private', visibility: 'private', status: 'active',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/deleted-comment-parent', {
+      authorUid: 'alice', text: 'Deleted', visibility: 'public', status: 'deleted',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seedPublicPost('blocked-comment-parent');
+    await seed('users/bob/blocks/alice', { createdAt: new Date() });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    for (const postId of ['private-comment-parent', 'deleted-comment-parent', 'blocked-comment-parent']) {
+      await assertFails(setDoc(doc(bob, `posts/${postId}/comments/bob-comment`), {
+        authorUid: 'bob', text: 'Hi', status: 'active',
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      }));
+    }
+  });
+
+  it('allows the comment author or post author to soft-delete, but not another user', async () => {
+    await seedPublicPost('comment-delete-parent');
+    await seed('posts/comment-delete-parent/comments/bob-comment', {
+      authorUid: 'bob', text: 'Remove me', status: 'active',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    const carol = testEnv.authenticatedContext('carol').firestore();
+    await assertFails(updateDoc(doc(carol, 'posts/comment-delete-parent/comments/bob-comment'), {
+      authorUid: 'bob', text: 'Remove me', status: 'deleted', updatedAt: serverTimestamp()
+    }));
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertSucceeds(updateDoc(doc(bob, 'posts/comment-delete-parent/comments/bob-comment'), {
+      authorUid: 'bob', text: 'Remove me', status: 'deleted', updatedAt: serverTimestamp()
+    }));
+  });
+});
+
+describe('likes', () => {
+  it('allows one UID-keyed like on a readable active public post', async () => {
+    await seed('posts/like-parent', {
+      authorUid: 'alice', text: 'Likeable', visibility: 'public', status: 'active',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    const like = doc(bob, 'posts/like-parent/likes/bob');
+    await assertSucceeds(setDoc(like, { createdAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(like));
+    await assertFails(setDoc(doc(bob, 'posts/like-parent/likes/bob'), { createdAt: serverTimestamp(), extra: true }));
+    await assertFails(setDoc(doc(bob, 'posts/like-parent/likes/alice'), { createdAt: serverTimestamp() }));
+  });
+
+  it('denies likes on private, deleted, or blocked posts and unauthenticated likes', async () => {
+    await seed('posts/private-like-parent', {
+      authorUid: 'alice', text: 'Private', visibility: 'private', status: 'active',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/deleted-like-parent', {
+      authorUid: 'alice', text: 'Deleted', visibility: 'public', status: 'deleted',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/blocked-like-parent', {
+      authorUid: 'alice', text: 'Blocked', visibility: 'public', status: 'active',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/bob/blocks/alice', { createdAt: new Date() });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    const guest = testEnv.unauthenticatedContext().firestore();
+    for (const postId of ['private-like-parent', 'deleted-like-parent', 'blocked-like-parent']) {
+      await assertFails(setDoc(doc(bob, `posts/${postId}/likes/bob`), { createdAt: serverTimestamp() }));
+    }
+    await assertFails(setDoc(doc(guest, 'posts/blocked-like-parent/likes/guest'), { createdAt: serverTimestamp() }));
+  });
+
+  it('allows a user to remove their own like but not another user\'s like', async () => {
+    await seed('posts/like-delete-parent', {
+      authorUid: 'alice', text: 'Likeable', visibility: 'public', status: 'active',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/like-delete-parent/likes/bob', { createdAt: new Date() });
+    const carol = testEnv.authenticatedContext('carol').firestore();
+    await assertFails(deleteDoc(doc(carol, 'posts/like-delete-parent/likes/bob')));
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertSucceeds(deleteDoc(doc(bob, 'posts/like-delete-parent/likes/bob')));
+  });
+});
+
 describe('SNS features not yet implemented remain denied', () => {
   const deniedPaths = [
-    'posts/post-1/comments/comment-1',
-    'posts/post-1/likes/alice',
     'users/alice/following/bob',
     'users/alice/blocks/bob',
     'friendRequests/request-1',
