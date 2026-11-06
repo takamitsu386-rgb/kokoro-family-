@@ -1757,6 +1757,7 @@ const syncButton = document.getElementById("cloudSyncNow");
 const downloadButton = document.getElementById("cloudDownload");
 const logoutButton = document.getElementById("cloudLogout");
 let auth, db, currentUser = null;
+let authErrorMessage = null;
 let initializedSyncForUid = null;
 
 function status(message) {
@@ -2097,26 +2098,47 @@ try {
   db = getFirestore(app);
   loginButton.addEventListener("click", async () => {
     if (logoutInProgress) return;
+    authErrorMessage = null;
+    const provider = new GoogleAuthProvider();
+    const mobileBrowser = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    const returnToAi = location.hash === "#ai-consultation";
+    const startRedirect = async () => {
+      status("Googleログイン画面へ移動します…");
+      try {
+        if (returnToAi) sessionStorage.setItem("kokoroReturnToAiAfterLogin", "1");
+        else sessionStorage.removeItem("kokoroReturnToAiAfterLogin");
+      } catch (storageError) {}
+      await signInWithRedirect(auth, provider);
+    };
     try {
+      if (mobileBrowser) {
+        await startRedirect();
+        return;
+      }
       status("Googleログイン中…");
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithPopup(auth, provider);
     } catch (error) {
-      if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(error.code)) {
+      if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/cancelled-popup-request"].includes(error.code)) {
         try {
-          status("このブラウザでは別画面でログインします…");
-          try { sessionStorage.setItem("kokoroReturnToAiAfterLogin", "1"); } catch (storageError) {}
-          await signInWithRedirect(auth, new GoogleAuthProvider());
+          await startRedirect();
         } catch (redirectError) {
           try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
           const detail = redirectError.code === "auth/unauthorized-domain"
             ? "Firebase Authenticationの承認済みドメインに、このサイトのドメインを追加してください。"
-            : "ブラウザで開き直してお試しください。";
-          status("ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail);
+            : "ブラウザの通常タブで開き直してお試しください。";
+          authErrorMessage = "ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail;
+          status(authErrorMessage);
         }
       } else if (error.code === "auth/popup-closed-by-user") {
-        status("ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。");
+        authErrorMessage = "ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。";
+        status(authErrorMessage);
       } else {
-        status("ログインできません：" + (error.code || error.message));
+        const detail = error.code === "auth/unauthorized-domain"
+          ? "Firebase Authenticationの承認済みドメインに、このサイトのドメインを追加してください。"
+          : "";
+        authErrorMessage = "ログインできません：" + (error.code || error.message) + (detail ? "。" + detail : "");
+        status(authErrorMessage);
       }
     }
   });
@@ -2186,7 +2208,10 @@ try {
         ? "オフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再開できます。"
         : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
     } else if (user) {
+      authErrorMessage = null;
       status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
+    } else if (authErrorMessage) {
+      status(authErrorMessage);
     } else {
       status("未接続：この端末内に保存しています。");
     }
