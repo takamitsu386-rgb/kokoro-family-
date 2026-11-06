@@ -72,10 +72,10 @@ jobs:
           }
 
           const expectedFirebaseConfig = [
-            /apiKey:\\s*["'][^"']+["']/,
-            /authDomain:\\s*["']kokoro-family\\.firebaseapp\\.com["']/,
-            /projectId:\\s*["']kokoro-family["']/,
-            /appId:\\s*["']1:760866517067:web:[a-f0-9]+["']/
+            /apiKey:\s*["'][^"']+["']/,
+            /authDomain:\s*["']kokoro-family\.firebaseapp\.com["']/,
+            /projectId:\s*["']kokoro-family["']/,
+            /appId:\s*["']1:760866517067:web:[a-f0-9]+["']/
           ];
           if (expectedFirebaseConfig.some(pattern => !pattern.test(html))) {
             throw new Error('Firebase Web config is incomplete or does not match the selected project.');
