@@ -14,6 +14,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where
 } from 'firebase/firestore';
 
@@ -187,6 +188,32 @@ describe('posts', () => {
     });
     const bob = testEnv.authenticatedContext('bob').firestore();
     await assertFails(getDoc(doc(bob, 'posts/post-deleted')));
+  });
+
+  it('allows only the author to soft-delete their post', async () => {
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    const postRef = doc(alice, 'posts/post-soft-delete');
+    await assertSucceeds(setDoc(postRef, {
+      authorUid: 'alice',
+      text: 'A post to remove',
+      visibility: 'public',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(bob, 'posts/post-soft-delete'), {
+      status: 'deleted',
+      updatedAt: serverTimestamp()
+    }));
+
+    await assertSucceeds(updateDoc(postRef, {
+      status: 'deleted',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(getDoc(doc(bob, 'posts/post-soft-delete')));
+    await assertSucceeds(getDoc(postRef));
   });
 
   it('allows an author-scoped query and denies a global public timeline query for now', async () => {
