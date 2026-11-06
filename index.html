@@ -2462,12 +2462,16 @@ function snsRenderPosts(items) {
     body.textContent = item.text;
     const meta = document.createElement("small");
     meta.textContent = item.visibility === "public" ? "公開投稿" : "自分のみ";
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "投稿を編集";
+    edit.addEventListener("click", () => snsEditPost(item.id, item.text));
     const remove = document.createElement("button");
     remove.type = "button";
     remove.textContent = "この投稿を削除";
     remove.setAttribute("aria-label", "投稿を削除");
     remove.addEventListener("click", () => snsDeletePost(item.id));
-    article.append(body, meta, document.createElement("br"), remove);
+    article.append(body, meta, document.createElement("br"), edit, document.createTextNode(" "), remove);
     snsPostList.appendChild(article);
   }
 }
@@ -2494,6 +2498,32 @@ async function snsLoadPosts(user) {
     .filter(post => post.status === "active")
     .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   snsRenderPosts(posts);
+}
+async function snsEditPost(postId, currentText) {
+  if (!snsUser || snsBusy || !postId) return;
+  const edited = window.prompt("投稿内容を編集（1〜500文字）", currentText);
+  if (edited === null) return;
+  const text = edited.trim();
+  if (!text || text.length > 500) {
+    snsMessage("投稿は1〜500文字で入力してください。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await updateDoc(doc(snsDb, "posts", postId), {
+      text,
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    await snsLoadPosts(user);
+    snsMessage("投稿を更新しました。");
+  } catch (error) {
+    console.error("SNS post edit failed", error);
+    snsMessage("更新できませんでした。投稿者本人でログインしているか確認してください。");
+  } finally {
+    snsSetBusy(false);
+  }
 }
 async function snsDeletePost(postId) {
   if (!snsUser || snsBusy || !postId) return;
