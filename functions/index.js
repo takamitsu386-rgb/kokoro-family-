@@ -166,6 +166,14 @@ exports.submitReport = onRequest({
     if (!reportCategories.has(category)) {
       return sendJson(res, 400, { error: "通報理由を選択してください。" });
     }
+    try {
+      await getAuth().getUser(targetUid);
+    } catch (lookupError) {
+      if (lookupError?.code === "auth/user-not-found") {
+        return sendJson(res, 400, { error: "通報する相手のユーザーIDを確認してください。" });
+      }
+      throw lookupError;
+    }
 
     const db = getFirestore();
     const now = new Date();
