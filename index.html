@@ -76,7 +76,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#ai-consultation">AI相談</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#ai-consultation">AI相談</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
@@ -99,6 +99,35 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <span id="aiStatus" role="status" aria-live="polite">送信にはGoogleログインとAI機能の公開設定が必要です。</span>
 </div>
 <p style="font-size:13px;color:#667085">つらさが強いときや、身の安全に不安があるときは、AIだけで抱えず、近くの信頼できる大人にも伝えてください。</p>
+</section>
+<section class="panel" id="sns">
+<h2>👥 みんなの広場（準備中）</h2>
+<p>ログインして、自分のプロフィールと投稿を管理できます。投稿は最初「自分のみ」に設定されます。公開を選ぶ場合は、個人が特定される情報を書かないでください。</p>
+<p id="snsStatus" role="status" aria-live="polite">Googleログインの状態を確認しています。</p>
+<div id="snsSignedOut" hidden><p>プロフィールや投稿を使うには、先に上の「スマホ・PC同期」からGoogleログインしてください。</p></div>
+<div id="snsSignedIn" hidden>
+<h3>プロフィール</h3>
+<label for="snsNickname">ニックネーム（24文字以内）</label>
+<input id="snsNickname" maxlength="24" autocomplete="nickname" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<label for="snsAvatar" style="display:block;margin-top:8px">アイコン</label>
+<select id="snsAvatar" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<option value="avatar-01">🌷 お花</option><option value="avatar-02">🐱 ねこ</option><option value="avatar-03">🐻 くま</option><option value="avatar-04">⭐ 星</option><option value="avatar-05">🐰 うさぎ</option>
+</select>
+<label for="snsProfileVisibility" style="display:block;margin-top:8px">プロフィール公開範囲</label>
+<select id="snsProfileVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="public">公開</option></select>
+<button type="button" id="snsSaveProfile" class="primary" style="margin-top:10px">プロフィールを保存</button>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>投稿する</h3>
+<label for="snsPostText">投稿内容（500文字以内）</label>
+<textarea id="snsPostText" maxlength="500" rows="4" placeholder="個人情報を書かずに投稿しよう" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"></textarea>
+<label for="snsPostVisibility" style="display:block;margin-top:8px">投稿の公開範囲</label>
+<select id="snsPostVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="public">公開</option></select>
+<button type="button" id="snsCreatePost" class="primary" style="margin-top:10px">投稿を保存</button>
+<h3 style="margin-top:20px">自分の投稿</h3>
+<button type="button" id="snsRefreshPosts">投稿を読み直す</button>
+<div id="snsPostList" aria-live="polite"><p>ログインすると自分の投稿が表示されます。</p></div>
+</div>
+<p style="font-size:13px;color:#667085">現在は自分の投稿の管理のみ利用できます。全体タイムライン、コメント、いいね、友達申請、ブロック、通報機能はまだ準備中です。</p>
 </section>
 <section class="panel" id="cloud-sync">
 <h2>☁️ スマホ・PC同期</h2>
@@ -2390,5 +2419,168 @@ if("serviceWorker" in navigator && location.protocol==="https"){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 }
 </script>
+<script type="module">
+import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+const snsStatus = document.getElementById("snsStatus");
+const snsSignedOut = document.getElementById("snsSignedOut");
+const snsSignedIn = document.getElementById("snsSignedIn");
+const snsNickname = document.getElementById("snsNickname");
+const snsAvatar = document.getElementById("snsAvatar");
+const snsProfileVisibility = document.getElementById("snsProfileVisibility");
+const snsPostText = document.getElementById("snsPostText");
+const snsPostVisibility = document.getElementById("snsPostVisibility");
+const snsPostList = document.getElementById("snsPostList");
+const snsSaveProfile = document.getElementById("snsSaveProfile");
+const snsCreatePost = document.getElementById("snsCreatePost");
+const snsRefreshPosts = document.getElementById("snsRefreshPosts");
+const snsApp = getApps()[0];
+let snsDb = null;
+let snsUser = null;
+let snsBusy = false;
+
+function snsMessage(message) { snsStatus.textContent = message; }
+function snsSetBusy(value) {
+  snsBusy = value;
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts].forEach(button => { button.disabled = value || !snsUser; });
+}
+function snsRenderPosts(items) {
+  snsPostList.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "まだ投稿はありません。";
+    snsPostList.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const article = document.createElement("article");
+    article.style.cssText = "border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:10px 0";
+    const body = document.createElement("p");
+    body.style.whiteSpace = "pre-wrap";
+    body.textContent = item.text;
+    const meta = document.createElement("small");
+    meta.textContent = item.visibility === "public" ? "公開投稿" : "自分のみ";
+    article.append(body, meta);
+    snsPostList.appendChild(article);
+  }
+}
+async function snsLoadProfile(user) {
+  const snapshot = await getDoc(doc(snsDb, "profiles", user.uid));
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  if (!snapshot.exists()) {
+    snsNickname.value = "";
+    snsAvatar.value = "avatar-01";
+    snsProfileVisibility.value = "private";
+    snsMessage("プロフィールを作成できます。公開範囲は最初「自分のみ」です。");
+    return;
+  }
+  const profile = snapshot.data();
+  snsNickname.value = profile.nickname || "";
+  snsAvatar.value = profile.avatarId || "avatar-01";
+  snsProfileVisibility.value = profile.visibility || "private";
+  snsMessage("ログイン中です。プロフィールと自分の投稿を管理できます。");
+}
+async function snsLoadPosts(user) {
+  const result = await getDocs(query(collection(snsDb, "posts"), where("authorUid", "==", user.uid)));
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  const posts = result.docs.map(snapshot => snapshot.data())
+    .filter(post => post.status === "active")
+    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+  snsRenderPosts(posts);
+}
+if (snsApp) {
+  snsDb = getFirestore(snsApp);
+  onAuthStateChanged(getAuth(snsApp), async user => {
+    snsUser = user;
+    snsSignedOut.hidden = !!user;
+    snsSignedIn.hidden = !user;
+    snsSetBusy(false);
+    if (!user) {
+      snsMessage("未ログインです。Googleログイン後に利用できます。");
+      snsRenderPosts([]);
+      return;
+    }
+    snsMessage("プロフィールを読み込んでいます…");
+    try {
+      await snsLoadProfile(user);
+      await snsLoadPosts(user);
+    } catch (error) {
+      console.error("SNS initial load failed", error);
+      snsMessage("読み込みに失敗しました。Firebaseのログイン設定と通信状態を確認してください。");
+    }
+  });
+} else {
+  snsMessage("Firebaseが初期化されていません。ログイン設定を確認してください。");
+}
+snsSaveProfile.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const nickname = snsNickname.value.trim();
+  if (!nickname || nickname.length > 24) {
+    snsMessage("ニックネームを1〜24文字で入力してください。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    const profileRef = doc(snsDb, "profiles", user.uid);
+    const existing = await getDoc(profileRef);
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    await setDoc(profileRef, {
+      nickname,
+      avatarId: snsAvatar.value,
+      visibility: snsProfileVisibility.value,
+      createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    snsMessage("プロフィールを保存しました。");
+  } catch (error) {
+    console.error("SNS profile save failed", error);
+    snsMessage("保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
+  } finally { snsSetBusy(false); }
+});
+snsCreatePost.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const text = snsPostText.value.trim();
+  if (!text || text.length > 500) {
+    snsMessage("投稿内容を1〜500文字で入力してください。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await setDoc(doc(collection(snsDb, "posts")), {
+      authorUid: user.uid,
+      text,
+      visibility: snsPostVisibility.value,
+      status: "active",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    snsPostText.value = "";
+    await snsLoadPosts(user);
+    snsMessage("投稿を保存しました。");
+  } catch (error) {
+    console.error("SNS post create failed", error);
+    snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
+  } finally { snsSetBusy(false); }
+});
+snsRefreshPosts.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await snsLoadPosts(user);
+    snsMessage("自分の投稿を読み直しました。");
+  } catch (error) {
+    console.error("SNS post refresh failed", error);
+    snsMessage("投稿を読み込めませんでした。");
+  } finally { snsSetBusy(false); }
+});
+</script>
+
 </body>
 </html>
