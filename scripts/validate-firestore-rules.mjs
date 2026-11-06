@@ -2,6 +2,12 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 const rules = readFileSync('firestore.rules', 'utf8');
+const firebaseConfig = JSON.parse(readFileSync('firebase.json', 'utf8'));
+
+assert.equal(firebaseConfig.firestore?.rules, 'firestore.rules',
+  'Firebase configuration must point to the reviewed Firestore rules file.');
+assert.equal(firebaseConfig.emulators?.firestore?.port, 8080,
+  'Firestore rules tests must use the dedicated local emulator port.');
 
 assert.match(rules, /^rules_version\s*=\s*'2';/m, 'Firestore Rules v2 must be enabled.');
 assert.match(rules, /match\s+\/databases\/\{database\}\/documents\s*\{/,
