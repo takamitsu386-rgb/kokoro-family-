@@ -57,9 +57,17 @@ service cloud.firestore {
       allow read, write: if owns(userId) && documentId == "data";
     }
 
-    // Blocks are not writable yet. The lookup is already enforced by reads.
+    // A user may create or remove only their own block records.
+    // Block records contain no profile or private user information.
     match /users/{userId}/blocks/{targetUid} {
-      allow read, write: if false;
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && targetUid != userId
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.keys().hasAll(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if owns(userId);
     }
 
     // Public-facing profile contains only an explicit allowlist of fields.
