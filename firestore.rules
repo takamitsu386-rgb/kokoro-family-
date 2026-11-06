@@ -52,19 +52,6 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
-    function canReadActivePost(postId) {
-      let parentPost = get(/databases/$(database)/documents/posts/$(postId)).data;
-      return signedIn()
-        && parentPost.status == 'active'
-        && (
-          parentPost.authorUid == request.auth.uid
-          || (
-            parentPost.visibility == 'public'
-            && !blockedBetween(request.auth.uid, parentPost.authorUid)
-          )
-        );
-    }
-
     // Existing private room data: keep this path owner-only and unchanged.
     match /users/{userId}/kokoro/{documentId} {
       allow read, write: if owns(userId) && documentId == "data";
@@ -131,51 +118,12 @@ service cloud.firestore {
       // Use status='deleted' so deleted posts disappear from all read paths.
       allow delete: if false;
 
-      // Comments inherit the parent post's visibility and block restrictions.
+      // Comments and likes remain denied until their own rules and tests are ready.
       match /comments/{commentId} {
-        allow get, list: if canReadActivePost(postId);
-
-        allow create: if canReadActivePost(postId)
-          && request.resource.data.keys().hasAll([
-            'authorUid', 'text', 'status', 'createdAt', 'updatedAt'
-          ])
-          && request.resource.data.keys().hasOnly([
-            'authorUid', 'text', 'status', 'createdAt', 'updatedAt'
-          ])
-          && request.resource.data.authorUid == request.auth.uid
-          && request.resource.data.text is string
-          && request.resource.data.text.size() >= 1
-          && request.resource.data.text.size() <= 300
-          && request.resource.data.status == 'active'
-          && request.resource.data.createdAt == request.time
-          && request.resource.data.updatedAt == request.time;
-
-        // Only the comment author or parent post author may soft-delete a comment.
-        allow update: if canReadActivePost(postId)
-          && resource.data.status == 'active'
-          && request.resource.data.authorUid == resource.data.authorUid
-          && request.resource.data.text == resource.data.text
-          && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.status == 'deleted'
-          && request.resource.data.updatedAt == request.time
-          && (
-            resource.data.authorUid == request.auth.uid
-            || get(/databases/$(database)/documents/posts/$(postId)).data.authorUid == request.auth.uid
-          );
-
-        allow delete: if false;
+        allow read, write: if false;
       }
-
-      // One like per user, keyed by that user's authenticated UID.
       match /likes/{likerUid} {
-        allow get, list: if canReadActivePost(postId);
-        allow create: if owns(likerUid)
-          && canReadActivePost(postId)
-          && request.resource.data.keys().hasOnly(['createdAt'])
-          && request.resource.data.keys().hasAll(['createdAt'])
-          && request.resource.data.createdAt == request.time;
-        allow update: if false;
-        allow delete: if owns(likerUid);
+        allow read, write: if false;
       }
     }
 
