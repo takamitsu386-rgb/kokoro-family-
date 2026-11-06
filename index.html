@@ -2178,7 +2178,8 @@ try {
     const detail = error.code === "auth/unauthorized-domain"
       ? "Firebase Authenticationの承認済みドメイン設定を確認してください。"
       : "もう一度ログインをお試しください。";
-    status("ログイン結果を確認できません：" + (error.code || error.message) + "。" + detail);
+    authErrorMessage = "ログイン結果を確認できません：" + (error.code || error.message) + "。" + detail;
+    status(authErrorMessage);
   }
   let returnToAi = false;
   try {
