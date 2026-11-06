@@ -23,6 +23,40 @@ jobs:
         run: node --check functions/index.js
       - name: Check Service Worker JavaScript syntax
         run: node --check sw.js
+      - name: Check inline application JavaScript syntax
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+
+          const html = readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)];
+          let checked = 0;
+
+          for (let i = 0; i < scripts.length; i += 1) {
+            const [, attributes, source] = scripts[i];
+            if (/\\bsrc\\s*=/i.test(attributes) || !source.trim()) continue;
+
+            const isModule = /\\btype\\s*=\\s*["']module["']/i.test(attributes);
+            const args = isModule ? ['--check', '--input-type=module'] : ['--check'];
+            const result = spawnSync(process.execPath, args, {
+              input: source,
+              encoding: 'utf8'
+            });
+
+            if (result.status !== 0) {
+              process.stderr.write(`Inline script ${i + 1} has a syntax error.\\n`);
+              process.stderr.write(result.stderr || result.stdout || '');
+              process.exit(result.status || 1);
+            }
+            checked += 1;
+          }
+
+          if (checked === 0) {
+            throw new Error('No inline application scripts were found.');
+          }
+          console.log(`Checked ${checked} inline application scripts.`);
+          NODE
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
