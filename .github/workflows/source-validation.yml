@@ -57,6 +57,40 @@ jobs:
           }
           console.log('Checked ' + checked + ' inline application scripts.');
           NODE
+      - name: Validate Firebase wiring and secret handling
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const config = JSON.parse(readFileSync('firebase.json', 'utf8'));
+          const project = JSON.parse(readFileSync('.firebaserc', 'utf8'));
+          const html = readFileSync('index.html', 'utf8');
+          const fn = readFileSync('functions/index.js', 'utf8');
+
+          if (project.projects?.default !== 'kokoro-family') {
+            throw new Error('Unexpected default Firebase project.');
+          }
+
+          const rewrite = config.hosting?.rewrites?.find(
+            item => item.source === '/api/ai-consultation'
+          );
+          if (rewrite?.function?.functionId !== 'aiConsultation' ||
+              rewrite?.function?.region !== 'asia-northeast1') {
+            throw new Error('AI consultation Hosting rewrite is missing or inconsistent.');
+          }
+
+          if (!fn.includes('defineSecret("OPENAI_API_KEY")') ||
+              !fn.includes('secrets: [openAiApiKey]')) {
+            throw new Error('AI API key must be provided through Firebase Secret Manager.');
+          }
+          if (!html.includes('fetch("/api/ai-consultation"')) {
+            throw new Error('AI consultation client endpoint is missing.');
+          }
+          if (/\bsk-[A-Za-z0-9_-]{20,}\b/.test(html)) {
+            throw new Error('A possible OpenAI secret key was found in client HTML.');
+          }
+          console.log('Firebase project, AI rewrite, and server-side secret wiring are consistent.');
+          NODE
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
