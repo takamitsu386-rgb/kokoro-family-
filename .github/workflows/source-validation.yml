@@ -24,4 +24,5 @@ jobs:
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
+          node -e "JSON.parse(require('node:fs').readFileSync('.firebaserc', 'utf8'))"
           node -e "JSON.parse(require('node:fs').readFileSync('functions/package.json', 'utf8'))"
