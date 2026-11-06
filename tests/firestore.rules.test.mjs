@@ -7,9 +7,14 @@ import {
   initializeTestEnvironment
 } from '@firebase/rules-unit-testing';
 import {
+  collection,
   doc,
   getDoc,
-  setDoc
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where
 } from 'firebase/firestore';
 
 const projectId = 'demo-kokoro-family-rules';
@@ -28,11 +33,16 @@ after(async () => {
   await testEnv?.cleanup();
 });
 
+async function seed(path, data) {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), path), data);
+  });
+}
+
 describe('existing private room data', () => {
   it('denies unauthenticated reads and writes', async () => {
     const db = testEnv.unauthenticatedContext().firestore();
     const roomData = doc(db, 'users/alice/kokoro/data');
-
     await assertFails(getDoc(roomData));
     await assertFails(setDoc(roomData, { value: 'unauthenticated' }));
   });
@@ -40,7 +50,6 @@ describe('existing private room data', () => {
   it('allows the signed-in owner to read and write their own data', async () => {
     const db = testEnv.authenticatedContext('alice').firestore();
     const roomData = doc(db, 'users/alice/kokoro/data');
-
     await assertSucceeds(setDoc(roomData, { value: 'owner-data' }));
     const snapshot = await assertSucceeds(getDoc(roomData));
     assert.equal(snapshot.data().value, 'owner-data');
@@ -49,16 +58,186 @@ describe('existing private room data', () => {
   it('denies another signed-in user from reading or writing the owner data', async () => {
     const db = testEnv.authenticatedContext('bob').firestore();
     const roomData = doc(db, 'users/alice/kokoro/data');
-
     await assertFails(getDoc(roomData));
     await assertFails(setDoc(roomData, { value: 'spoofed-write' }));
   });
 });
 
-describe('SNS collections remain denied until their rules are reviewed', () => {
+describe('profiles', () => {
+  it('allows a user to create and read their own private profile', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    const profile = doc(db, 'profiles/alice');
+    await assertSucceeds(setDoc(profile, {
+      nickname: 'Alice',
+      avatarId: 'avatar-01',
+      visibility: 'private',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+    await assertSucceeds(getDoc(profile));
+  });
+
+  it('allows another signed-in user to read an explicitly public profile', async () => {
+    await seed('profiles/alice', {
+      nickname: 'Alice',
+      avatarId: 'avatar-01',
+      visibility: 'public',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const db = testEnv.authenticatedContext('bob').firestore();
+    await assertSucceeds(getDoc(doc(db, 'profiles/alice')));
+  });
+
+  it('denies another user from reading a private profile or changing any profile', async () => {
+    await seed('profiles/alice', {
+      nickname: 'Alice',
+      avatarId: 'avatar-01',
+      visibility: 'private',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const db = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(db, 'profiles/alice')));
+    await assertFails(setDoc(doc(db, 'profiles/alice'), {
+      nickname: 'Imposter',
+      avatarId: 'avatar-02',
+      visibility: 'public',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('rejects UID spoofing and sensitive or unapproved profile fields', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, 'profiles/bob'), {
+      nickname: 'Alice',
+      avatarId: 'avatar-01',
+      visibility: 'public',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(db, 'profiles/alice'), {
+      nickname: 'Alice',
+      avatarId: 'avatar-01',
+      visibility: 'public',
+      email: 'private@example.invalid',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+  });
+});
+
+describe('posts', () => {
+  it('allows the author to create a public post and another user to read it', async () => {
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(alice, 'posts/post-public'), {
+      authorUid: 'alice',
+      text: 'Hello family',
+      visibility: 'public',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertSucceeds(getDoc(doc(bob, 'posts/post-public')));
+  });
+
+  it('keeps private posts readable only by their author', async () => {
+    await seed('posts/post-private', {
+      authorUid: 'alice',
+      text: 'Private note',
+      visibility: 'private',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    await assertFails(getDoc(doc(bob, 'posts/post-private')));
+    await assertSucceeds(getDoc(doc(alice, 'posts/post-private')));
+  });
+
+  it('rejects author spoofing, overlong text, and unapproved fields', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    const base = {
+      text: 'A post',
+      visibility: 'public',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    await assertFails(setDoc(doc(db, 'posts/spoofed'), { ...base, authorUid: 'bob' }));
+    await assertFails(setDoc(doc(db, 'posts/too-long'), {
+      ...base, authorUid: 'alice', text: 'x'.repeat(501)
+    }));
+    await assertFails(setDoc(doc(db, 'posts/extra-field'), {
+      ...base, authorUid: 'alice', email: 'private@example.invalid'
+    }));
+  });
+
+  it('hides deleted posts from other users', async () => {
+    await seed('posts/post-deleted', {
+      authorUid: 'alice',
+      text: 'Removed',
+      visibility: 'public',
+      status: 'deleted',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(bob, 'posts/post-deleted')));
+  });
+
+  it('allows a public timeline query constrained to public active posts', async () => {
+    await seed('posts/post-for-feed', {
+      authorUid: 'alice',
+      text: 'Feed post',
+      visibility: 'public',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    const feed = query(
+      collection(bob, 'posts'),
+      where('visibility', '==', 'public'),
+      where('status', '==', 'active')
+    );
+    const result = await assertSucceeds(getDocs(feed));
+    assert.ok(result.docs.some(item => item.id === 'post-for-feed'));
+  });
+
+  it('denies public post reads when either user has blocked the other', async () => {
+    await seed('posts/post-blocked', {
+      authorUid: 'alice',
+      text: 'Blocked',
+      visibility: 'public',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    await seed('users/bob/blocks/alice', { createdAt: new Date() });
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(bob, 'posts/post-blocked')));
+  });
+
+  it('denies unauthenticated post reads', async () => {
+    await seed('posts/post-public-unauth', {
+      authorUid: 'alice',
+      text: 'Public but signed-in only',
+      visibility: 'public',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const guest = testEnv.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(guest, 'posts/post-public-unauth')));
+  });
+});
+
+describe('SNS features not yet implemented remain denied', () => {
   const deniedPaths = [
-    'profiles/alice',
-    'posts/post-1',
     'posts/post-1/comments/comment-1',
     'posts/post-1/likes/alice',
     'users/alice/following/bob',
@@ -71,7 +250,6 @@ describe('SNS collections remain denied until their rules are reviewed', () => {
     it(`denies unauthenticated access to ${path}`, async () => {
       const db = testEnv.unauthenticatedContext().firestore();
       const target = doc(db, path);
-
       await assertFails(getDoc(target));
       await assertFails(setDoc(target, { probe: true }));
     });
@@ -79,7 +257,6 @@ describe('SNS collections remain denied until their rules are reviewed', () => {
     it(`denies authenticated access to ${path}`, async () => {
       const db = testEnv.authenticatedContext('alice').firestore();
       const target = doc(db, path);
-
       await assertFails(getDoc(target));
       await assertFails(setDoc(target, { probe: true }));
     });
