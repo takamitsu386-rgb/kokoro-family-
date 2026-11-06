@@ -123,3 +123,85 @@ exports.aiConsultation = onRequest({
     return sendJson(res, 500, { error: "相談機能でエラーが発生しました。入力内容は画面に残して再試行できます。" });
   }
 });
+
+
+const reportCategories = new Set([
+  "harassment",
+  "bullying",
+  "inappropriate_content",
+  "privacy",
+  "impersonation",
+  "other"
+]);
+
+exports.submitReport = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 3,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = req.get("origin");
+  if (origin && allowedOrigins.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  }
+  res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const authHeader = req.get("authorization") || "";
+    const match = authHeader.match(/^Bearer (.+)$/);
+    if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
+
+    const decoded = await getAuth().verifyIdToken(match[1], true);
+    const targetUid = typeof req.body?.targetUid === "string" ? req.body.targetUid.trim() : "";
+    const category = typeof req.body?.category === "string" ? req.body.category : "";
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === decoded.uid) {
+      return sendJson(res, 400, { error: "通報する相手のユーザーIDを確認してください。" });
+    }
+    if (!reportCategories.has(category)) {
+      return sendJson(res, 400, { error: "通報理由を選択してください。" });
+    }
+
+    const db = getFirestore();
+    const now = new Date();
+    const tokyoDate = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(now).reduce((parts, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
+    const usageRef = db.doc(`users/${decoded.uid}/reportUsage/${dayKey}`);
+    const reportRef = db.collection("reports").doc();
+
+    const allowed = await db.runTransaction(async tx => {
+      const snap = await tx.get(usageRef);
+      const storedCount = snap.exists ? snap.data().count : 0;
+      const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 5;
+      if (count >= 5) return false;
+      tx.set(usageRef, { count: count + 1, updatedAt: Timestamp.now() }, { merge: true });
+      tx.create(reportRef, {
+        reporterUid: decoded.uid,
+        targetUid,
+        category,
+        status: "pending",
+        createdAt: Timestamp.now()
+      });
+      return true;
+    });
+
+    if (!allowed) return sendJson(res, 429, { error: "本日の通報上限に達しました。必要な場合は信頼できる大人にも相談してください。" });
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    console.error("Report submission error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "通報を送信できませんでした。時間をおいて再度お試しください。" });
+  }
+});
