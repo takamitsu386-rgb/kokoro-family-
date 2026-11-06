@@ -20,6 +20,13 @@
           "functionId": "aiConsultation",
           "region": "asia-northeast1"
         }
+      },
+      {
+        "source": "/api/submit-report",
+        "function": {
+          "functionId": "submitReport",
+          "region": "asia-northeast1"
+        }
       }
     ]
   },
