@@ -137,6 +137,8 @@ jobs:
           }
           console.log('Checked unique HTML IDs, in-page navigation, PWA manifest, and app-shell assets.');
           NODE
+      - name: Validate Firestore private-data access rules
+        run: node scripts/validate-firestore-rules.mjs
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
