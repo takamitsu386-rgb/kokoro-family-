@@ -189,7 +189,7 @@ describe('posts', () => {
     await assertFails(getDoc(doc(bob, 'posts/post-deleted')));
   });
 
-  it('allows a public timeline query constrained to public active posts', async () => {
+  it('allows an author-scoped query and denies a global public timeline query for now', async () => {
     await seed('posts/post-for-feed', {
       authorUid: 'alice',
       text: 'Feed post',
@@ -198,14 +198,17 @@ describe('posts', () => {
       createdAt: new Date(),
       updatedAt: new Date()
     });
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    const ownPosts = query(collection(alice, 'posts'), where('authorUid', '==', 'alice'));
+    await assertSucceeds(getDocs(ownPosts));
+
     const bob = testEnv.authenticatedContext('bob').firestore();
-    const feed = query(
+    const globalFeed = query(
       collection(bob, 'posts'),
       where('visibility', '==', 'public'),
       where('status', '==', 'active')
     );
-    const result = await assertSucceeds(getDocs(feed));
-    assert.ok(result.docs.some(item => item.id === 'post-for-feed'));
+    await assertFails(getDocs(globalFeed));
   });
 
   it('denies public post reads when either user has blocked the other', async () => {
