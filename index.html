@@ -128,6 +128,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="snsRefreshPosts">投稿を読み直す</button>
 <div id="snsPostList" aria-live="polite"><p>ログインすると自分の投稿が表示されます。</p></div>
 <div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>ユーザーを通報</h3>
+<p style="font-size:13px;color:#667085">困った行為や不適切な内容を運営に知らせます。通報は非公開で保存されます。個人情報や詳しい事情は入力しないでください。</p>
+<label for="snsReportUid">通報する相手のユーザーID</label>
+<input id="snsReportUid" maxlength="128" autocomplete="off" spellcheck="false" placeholder="ユーザーIDを入力" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<label for="snsReportCategory" style="display:block;margin-top:8px">通報理由</label>
+<select id="snsReportCategory" style="display:block;padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<option value="">理由を選択</option><option value="harassment">いやがらせ・迷惑行為</option><option value="bullying">いじめ・脅し</option><option value="inappropriate_content">不適切な内容</option><option value="privacy">個人情報の掲載</option><option value="impersonation">なりすまし</option><option value="other">その他</option>
+</select>
+<button type="button" id="snsSubmitReport" style="margin-top:8px">通報を送信</button>
+<p id="snsReportNotice" role="status" aria-live="polite">通報は1日5件までです。緊急の危険がある場合は、近くの信頼できる大人にすぐ伝えてください。</p>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
 <h3>ブロック管理</h3>
 <p style="font-size:13px;color:#667085">相手のユーザーIDを入力すると、その相手の公開プロフィールや投稿を表示しないようにします。ユーザーIDは相手本人から安全な方法で教えてもらってください。</p>
 <label for="snsBlockUid">ブロックするユーザーID</label>
@@ -2460,6 +2471,10 @@ const snsRefreshPosts = document.getElementById("snsRefreshPosts");
 const snsBlockUid = document.getElementById("snsBlockUid");
 const snsAddBlock = document.getElementById("snsAddBlock");
 const snsBlockList = document.getElementById("snsBlockList");
+const snsReportUid = document.getElementById("snsReportUid");
+const snsReportCategory = document.getElementById("snsReportCategory");
+const snsSubmitReport = document.getElementById("snsSubmitReport");
+const snsReportNotice = document.getElementById("snsReportNotice");
 const snsApp = getApps()[0];
 let snsDb = null;
 let snsUser = null;
@@ -2468,7 +2483,7 @@ let snsBusy = false;
 function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
 }
 function snsRenderPosts(items) {
   snsPostList.replaceChildren();
@@ -2656,6 +2671,39 @@ snsAddBlock.addEventListener("click", async () => {
   } catch (error) {
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
+  } finally { snsSetBusy(false); }
+});
+snsSubmitReport.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const targetUid = snsReportUid.value.trim();
+  const category = snsReportCategory.value;
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === snsUser.uid) {
+    snsReportNotice.textContent = "相手のユーザーIDを確認してください。自分自身は通報できません。";
+    return;
+  }
+  if (!category) {
+    snsReportNotice.textContent = "通報理由を選択してください。";
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  snsReportNotice.textContent = "通報を送信しています…";
+  try {
+    const token = await user.getIdToken();
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    const response = await fetch("/api/submit-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ targetUid, category })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "通報を送信できませんでした。");
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    snsReportUid.value = "";
+    snsReportCategory.value = "";
+    snsReportNotice.textContent = "通報を受け付けました。内容は非公開で保存されます。";
+  } catch (error) {
+    snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
   } finally { snsSetBusy(false); }
 });
 snsSaveProfile.addEventListener("click", async () => {
