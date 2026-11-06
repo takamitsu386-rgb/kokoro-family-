@@ -21,6 +21,8 @@ jobs:
           node-version: 22
       - name: Check Cloud Functions JavaScript syntax
         run: node --check functions/index.js
+      - name: Check Service Worker JavaScript syntax
+        run: node --check sw.js
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
