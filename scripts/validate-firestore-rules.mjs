@@ -16,17 +16,24 @@ assert.match(rules, /match\s+\/users\/\{userId\}\/kokoro\/\{documentId\}\s*\{/,
   'Existing private room-data path must remain explicitly scoped.');
 assert.match(rules, /request\.auth\s*!=\s*null/,
   'Room data must require an authenticated user.');
-assert.match(rules, /request\.auth\.uid\s*==\s*userId/,
-  'Room data must be restricted to its owning UID.');
+assert.match(rules, /function\s+owns\(uid\)\s*\{\s*return\s+signedIn\(\)\s*&&\s*request\.auth\.uid\s*==\s*uid;/,
+  'Owner helper must require authentication and match the requested UID.');
+assert.match(rules, /match\s+\/users\/\{userId\}\/kokoro\/\{documentId\}\s*\{\s*allow\s+read,\s*write:\s*if\s+owns\(userId\)\s*&&\s*documentId\s*==\s*"data";/s,
+  'Existing room data must remain read/write for its owner only.');
 assert.match(rules, /documentId\s*==\s*"data"/,
   'Room data access must remain limited to the data document.');
 
-const allowStatements = rules.match(/\ballow\s+[^;]+;/g) ?? [];
-assert.equal(allowStatements.length, 1,
-  'Unexpected additional Firestore allow rule: review before adding SNS access.');
-assert.match(allowStatements[0], /allow\s+read,\s*write\s*:/,
-  'The existing room-data permission must remain read/write.');
+assert.match(rules, /match\s+\/profiles\/\{uid\}\s*\{/,
+  'Profile access must remain explicitly scoped.');
+assert.match(rules, /match\s+\/posts\/\{postId\}\s*\{/,
+  'Post access must remain explicitly scoped.');
+assert.match(rules, /function\s+validProfile\(/,
+  'Profile field allowlist validation is required.');
+assert.match(rules, /function\s+validPost\(/,
+  'Post field allowlist validation is required.');
+assert.match(rules, /allow\s+read,\s*write:\s*if\s+false;/,
+  'Unimplemented SNS subcollections must remain denied by default.');
 assert.doesNotMatch(rules, /match\s+\/\{document=\*\*\}/,
   'A recursive catch-all match could unintentionally expose new collections.');
 
-console.log('Firestore access regression checks passed: only the signed-in owner can access their existing room data; new SNS paths remain denied by default.');
+console.log('Firestore access regression checks passed: existing room data remains owner-only; profile and post paths are explicitly scoped; unimplemented SNS paths remain denied.');
