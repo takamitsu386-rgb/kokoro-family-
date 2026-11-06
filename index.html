@@ -127,8 +127,16 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h3 style="margin-top:20px">自分の投稿</h3>
 <button type="button" id="snsRefreshPosts">投稿を読み直す</button>
 <div id="snsPostList" aria-live="polite"><p>ログインすると自分の投稿が表示されます。</p></div>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>ブロック管理</h3>
+<p style="font-size:13px;color:#667085">相手のユーザーIDを入力すると、その相手の公開プロフィールや投稿を表示しないようにします。ユーザーIDは相手本人から安全な方法で教えてもらってください。</p>
+<label for="snsBlockUid">ブロックするユーザーID</label>
+<input id="snsBlockUid" maxlength="128" autocomplete="off" spellcheck="false" placeholder="ユーザーIDを入力" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" id="snsAddBlock" style="margin-top:8px">このユーザーをブロック</button>
+<h4>ブロック中のユーザー</h4>
+<div id="snsBlockList" aria-live="polite"><p>ログインすると一覧が表示されます。</p></div>
 </div>
-<p style="font-size:13px;color:#667085">現在は自分の投稿の管理のみ利用できます。全体タイムライン、コメント、いいね、友達申請、ブロック、通報機能はまだ準備中です。</p>
+<p style="font-size:13px;color:#667085">全体タイムライン、コメント、いいね、友達申請、通報機能はまだ準備中です。</p>
 </section>
 <section class="panel" id="cloud-sync">
 <h2>☁️ スマホ・PC同期</h2>
@@ -2423,7 +2431,7 @@ if("serviceWorker" in navigator && location.protocol==="https"){
 <script type="module">
 import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const snsStatus = document.getElementById("snsStatus");
 const snsSignedOut = document.getElementById("snsSignedOut");
@@ -2449,6 +2457,9 @@ const snsPostList = document.getElementById("snsPostList");
 const snsSaveProfile = document.getElementById("snsSaveProfile");
 const snsCreatePost = document.getElementById("snsCreatePost");
 const snsRefreshPosts = document.getElementById("snsRefreshPosts");
+const snsBlockUid = document.getElementById("snsBlockUid");
+const snsAddBlock = document.getElementById("snsAddBlock");
+const snsBlockList = document.getElementById("snsBlockList");
 const snsApp = getApps()[0];
 let snsDb = null;
 let snsUser = null;
@@ -2457,7 +2468,7 @@ let snsBusy = false;
 function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts, ...snsPostList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
 }
 function snsRenderPosts(items) {
   snsPostList.replaceChildren();
@@ -2513,6 +2524,42 @@ async function snsLoadPosts(user) {
     .filter(post => post.status === "active")
     .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   snsRenderPosts(posts);
+}
+async function snsLoadBlocks(user) {
+  const result = await getDocs(collection(snsDb, "users", user.uid, "blocks"));
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  snsBlockList.replaceChildren();
+  if (result.empty) {
+    const empty = document.createElement("p");
+    empty.textContent = "ブロック中のユーザーはいません。";
+    snsBlockList.appendChild(empty);
+    return;
+  }
+  for (const snapshot of result.docs) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #eee";
+    const label = document.createElement("span");
+    label.textContent = snapshot.id;
+    const unblock = document.createElement("button");
+    unblock.type = "button";
+    unblock.textContent = "ブロック解除";
+    unblock.addEventListener("click", async () => {
+      if (!snsUser || snsBusy) return;
+      const activeUser = snsUser;
+      snsSetBusy(true);
+      try {
+        await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
+        if (!snsUser || snsUser.uid !== activeUser.uid) return;
+        await snsLoadBlocks(activeUser);
+        snsMessage("ブロックを解除しました。");
+      } catch (error) {
+        console.error("SNS unblock failed", error);
+        snsMessage("ブロックを解除できませんでした。");
+      } finally { snsSetBusy(false); }
+    });
+    row.append(label, unblock);
+    snsBlockList.appendChild(row);
+  }
 }
 async function snsEditPost(postId, currentText) {
   if (!snsUser || snsBusy || !postId) return;
@@ -2576,6 +2623,7 @@ if (snsApp) {
     try {
       await snsLoadProfile(user);
       await snsLoadPosts(user);
+      await snsLoadBlocks(user);
     } catch (error) {
       console.error("SNS initial load failed", error);
       snsMessage("読み込みに失敗しました。Firebaseのログイン設定と通信状態を確認してください。");
@@ -2584,6 +2632,32 @@ if (snsApp) {
 } else {
   snsMessage("Firebaseが初期化されていません。ログイン設定を確認してください。");
 }
+snsAddBlock.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const targetUid = snsBlockUid.value.trim();
+  if (!targetUid || targetUid.length > 128 || !/^[A-Za-z0-9_-]+$/.test(targetUid)) {
+    snsMessage("正しいユーザーIDを入力してください。");
+    return;
+  }
+  if (targetUid === snsUser.uid) {
+    snsMessage("自分自身はブロックできません。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), {
+      createdAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    snsBlockUid.value = "";
+    await snsLoadBlocks(user);
+    snsMessage("ブロックしました。相手の公開プロフィールや投稿は表示されなくなります。");
+  } catch (error) {
+    console.error("SNS block failed", error);
+    snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
+  } finally { snsSetBusy(false); }
+});
 snsSaveProfile.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
   const nickname = snsNickname.value.trim();
