@@ -1763,6 +1763,15 @@ let initializedSyncForUid = null;
 function status(message) {
   if (statusEl) statusEl.textContent = message;
 }
+function authErrorDetail(error) {
+  if (error?.code === "auth/api-key-not-valid") {
+    return "FirebaseのWeb APIキーが無効か、APIキーの制限でAuthenticationから拒否されています。FirebaseプロジェクトのWebアプリ設定とAPIキー制限を確認してください。";
+  }
+  if (error?.code === "auth/unauthorized-domain") {
+    return "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。";
+  }
+  return "";
+}
 function validRoomData(value) {
   // Use the same strict validator as local saves and backup imports.
   return typeof window.validRoomData === "function" && window.validRoomData(value);
@@ -2124,9 +2133,7 @@ try {
           await startRedirect();
         } catch (redirectError) {
           try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
-          const detail = redirectError.code === "auth/unauthorized-domain"
-            ? "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。"
-            : "ブラウザの通常タブで開き直してお試しください。";
+          const detail = authErrorDetail(redirectError) || "ブラウザの通常タブで開き直してお試しください。";
           authErrorMessage = "ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail;
           status(authErrorMessage);
         }
@@ -2134,9 +2141,7 @@ try {
         authErrorMessage = "ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。";
         status(authErrorMessage);
       } else {
-        const detail = error.code === "auth/unauthorized-domain"
-          ? "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。"
-          : "";
+        const detail = authErrorDetail(error);
         authErrorMessage = "ログインできません：" + (error.code || error.message) + (detail ? "。" + detail : "");
         status(authErrorMessage);
       }
@@ -2175,9 +2180,7 @@ try {
     redirectResult = await getRedirectResult(auth);
   } catch (error) {
     try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
-    const detail = error.code === "auth/unauthorized-domain"
-      ? "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」が登録されているか確認してください。"
-      : "もう一度ログインをお試しください。";
+    const detail = authErrorDetail(error) || "もう一度ログインをお試しください。";
     authErrorMessage = "ログイン結果を確認できません：" + (error.code || error.message) + "。" + detail;
     status(authErrorMessage);
   }
