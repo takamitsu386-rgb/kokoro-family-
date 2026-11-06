@@ -2125,7 +2125,7 @@ try {
         } catch (redirectError) {
           try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
           const detail = redirectError.code === "auth/unauthorized-domain"
-            ? "Firebase Authenticationの承認済みドメインに、このサイトのドメインを追加してください。"
+            ? "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。"
             : "ブラウザの通常タブで開き直してお試しください。";
           authErrorMessage = "ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail;
           status(authErrorMessage);
@@ -2135,7 +2135,7 @@ try {
         status(authErrorMessage);
       } else {
         const detail = error.code === "auth/unauthorized-domain"
-          ? "Firebase Authenticationの承認済みドメインに、このサイトのドメインを追加してください。"
+          ? "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。"
           : "";
         authErrorMessage = "ログインできません：" + (error.code || error.message) + (detail ? "。" + detail : "");
         status(authErrorMessage);
@@ -2176,7 +2176,7 @@ try {
   } catch (error) {
     try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
     const detail = error.code === "auth/unauthorized-domain"
-      ? "Firebase Authenticationの承認済みドメイン設定を確認してください。"
+      ? "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」が登録されているか確認してください。"
       : "もう一度ログインをお試しください。";
     authErrorMessage = "ログイン結果を確認できません：" + (error.code || error.message) + "。" + detail;
     status(authErrorMessage);
