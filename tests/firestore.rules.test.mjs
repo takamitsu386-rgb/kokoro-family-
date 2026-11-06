@@ -238,6 +238,10 @@ describe('posts', () => {
       text: 'Edited by author',
       updatedAt: serverTimestamp()
     }));
+    await assertFails(updateDoc(postRef, {
+      authorUid: 'bob',
+      updatedAt: serverTimestamp()
+    }));
     const saved = await getDoc(postRef);
     assert.equal(saved.data().text, 'Edited by author');
   });
