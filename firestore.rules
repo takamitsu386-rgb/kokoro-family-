@@ -53,15 +53,14 @@ service cloud.firestore {
     }
 
     function canReadActivePost(postId) {
-      let postPath = /databases/$(database)/documents/posts/$(postId);
+      let parentPost = get(/databases/$(database)/documents/posts/$(postId)).data;
       return signedIn()
-        && exists(postPath)
-        && get(postPath).data.status == 'active'
+        && parentPost.status == 'active'
         && (
-          get(postPath).data.authorUid == request.auth.uid
+          parentPost.authorUid == request.auth.uid
           || (
-            get(postPath).data.visibility == 'public'
-            && !blockedBetween(request.auth.uid, get(postPath).data.authorUid)
+            parentPost.visibility == 'public'
+            && !blockedBetween(request.auth.uid, parentPost.authorUid)
           )
         );
     }
