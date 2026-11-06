@@ -113,6 +113,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <select id="snsAvatar" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
 <option value="avatar-01">🌷 お花</option><option value="avatar-02">🐱 ねこ</option><option value="avatar-03">🐻 くま</option><option value="avatar-04">⭐ 星</option><option value="avatar-05">🐰 うさぎ</option>
 </select>
+<div id="snsProfilePreview" role="status" aria-live="polite" style="display:flex;align-items:center;gap:10px;margin:12px 0;padding:12px;background:#f7f5ff;border:1px solid #e5e0ff;border-radius:10px"><span id="snsPreviewAvatar" aria-hidden="true" style="font-size:32px">🌷</span><span><strong id="snsPreviewNickname">ニックネーム未設定</strong><br><small id="snsPreviewVisibility">公開範囲：自分のみ</small></span></div>
 <label for="snsProfileVisibility" style="display:block;margin-top:8px">プロフィール公開範囲</label>
 <select id="snsProfileVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="public">公開</option></select>
 <button type="button" id="snsSaveProfile" class="primary" style="margin-top:10px">プロフィールを保存</button>
@@ -2430,6 +2431,18 @@ const snsSignedIn = document.getElementById("snsSignedIn");
 const snsNickname = document.getElementById("snsNickname");
 const snsAvatar = document.getElementById("snsAvatar");
 const snsProfileVisibility = document.getElementById("snsProfileVisibility");
+const snsPreviewAvatar = document.getElementById("snsPreviewAvatar");
+const snsPreviewNickname = document.getElementById("snsPreviewNickname");
+const snsPreviewVisibility = document.getElementById("snsPreviewVisibility");
+const snsAvatarEmojis = { "avatar-01":"🌷", "avatar-02":"🐱", "avatar-03":"🐻", "avatar-04":"⭐", "avatar-05":"🐰" };
+function snsUpdateProfilePreview() {
+  if (snsPreviewAvatar) snsPreviewAvatar.textContent = snsAvatarEmojis[snsAvatar.value] || "🌷";
+  if (snsPreviewNickname) snsPreviewNickname.textContent = snsNickname.value.trim() || "ニックネーム未設定";
+  if (snsPreviewVisibility) snsPreviewVisibility.textContent = "公開範囲：" + (snsProfileVisibility.value === "public" ? "公開" : "自分のみ");
+}
+snsNickname.addEventListener("input", snsUpdateProfilePreview);
+snsAvatar.addEventListener("change", snsUpdateProfilePreview);
+snsProfileVisibility.addEventListener("change", snsUpdateProfilePreview);
 const snsPostText = document.getElementById("snsPostText");
 const snsPostVisibility = document.getElementById("snsPostVisibility");
 const snsPostList = document.getElementById("snsPostList");
@@ -2482,6 +2495,7 @@ async function snsLoadProfile(user) {
     snsNickname.value = "";
     snsAvatar.value = "avatar-01";
     snsProfileVisibility.value = "private";
+    snsUpdateProfilePreview();
     snsMessage("プロフィールを作成できます。公開範囲は最初「自分のみ」です。");
     return;
   }
@@ -2489,6 +2503,7 @@ async function snsLoadProfile(user) {
   snsNickname.value = profile.nickname || "";
   snsAvatar.value = profile.avatarId || "avatar-01";
   snsProfileVisibility.value = profile.visibility || "private";
+  snsUpdateProfilePreview();
   snsMessage("ログイン中です。プロフィールと自分の投稿を管理できます。");
 }
 async function snsLoadPosts(user) {
@@ -2590,6 +2605,7 @@ snsSaveProfile.addEventListener("click", async () => {
       updatedAt: serverTimestamp()
     });
     if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    snsUpdateProfilePreview();
     snsMessage("プロフィールを保存しました。");
   } catch (error) {
     console.error("SNS profile save failed", error);
