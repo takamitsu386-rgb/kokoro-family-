@@ -86,7 +86,8 @@ service cloud.firestore {
 
     // Posts are private by default; only explicit public + active posts are readable by others.
     match /posts/{postId} {
-      allow get, list: if signedIn()
+      // Direct reads may access public active posts unless either side has blocked the other.
+      allow get: if signedIn()
         && (
           resource.data.authorUid == request.auth.uid
           || (
@@ -95,6 +96,10 @@ service cloud.firestore {
             && !blockedBetween(request.auth.uid, resource.data.authorUid)
           )
         );
+
+      // Collection queries are owner-only until a block-aware feed endpoint is implemented.
+      allow list: if signedIn()
+        && resource.data.authorUid == request.auth.uid;
 
       allow create: if signedIn()
         && request.resource.data.authorUid == request.auth.uid
