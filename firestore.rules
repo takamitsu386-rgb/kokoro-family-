@@ -1,10 +1,138 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function blockedBetween(viewerUid, ownerUid) {
+      return viewerUid != ownerUid
+        && (
+          exists(/databases/$(database)/documents/users/$(viewerUid)/blocks/$(ownerUid))
+          || exists(/databases/$(database)/documents/users/$(ownerUid)/blocks/$(viewerUid))
+        );
+    }
+
+    function validProfile(data) {
+      return data.keys().hasAll([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.nickname is string
+        && data.nickname.size() >= 1
+        && data.nickname.size() <= 24
+        && data.avatarId is string
+        && data.avatarId.size() >= 1
+        && data.avatarId.size() <= 32
+        && data.visibility in ['private', 'public']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function validPost(data) {
+      return data.keys().hasAll([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 500
+        && data.visibility in ['private', 'public']
+        && data.status in ['active', 'deleted']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Existing private room data: keep this path owner-only and unchanged.
     match /users/{userId}/kokoro/{documentId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId
-                         && documentId == "data";
+      allow read, write: if owns(userId) && documentId == "data";
+    }
+
+    // Blocks are not writable yet. The lookup is already enforced by reads.
+    match /users/{userId}/blocks/{targetUid} {
+      allow read, write: if false;
+    }
+
+    // Public-facing profile contains only an explicit allowlist of fields.
+    match /profiles/{uid} {
+      allow get, list: if owns(uid)
+        || (
+          signedIn()
+          && resource.data.visibility == 'public'
+          && !blockedBetween(request.auth.uid, uid)
+        );
+
+      allow create: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    // Posts are private by default; only explicit public + active posts are readable by others.
+    match /posts/{postId} {
+      allow get, list: if signedIn()
+        && (
+          resource.data.authorUid == request.auth.uid
+          || (
+            resource.data.visibility == 'public'
+            && resource.data.status == 'active'
+            && !blockedBetween(request.auth.uid, resource.data.authorUid)
+          )
+        );
+
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && validPost(request.resource.data)
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && validPost(request.resource.data);
+
+      // Use status='deleted' so deleted posts disappear from all read paths.
+      allow delete: if false;
+
+      // Comments and likes remain denied until their own rules and tests are ready.
+      match /comments/{commentId} {
+        allow read, write: if false;
+      }
+      match /likes/{likerUid} {
+        allow read, write: if false;
+      }
+    }
+
+    // Friend requests and reports remain closed until their workflows are implemented.
+    match /friendRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/following/{targetUid} {
+      allow read, write: if false;
     }
   }
 }
