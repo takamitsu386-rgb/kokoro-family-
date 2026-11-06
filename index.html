@@ -101,7 +101,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p style="font-size:13px;color:#667085">つらさが強いときや、身の安全に不安があるときは、AIだけで抱えず、近くの信頼できる大人にも伝えてください。</p>
 </section>
 <section class="panel" id="sns">
-<h2>👥 みんなの広場（準備中）</h2>
+<h2>👥 SNS（プロフィール・自分の投稿）</h2>
 <p>ログインして、自分のプロフィールと投稿を管理できます。投稿は最初「自分のみ」に設定されます。公開を選ぶ場合は、個人が特定される情報を書かないでください。</p>
 <p id="snsStatus" role="status" aria-live="polite">Googleログインの状態を確認しています。</p>
 <div id="snsSignedOut" hidden><p>プロフィールや投稿を使うには、先に上の「スマホ・PC同期」からGoogleログインしてください。</p></div>
@@ -2444,7 +2444,7 @@ let snsBusy = false;
 function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, ...snsPostList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
 }
 function snsRenderPosts(items) {
   snsPostList.replaceChildren();
