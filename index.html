@@ -1824,13 +1824,24 @@ function status(message) {
   if (statusEl) statusEl.textContent = message;
 }
 function authErrorDetail(error) {
-  if (error?.code === "auth/api-key-not-valid") {
-    return "FirebaseのWeb APIキーが無効か、APIキーの制限でAuthenticationから拒否されています。FirebaseプロジェクトのWebアプリ設定とAPIキー制限を確認してください。";
+  switch (error?.code) {
+    case "auth/api-key-not-valid":
+      return "FirebaseのWeb APIキーが無効か、APIキーの制限でAuthenticationから拒否されています。FirebaseプロジェクトのWebアプリ設定とAPIキー制限を確認してください。";
+    case "auth/unauthorized-domain":
+      return "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。";
+    case "auth/operation-not-allowed":
+      return "Firebase ConsoleのAuthenticationでGoogleログインが有効になっているか確認してください。";
+    case "auth/app-not-authorized":
+      return "このWebアプリがFirebase Authenticationで許可されていません。FirebaseプロジェクトとWebアプリの設定を確認してください。";
+    case "auth/network-request-failed":
+      return "通信に失敗しました。ネット接続やブラウザの通信制限を確認して、再試行してください。";
+    case "auth/too-many-requests":
+      return "ログイン試行が一時的に制限されています。時間をおいてから再試行してください。";
+    case "auth/web-storage-unsupported":
+      return "このブラウザではログイン情報を保存できません。通常のブラウザタブで開き、Cookieとサイトデータの利用設定を確認してください。";
+    default:
+      return "";
   }
-  if (error?.code === "auth/unauthorized-domain") {
-    return "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。";
-  }
-  return "";
 }
 function validRoomData(value) {
   // Use the same strict validator as local saves and backup imports.
