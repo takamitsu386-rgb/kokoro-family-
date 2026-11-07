@@ -2678,26 +2678,32 @@ function snsRenderAdminReports(reports) {
     detail.textContent = "通報者ID：" + report.reporterUid + " / 対象ID：" + report.targetUid + " / 受付：" + date;
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
-    for (const [status, label] of [["reviewed", "確認済み"], ["actioned", "対応済み"], ["dismissed", "対象外"]]) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = label;
-      button.addEventListener("click", async () => {
-        const user = snsUser;
-        if (!user || snsBusy) return;
-        button.disabled = true;
-        snsAdminStatus.textContent = "更新しています…";
-        try {
-          await snsAdminRequest("/api/admin/update-report", { reportId: report.id, status }, user);
-          if (!snsUser || snsUser.uid !== user.uid) return;
-          snsAdminStatus.textContent = "確認状態を更新しました。";
-          await snsLoadAdminReports(user);
-        } catch (error) {
-          snsAdminStatus.textContent = error.message || "更新できませんでした。";
-          button.disabled = false;
-        }
-      });
-      actions.appendChild(button);
+    if (report.status === "pending") {
+      for (const [status, label] of [["reviewed", "確認済み"], ["actioned", "対応済み"], ["dismissed", "対象外"]]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", async () => {
+          const user = snsUser;
+          if (!user || snsBusy) return;
+          button.disabled = true;
+          snsAdminStatus.textContent = "更新しています…";
+          try {
+            await snsAdminRequest("/api/admin/update-report", { reportId: report.id, status }, user);
+            if (!snsUser || snsUser.uid !== user.uid) return;
+            snsAdminStatus.textContent = "確認状態を更新しました。";
+            await snsLoadAdminReports(user);
+          } catch (error) {
+            snsAdminStatus.textContent = error.message || "更新できませんでした。";
+            button.disabled = false;
+          }
+        });
+        actions.appendChild(button);
+      }
+    } else {
+      const state = document.createElement("span");
+      state.textContent = "確認状態：" + ({ reviewed: "確認済み", actioned: "対応済み", dismissed: "対象外" }[report.status] || "不明");
+      actions.appendChild(state);
     }
     article.append(heading, detail, actions);
     snsAdminReportList.appendChild(article);
