@@ -27,6 +27,20 @@
           "functionId": "submitReport",
           "region": "asia-northeast1"
         }
+      },
+      {
+        "source": "/api/admin/reports",
+        "function": {
+          "functionId": "adminListReports",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "/api/admin/update-report",
+        "function": {
+          "functionId": "adminUpdateReport",
+          "region": "asia-northeast1"
+        }
       }
     ]
   },
