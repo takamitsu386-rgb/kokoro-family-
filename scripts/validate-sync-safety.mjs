@@ -15,6 +15,12 @@ assert.match(sync, /currentUser\.uid !== uid/,
   'Sync operations must verify the active account UID.');
 assert.match(sync, /async function uploadLocal\(uid = currentUser\?\.uid\)/,
   'Cloud upload must bind the operation to a specific signed-in UID.');
+assert.match(sync, /async function uploadLocal\(uid = currentUser\?\.uid\) \{\s*const generation = authStateGeneration;/,
+  'Each queued cloud upload must capture the authentication generation that started it.');
+assert.match(sync, /if \(!currentUser \|\| currentUser\.uid !== uid \|\| authStateGeneration !== generation\) throw new Error\("同期待ちの間にGoogleアカウントが切り替わりました。/,
+  'A queued cloud upload must reject A-to-B-to-A account switches before writing.');
+assert.match(sync, /if \(!currentUser \|\| currentUser\.uid !== uid \|\| authStateGeneration !== generation\) throw new Error\("保存後にGoogleアカウントが切り替わりました。/,
+  'Cloud upload completion must reject an intervening account switch even if the same UID is active again.');
 assert.match(sync, /await uploadQueue\.catch\(\(\) => \{\}\);[\s\S]*?getDoc\(cloudRef\(uid\)\)/,
   'Cloud reads must wait for queued uploads.');
 assert.match(sync, /!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/,
