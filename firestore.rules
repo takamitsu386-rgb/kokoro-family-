@@ -27,6 +27,7 @@ service cloud.firestore {
         && data.nickname is string
         && data.nickname.size() >= 1
         && data.nickname.size() <= 24
+        && data.nickname.matches('.*\\S.*')
         && data.avatarId in ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']
         && data.visibility in ['private', 'public']
         && data.createdAt is timestamp
@@ -44,6 +45,7 @@ service cloud.firestore {
         && data.text is string
         && data.text.size() >= 1
         && data.text.size() <= 500
+        && data.text.matches('.*\\S.*')
         && data.visibility in ['private', 'public']
         && data.status in ['active', 'deleted']
         && data.createdAt is timestamp
