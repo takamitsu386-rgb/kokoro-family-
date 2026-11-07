@@ -110,7 +110,17 @@ jobs:
           if (/\bsk-[A-Za-z0-9_-]{20,}\b/.test(html)) {
             throw new Error('A possible OpenAI secret key was found in client HTML.');
           }
-          console.log('Firebase project, AI rewrite, and server-side secret wiring are consistent.');
+          const loginFlowChecks = [
+            [/const mobileBrowser = \/Android\|iPhone\|iPad\|iPod\/i\.test\(navigator\.userAgent\)/, 'Mobile login must be detected for redirect-based authentication.'],
+            [/await signInWithRedirect\(auth, provider\)/, 'Mobile login must use the redirect flow.'],
+            [/await signInWithPopup\(auth, provider\)/, 'Desktop login must retain the popup flow.'],
+            [/redirectResult = await getRedirectResult\(auth\)/, 'Redirect results must be processed on app initialization.'],
+            [/onAuthStateChanged\(auth, user =>/, 'Login state must be observed after redirect processing.']
+          ];
+          for (const [pattern, message] of loginFlowChecks) {
+            if (!pattern.test(html)) throw new Error(message);
+          }
+          console.log('Firebase project, AI secret wiring, and Google login flow are consistent.');
           NODE
       - name: Validate app navigation and PWA assets
         run: |
