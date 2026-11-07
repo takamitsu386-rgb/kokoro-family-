@@ -2040,7 +2040,7 @@ async function downloadCloud() {
   if (!navigator.onLine) throw new Error("オフラインのためクラウド読み込みを開始できません。端末内データはそのままです。");
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = null;
-  await uploadQueue.catch(() => {});
+  await uploadQueue;
   if (!isCurrentAccount()) throw new Error("読み込み前にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!navigator.onLine) throw new Error("通信が切れたためクラウド読み込みを中止しました。端末内データはそのままです。");
   const snapshot = await getDoc(cloudRef(uid));
