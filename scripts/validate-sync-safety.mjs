@@ -73,4 +73,20 @@ assert.match(ai, /userBubble\.remove\(\)/,
 assert.match(ai, /aiInput\.value = message/,
   'A failed request for the same account must preserve the typed message for retry.');
 
-console.log('Cloud sync sequencing, account isolation, local-data protection, login flow, and AI account-switch checks passed.');
+const snsStart = html.indexOf('const snsStatus = document.getElementById("snsStatus")');
+const snsEnd = html.indexOf('</script>', snsStart);
+assert.ok(snsStart >= 0 && snsEnd > snsStart, 'SNS client module must exist.');
+const sns = html.slice(snsStart, snsEnd);
+assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
+  'SNS must detect account changes before showing account-specific content.');
+assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
+  'SNS must clear private profile, post, block, and report form data on account changes.');
+for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
+  const loaderStart = sns.indexOf('async function ' + loader + '(user)');
+  const loaderEnd = sns.indexOf('\n}', loaderStart);
+  assert.ok(loaderStart >= 0 && loaderEnd > loaderStart, loader + ' must exist.');
+  assert.match(sns.slice(loaderStart, loaderEnd), /!snsUser \|\| snsUser\.uid !== user\.uid/,
+    loader + ' must discard results after an account switch.');
+}
+
+console.log('Cloud sync sequencing, account isolation, local-data protection, login flow, and AI and SNS account-switch checks passed.');
