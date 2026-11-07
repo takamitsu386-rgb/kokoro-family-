@@ -128,6 +128,26 @@ describe('profiles', () => {
     await assertSucceeds(getDoc(doc(viewer, 'profiles/profile-viewer')));
   });
 
+  it('denies public profile reads when only the viewer has blocked the profile owner', async () => {
+    await seed('profiles/owner-blocked-by-viewer', {
+      nickname: 'Owner', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('profiles/viewer-who-blocked', {
+      nickname: 'Viewer', avatarId: 'avatar-02', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/viewer-who-blocked/blocks/owner-blocked-by-viewer', {
+      createdAt: new Date()
+    });
+    const viewer = testEnv.authenticatedContext('viewer-who-blocked').firestore();
+    const owner = testEnv.authenticatedContext('owner-blocked-by-viewer').firestore();
+    await assertFails(getDoc(doc(viewer, 'profiles/owner-blocked-by-viewer')));
+    await assertFails(getDoc(doc(owner, 'profiles/viewer-who-blocked')));
+    await assertSucceeds(getDoc(doc(viewer, 'profiles/viewer-who-blocked')));
+    await assertSucceeds(getDoc(doc(owner, 'profiles/owner-blocked-by-viewer')));
+  });
+
   it('rejects UID spoofing and sensitive or unapproved profile fields', async () => {
     const db = testEnv.authenticatedContext('alice').firestore();
     await assertFails(setDoc(doc(db, 'profiles/bob'), {
