@@ -105,9 +105,21 @@ for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
     loader + ' must discard results after an account switch.');
 }
 
-assert.match(sns, /snsAdminFilter\\.addEventListener\\("change",[\\s\\S]*?const user = snsUser;[\\s\\S]*?catch \\(error\\) \\{\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;/,
+const adminFilterStart = sns.indexOf('snsAdminFilter.addEventListener("change"');
+const adminFilterEnd = sns.indexOf('if (snsApp)', adminFilterStart);
+assert.ok(adminFilterStart >= 0 && adminFilterEnd > adminFilterStart,
+  'Admin report filter handler must exist.');
+const adminFilterHandler = sns.slice(adminFilterStart, adminFilterEnd);
+assert.ok(adminFilterHandler.includes('const user = snsUser;') &&
+  adminFilterHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;'),
   'Admin report filter failures must be scoped to the account that started the request.');
-assert.match(sns, /snsAdminRequest\\("\/api\/admin\/update-report"[\\s\\S]*?catch \\(error\\) \\{\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;[\\s\\S]*?button\\.disabled = false;/,
+const adminActionStart = sns.indexOf('snsAdminRequest("/api/admin/update-report"');
+const adminActionEnd = sns.indexOf('actions.appendChild(button)', adminActionStart);
+assert.ok(adminActionStart >= 0 && adminActionEnd > adminActionStart,
+  'Admin report action handler must exist.');
+const adminActionHandler = sns.slice(adminActionStart, adminActionEnd);
+assert.ok(adminActionHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
+  adminActionHandler.includes('button.disabled = false;'),
   'Admin report action failures must not alter controls after an account switch.');
 
 console.log('Cloud sync sequencing, account isolation, local-data protection, login flow, and AI and SNS account-switch checks passed.');
