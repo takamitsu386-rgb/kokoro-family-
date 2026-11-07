@@ -2823,7 +2823,7 @@ snsAddBlock.addEventListener("click", async () => {
   } catch (error) {
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
-  } finally { snsSetBusy(false); }
+  } finally { snsReleaseBusyFor(user); }
 });
 snsSubmitReport.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2856,7 +2856,7 @@ snsSubmitReport.addEventListener("click", async () => {
     snsReportNotice.textContent = "通報を受け付けました。内容は非公開で保存されます。";
   } catch (error) {
     snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
-  } finally { snsSetBusy(false); }
+  } finally { snsReleaseBusyFor(user); }
 });
 snsSaveProfile.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2884,7 +2884,7 @@ snsSaveProfile.addEventListener("click", async () => {
   } catch (error) {
     console.error("SNS profile save failed", error);
     snsMessage("保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
-  } finally { snsSetBusy(false); }
+  } finally { snsReleaseBusyFor(user); }
 });
 snsCreatePost.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2911,7 +2911,7 @@ snsCreatePost.addEventListener("click", async () => {
   } catch (error) {
     console.error("SNS post create failed", error);
     snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
-  } finally { snsSetBusy(false); }
+  } finally { snsReleaseBusyFor(user); }
 });
 snsRefreshPosts.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2923,7 +2923,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   } catch (error) {
     console.error("SNS post refresh failed", error);
     snsMessage("投稿を読み込めませんでした。");
-  } finally { snsSetBusy(false); }
+  } finally { snsReleaseBusyFor(user); }
 });
 </script>
 
