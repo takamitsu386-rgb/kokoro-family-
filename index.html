@@ -2380,6 +2380,13 @@ if (aiFirebaseApp) {
       aiAuthGeneration += 1;
       // Stop an in-flight network request as soon as its account is no longer active.
       aiRequestController?.abort();
+      aiRequestController = null;
+      // Release the old request's UI lock immediately; its finally block is generation-guarded.
+      aiBusy = false;
+      aiSend.disabled = false;
+      if (aiClear) aiClear.disabled = false;
+      aiInput.disabled = false;
+      aiLog.setAttribute("aria-busy", "false");
       // Never carry an unsent draft across account identities.
       aiInput.value = "";
     }
@@ -2474,17 +2481,19 @@ aiSend?.addEventListener("click", async () => {
     if (sameAccount) {
       aiInput.value = message;
       aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
-    } else {
-      aiInput.value = "";
-      aiStatus.textContent = "アカウントが切り替わったため、前のアカウントの相談文は引き継ぎませんでした。";
     }
   } finally {
-    aiBusy = false;
-    aiLog.setAttribute("aria-busy", "false");
-    aiSend.disabled = false;
-    if (aiClear) aiClear.disabled = false;
-    aiInput.disabled = false;
-    if (aiRequestController === requestController) aiRequestController = null;
+    // An older request must never unlock or overwrite controls owned by a newer request.
+    if (aiRequestController === requestController) {
+      aiRequestController = null;
+      if (aiAuthGeneration === requestAuthGeneration) {
+        aiBusy = false;
+        aiLog.setAttribute("aria-busy", "false");
+        aiSend.disabled = false;
+        if (aiClear) aiClear.disabled = false;
+        aiInput.disabled = false;
+      }
+    }
   }
 });
 </script>
