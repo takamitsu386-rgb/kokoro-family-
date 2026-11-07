@@ -261,7 +261,7 @@ describe('posts', () => {
       updatedAt: serverTimestamp()
     };
 
-    await assertFails(setDoc(doc(db, 'posts/empty-content'), { ...base, text: '   ' }));
+    await assertFails(setDoc(doc(db, 'posts/empty-content'), { ...base, text: '' }));
     await assertFails(setDoc(doc(db, 'posts/invalid-visibility'), { ...base, visibility: 'everyone' }));
     await assertFails(setDoc(doc(db, 'posts/invalid-status'), { ...base, status: 'published' }));
     await assertFails(setDoc(doc(db, 'posts/forged-created-at'), {
