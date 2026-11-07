@@ -219,9 +219,11 @@ for (const [guard, failure] of [
     'SNS failure notices must be scoped to the account that started the request: ' + failure);
 }
 
-assert.match(sns, /const nickname = snsNickname\\.value\\.trim\\(\\);[\\s\\S]*?if \\(!nickname \\|\\| nickname\\.length > 24\\)/,
+assert.ok(sns.includes('const nickname = snsNickname.value.trim();') &&
+  sns.includes('if (!nickname || nickname.length > 24)'),
   'SNS profile names must be trimmed and constrained to 1–24 characters before saving.');
-assert.match(sns, /const text = snsPostText\\.value\\.trim\\(\\);[\\s\\S]*?if \\(!text \\|\\| text\\.length > 500\\)/,
+assert.ok(sns.includes('const text = snsPostText.value.trim();') &&
+  sns.includes('if (!text || text.length > 500)'),
   'SNS post content must be trimmed and constrained to 1–500 characters before saving.');
 assert.match(html, /id="snsNickname" maxlength="24"/,
   'The profile nickname input must expose the same 24-character limit to users.');
