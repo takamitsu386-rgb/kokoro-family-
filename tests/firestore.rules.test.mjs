@@ -458,6 +458,23 @@ describe('blocks', () => {
     const { deleteDoc } = await import('firebase/firestore');
     await assertSucceeds(deleteDoc(doc(alice, 'users/unblock-owner/blocks/unblock-target')));
   });
+  it('applies a newly created block immediately and restores public access after unblocking', async () => {
+    await seed('profiles/block-target-profile', {
+      nickname: 'Target', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+
+    const viewer = testEnv.authenticatedContext('block-viewer').firestore();
+    const targetProfile = doc(viewer, 'profiles/block-target-profile');
+    const blockRecord = doc(viewer, 'users/block-viewer/blocks/block-target-profile');
+
+    await assertSucceeds(getDoc(targetProfile));
+    await assertSucceeds(setDoc(blockRecord, { createdAt: serverTimestamp() }));
+    await assertFails(getDoc(targetProfile));
+    await assertSucceeds(deleteDoc(blockRecord));
+    await assertSucceeds(getDoc(targetProfile));
+  });
+
 });
 
 describe('SNS features not yet implemented remain denied', () => {
