@@ -21,8 +21,8 @@ assert.match(sync, /if \(!currentUser \|\| currentUser\.uid !== uid \|\| authSta
   'A queued cloud upload must reject A-to-B-to-A account switches before writing.');
 assert.match(sync, /if \(!currentUser \|\| currentUser\.uid !== uid \|\| authStateGeneration !== generation\) throw new Error\("保存後にGoogleアカウントが切り替わりました。/,
   'Cloud upload completion must reject an intervening account switch even if the same UID is active again.');
-assert.match(sync, /await uploadQueue\.catch\(\(\) => \{\}\);[\s\S]*?getDoc\(cloudRef\(uid\)\)/,
-  'Cloud reads must wait for queued uploads.');
+assert.match(sync, /await uploadQueue;[\s\S]*?getDoc\(cloudRef\(uid\)\)/,
+  'Manual cloud reads must wait for queued uploads and stop if a preceding upload failed.');
 assert.match(sync, /!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/,
   'Room preference keys must reject prototype-sensitive property names before cloud import.');
 const prefsStart = sync.indexOf('function validSavedRoomPrefs(value)');
