@@ -105,4 +105,9 @@ for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
     loader + ' must discard results after an account switch.');
 }
 
+assert.match(sns, /snsAdminFilter\\.addEventListener\\("change",[\\s\\S]*?const user = snsUser;[\\s\\S]*?catch \\(error\\) \\{\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;/,
+  'Admin report filter failures must be scoped to the account that started the request.');
+assert.match(sns, /snsAdminRequest\\("\/api\/admin\/update-report"[\\s\\S]*?catch \\(error\\) \\{\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;[\\s\\S]*?button\\.disabled = false;/,
+  'Admin report action failures must not alter controls after an account switch.');
+
 console.log('Cloud sync sequencing, account isolation, local-data protection, login flow, and AI and SNS account-switch checks passed.');
