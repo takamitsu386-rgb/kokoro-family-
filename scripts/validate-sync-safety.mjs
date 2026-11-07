@@ -77,6 +77,12 @@ const snsStart = html.indexOf('const snsStatus = document.getElementById("snsSta
 const snsEnd = html.indexOf('</script>', snsStart);
 assert.ok(snsStart >= 0 && snsEnd > snsStart, 'SNS client module must exist.');
 const sns = html.slice(snsStart, snsEnd);
+assert.match(sns, /function snsReleaseBusyFor\(user\) \{[\\s\\S]*?if \(user && snsUser\?\.uid === user\.uid\) snsSetBusy\(false\);/,
+  'A stale SNS request must not unlock controls belonging to a different account.');
+assert.match(sns, /finally \{ snsReleaseBusyFor\(activeUser\); \}/,
+  'Unblocking must release its busy state only for the account that started it.');
+assert.match(sns, /finally \{\\s*snsReleaseBusyFor\(user\);\\s*\}/,
+  'Post edits and deletions must release their busy state only for the account that started them.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
 assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
