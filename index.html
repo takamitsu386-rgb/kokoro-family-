@@ -2013,15 +2013,16 @@ function setSyncBusy(busy) {
   if (logoutButton) logoutButton.disabled = busy || logoutInProgress || !currentUser;
 }
 async function uploadLocal(uid = currentUser?.uid) {
+  const generation = authStateGeneration;
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
   const task = uploadQueue.catch(() => {}).then(async () => {
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期待ちの間にGoogleアカウントが切り替わりました。もう一度同期してください。");
+    if (!currentUser || currentUser.uid !== uid || authStateGeneration !== generation) throw new Error("同期待ちの間にGoogleアカウントが切り替わりました。もう一度同期してください。");
     const payload = localPayload();
     await setDoc(cloudRef(uid), {
       ...payload,
       updatedAt: serverTimestamp()
     });
-    if (!currentUser || currentUser.uid !== uid) throw new Error("保存後にGoogleアカウントが切り替わりました。");
+    if (!currentUser || currentUser.uid !== uid || authStateGeneration !== generation) throw new Error("保存後にGoogleアカウントが切り替わりました。");
   });
   uploadQueue = task;
   await task;
@@ -2033,14 +2034,16 @@ async function downloadCloud() {
   setSyncBusy(true);
   try {
   const uid = currentUser.uid;
+  const generation = authStateGeneration;
+  const isCurrentAccount = () => !!currentUser && currentUser.uid === uid && authStateGeneration === generation;
   if (!navigator.onLine) throw new Error("オフラインのためクラウド読み込みを開始できません。端末内データはそのままです。");
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = null;
   await uploadQueue.catch(() => {});
-  if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み前にGoogleアカウントが切り替わりました。もう一度お試しください。");
+  if (!isCurrentAccount()) throw new Error("読み込み前にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!navigator.onLine) throw new Error("通信が切れたためクラウド読み込みを中止しました。端末内データはそのままです。");
   const snapshot = await getDoc(cloudRef(uid));
-  if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+  if (!isCurrentAccount()) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!navigator.onLine) throw new Error("読み込み中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
   if (!snapshot.exists()) {
     status("クラウドにデータはありません。端末内のデータはそのままです。");
@@ -2051,7 +2054,7 @@ async function downloadCloud() {
     throw new Error("クラウドデータの形式またはサイズを確認できません。端末内データは変更していません。");
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
-  if (!currentUser || currentUser.uid !== uid) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+  if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
   applyCloudDataSafely(data);
   initializedSyncForUid = uid;
   markCloudSync(uid);
@@ -2069,6 +2072,8 @@ async function syncNow() {
   syncInProgress = true;
   setSyncBusy(true);
   const uid = currentUser.uid;
+  const generation = authStateGeneration;
+  const isCurrentAccount = () => !!currentUser && currentUser.uid === uid && authStateGeneration === generation;
   if (!navigator.onLine) {
     syncInProgress = false;
     setSyncBusy(false);
@@ -2080,10 +2085,10 @@ async function syncNow() {
     clearTimeout(window.__kokoroSyncTimer);
     window.__kokoroSyncTimer = null;
     await uploadQueue.catch(() => {});
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期前にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    if (!isCurrentAccount()) throw new Error("同期前にGoogleアカウントが切り替わりました。もう一度お試しください。");
     if (!navigator.onLine) throw new Error("通信が切れたため同期を中止しました。端末内データはそのままです。");
     const snapshot = await getDoc(cloudRef(uid));
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     if (!navigator.onLine) throw new Error("同期中に通信が切れたため、クラウドデータの反映・上書きを中止しました。端末内データはそのままです。");
     const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === uid;
     if (snapshot.exists() && !alreadyInitialized) {
@@ -2093,24 +2098,24 @@ async function syncNow() {
         if (!validCloudData(data)) {
           throw new Error("クラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
         }
-        if (!currentUser || currentUser.uid !== uid) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+        if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
         applyCloudDataSafely(data);
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
         await uploadLocal(uid);
-        if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+        if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
         status("この端末のデータをクラウドに保存しました。");
       }
     } else {
       await uploadLocal(uid);
-      if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+      if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
       status("同期しました。クラウドに保存済みです。");
     }
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     initializedSyncForUid = uid;
     markCloudSync(uid);
   } catch (error) {
-    if (!currentUser || currentUser.uid !== uid) return;
+    if (!isCurrentAccount()) return;
     console.error(error);
     status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
   } finally {
