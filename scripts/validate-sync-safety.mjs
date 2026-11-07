@@ -135,14 +135,21 @@ assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
 assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
   'SNS must clear private profile, post, block, and report form data on account changes.');
-for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
+for (const [loader, firstUiWrite] of [
+  ['snsLoadProfile', 'snsNickname.value ='],
+  ['snsLoadPosts', 'snsRenderPosts(posts)'],
+  ['snsLoadBlocks', 'snsBlockList.replaceChildren()']
+]) {
   const loaderStart = sns.indexOf('async function ' + loader + '(user)');
-  const loaderEnd = sns.indexOf('\n}', loaderStart);
+  const loaderEnd = sns.indexOf('\\n}', loaderStart);
   assert.ok(loaderStart >= 0 && loaderEnd > loaderStart, loader + ' must exist.');
-  assert.match(sns.slice(loaderStart, loaderEnd), /!snsUser \|\| snsUser\.uid !== user\.uid/,
-    loader + ' must discard results after an account switch.');
+  const loaderSource = sns.slice(loaderStart, loaderEnd);
+  const awaitedRead = loaderSource.indexOf('await ');
+  const uidGuard = loaderSource.indexOf('if (!snsUser || snsUser.uid !== user.uid)');
+  const uiWrite = loaderSource.indexOf(firstUiWrite);
+  assert.ok(awaitedRead >= 0 && uidGuard > awaitedRead && uiWrite > uidGuard,
+    loader + ' must verify the active UID after its asynchronous read and before updating the UI.');
 }
-
 const uploadLocalStart = html.indexOf('async function uploadLocal(uid = currentUser?.uid)');
 const uploadLocalEnd = html.indexOf('\nasync function downloadCloud()', uploadLocalStart);
 assert.ok(uploadLocalStart >= 0 && uploadLocalEnd > uploadLocalStart, 'Cloud upload operation must exist.');
