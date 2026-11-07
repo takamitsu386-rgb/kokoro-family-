@@ -141,7 +141,7 @@ for (const [loader, firstUiWrite] of [
   ['snsLoadBlocks', 'snsBlockList.replaceChildren()']
 ]) {
   const loaderStart = sns.indexOf('async function ' + loader + '(user)');
-  const loaderEnd = sns.indexOf('\\n}', loaderStart);
+  const loaderEnd = sns.indexOf('\n}', loaderStart);
   assert.ok(loaderStart >= 0 && loaderEnd > loaderStart, loader + ' must exist.');
   const loaderSource = sns.slice(loaderStart, loaderEnd);
   const awaitedRead = loaderSource.indexOf('await ');
