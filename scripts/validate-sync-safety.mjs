@@ -129,9 +129,8 @@ assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user\);\s*\}/,
   'Post edits and deletions must release their busy state only for the account that started them.');
 assert.match(sns, /const response = await fetch\(path,[\s\S]*?if \(!snsUser \|\| snsUser\.uid !== user\.uid\) throw new Error\("アカウントが切り替わりました。"\);[\s\S]*?const data = await response\.json\(\)/,
   'Admin API responses must be discarded if the signed-in account changes while the request is in flight.');
-assert.match(sns, /catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;\s*snsAdminStatus\.textContent/,
-  'Admin update failures must not overwrite the status of a newly signed-in account.');
-assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
+assert.match(sns, /catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;\s*console\.error\("SNS admin claim check failed", error\);\s*\}\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;\s*snsMessage\("プロフィールを読み込んでいます…"\);/,
+  'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
   'Admin report refresh failures must be scoped to the account that started the request.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
