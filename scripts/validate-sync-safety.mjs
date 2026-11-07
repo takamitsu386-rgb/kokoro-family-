@@ -209,6 +209,8 @@ assert.match(googleLoginHandler, /if \(logoutInProgress \|\| loginInProgress\) r
   'Google login must ignore duplicate clicks and disable the button while authentication is starting.');
 assert.match(googleLoginHandler, /finally \{\s*loginInProgress = false;\s*loginButton\.disabled = !!currentUser \|\| !navigator\.onLine \|\| logoutInProgress;/,
   'Google login must release its in-progress lock and restore the button state after popup or redirect failure.');
+assert.match(googleLoginHandler, /const startRedirect = async \(\) => \{[\s\S]*?await signInWithRedirect\(auth, provider\);[\s\S]*?catch \(error\) \{\s*try \{ sessionStorage\.removeItem\("kokoroReturnToAiAfterLogin"\); \} catch \(storageError\) \{\}[\s\S]*?throw error;/,
+  'A failed redirect must clear the pending return-to-AI marker before a later login attempt.');
 const uploadLocalStart = html.indexOf('async function uploadLocal(uid = currentUser?.uid)');
 const uploadLocalEnd = html.indexOf('\nasync function downloadCloud()', uploadLocalStart);
 assert.ok(uploadLocalStart >= 0 && uploadLocalEnd > uploadLocalStart, 'Cloud upload operation must exist.');
