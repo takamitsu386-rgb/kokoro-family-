@@ -100,12 +100,11 @@ const reportHandler = html.slice(reportHandlerStart, reportHandlerEnd);
 assert.ok(reportHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
   reportHandler.indexOf('await fetch("/api/submit-report"') < reportHandler.indexOf('const data = await response.json()'),
   'Report responses must be discarded before parsing when the signed-in account changes.');
-assert.ok(reportHandler.includes('catch (error) {') &&
-  reportHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
-  reportHandler.indexOf('if (!snsUser || snsUser.uid !== user.uid) return;') >
-    reportHandler.indexOf('catch (error) {') &&
-  reportHandler.indexOf('snsReportNotice.textContent = error.message') >
-    reportHandler.indexOf('catch (error) {'),
+const reportCatchIndex = reportHandler.indexOf('catch (error) {');
+const reportCatch = reportHandler.slice(reportCatchIndex);
+assert.ok(reportCatchIndex >= 0 &&
+  reportCatch.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
+  reportCatch.includes('snsReportNotice.textContent = error.message'),
   'Report errors must not overwrite the notice belonging to a newly signed-in account.');
 
 console.log('Report submission protections and admin review authorization checks passed.');
