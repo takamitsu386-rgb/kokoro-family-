@@ -121,6 +121,7 @@ jobs:
             [/redirectResult = await getRedirectResult\(auth\)/, 'Redirect results must be processed on app initialization.'],
             [/onAuthStateChanged\(auth, user =>/, 'Login state must be observed after redirect processing.'],
             [/case "auth\/api-key-not-valid":/, 'Invalid Firebase Web API keys must show a targeted diagnostic.'],
+            [/Identity Toolkit API/, 'Invalid API key diagnostics must identify the required Firebase Authentication API.'],
             [/case "auth\/unauthorized-domain":/, 'Unauthorized Hosting domains must show a targeted diagnostic.'],
             [/case "auth\/operation-not-allowed":/, 'Disabled Google sign-in must show a targeted diagnostic.'],
             [/case "auth\/app-not-authorized":/, 'Unauthorized Firebase web apps must show a targeted diagnostic.'],
