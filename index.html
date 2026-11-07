@@ -2717,6 +2717,19 @@ snsAdminRefresh.addEventListener("click", async () => {
 if (snsApp) {
   snsDb = getFirestore(snsApp);
   onAuthStateChanged(getAuth(snsApp), async user => {
+    const accountChanged = snsUser?.uid !== user?.uid;
+    if (accountChanged) {
+      // Never leave the previous account's private profile, posts, or block list visible.
+      snsNickname.value = "";
+      snsAvatar.value = "avatar-01";
+      snsProfileVisibility.value = "private";
+      snsUpdateProfilePreview();
+      snsRenderPosts([]);
+      snsBlockList.replaceChildren();
+      snsBlockUid.value = "";
+      snsReportUid.value = "";
+      snsReportCategory.value = "";
+    }
     snsUser = user;
     snsSignedOut.hidden = !!user;
     snsSignedIn.hidden = !user;
