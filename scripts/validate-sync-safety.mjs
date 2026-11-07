@@ -216,11 +216,12 @@ const queueSyncEnd = html.indexOf('\ntry {', queueSyncStart);
 assert.ok(queueSyncStart >= 0 && queueSyncEnd > queueSyncStart, 'Automatic cloud sync queue must exist.');
 const queueSyncHandler = html.slice(queueSyncStart, queueSyncEnd);
 assert.ok(queueSyncHandler.includes('const queuedUid = currentUser.uid;') &&
-  queueSyncHandler.includes('if (!currentUser || currentUser.uid !== queuedUid) return;'),
-  'Delayed automatic sync must stop when the originating account is no longer active.');
-assert.ok(queueSyncHandler.includes('if (currentUser && currentUser.uid === queuedUid) {') &&
-  queueSyncHandler.includes('if (currentUser && currentUser.uid === queuedUid && !logoutInProgress) queueSync();'),
-  'Automatic sync success notices and retries must remain scoped to the originating account.');
+  queueSyncHandler.includes('const queuedGeneration = authStateGeneration;') &&
+  queueSyncHandler.includes('if (!currentUser || currentUser.uid !== queuedUid || authStateGeneration !== queuedGeneration) return;'),
+  'Delayed automatic sync must stop when the originating account or authentication generation changes.');
+assert.ok(queueSyncHandler.includes('if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {') &&
+  queueSyncHandler.includes('if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration && !logoutInProgress) queueSync();'),
+  'Automatic sync success notices and retries must remain scoped to the originating account generation.');
 
 const downloadCloudStart = html.indexOf('async function downloadCloud()');
 const downloadCloudEnd = html.indexOf('\nasync function syncNow()', downloadCloudStart);
