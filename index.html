@@ -2353,12 +2353,15 @@ const aiHistory = [];
 let aiBusy = false;
 let aiCurrentUid = null;
 let aiAuthGeneration = 0;
+let aiRequestController = null;
 const aiFirebaseApp = getApps()[0];
 if (aiFirebaseApp) {
   onAuthStateChanged(getAuth(aiFirebaseApp), user => {
     const nextUid = user ? user.uid : null;
     if (aiCurrentUid !== nextUid) {
       aiAuthGeneration += 1;
+      // Stop an in-flight network request as soon as its account is no longer active.
+      aiRequestController?.abort();
       // Never carry an unsent draft across account identities.
       aiInput.value = "";
     }
@@ -2415,6 +2418,8 @@ aiSend?.addEventListener("click", async () => {
     return;
   }
   const requestAuthGeneration = aiAuthGeneration;
+  const requestController = new AbortController();
+  aiRequestController = requestController;
   aiBusy = true;
   aiSend.disabled = true;
   if (aiClear) aiClear.disabled = true;
@@ -2432,7 +2437,8 @@ aiSend?.addEventListener("click", async () => {
     const response = await fetch("/api/ai-consultation", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: JSON.stringify({ message, history: previous })
+      body: JSON.stringify({ message, history: previous }),
+      signal: requestController.signal
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "現在、相談機能を利用できません。");
@@ -2460,6 +2466,7 @@ aiSend?.addEventListener("click", async () => {
     aiSend.disabled = false;
     if (aiClear) aiClear.disabled = false;
     aiInput.disabled = false;
+    if (aiRequestController === requestController) aiRequestController = null;
   }
 });
 </script>
