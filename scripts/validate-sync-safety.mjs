@@ -134,7 +134,7 @@ const staleAdminSequence = [
   '    }',
   '    if (!snsUser || snsUser.uid !== user.uid) return;',
   '    snsMessage("プロフィールを読み込んでいます…");'
-].join("\\n");
+].join("\n");
 assert.ok(sns.includes(staleAdminSequence),
   'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');
 assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
