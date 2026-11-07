@@ -19,7 +19,11 @@ assert.match(sync, /await uploadQueue\.catch\(\(\) => \{\}\);[\s\S]*?getDoc\(clo
   'Cloud reads must wait for queued uploads.');
 assert.match(sync, /!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/,
   'Room preference keys must reject prototype-sensitive property names before cloud import.');
-assert.equal((sync.match(/!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/g) || []).length, 4,
+const prefsStart = sync.indexOf('function validSavedRoomPrefs(value)');
+const prefsEnd = sync.indexOf('function defaultSavedRoomPrefs()', prefsStart);
+assert.ok(prefsStart >= 0 && prefsEnd > prefsStart, 'Saved-room preference validator must exist.');
+const prefsValidator = sync.slice(prefsStart, prefsEnd);
+assert.equal((prefsValidator.match(/!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/g) || []).length, 4,
   'Favorites, order, categories, and notes must each reject prototype-sensitive property names.');
 assert.match(sync, /function validCloudData\(data\)/,
   'Cloud data must be validated before import.');
