@@ -188,6 +188,10 @@ describe('profiles', () => {
       updatedAt: serverTimestamp()
     }));
     await assertFails(updateDoc(profile, {
+      nickname: '   ',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(profile, {
       nickname: 'x'.repeat(25),
       updatedAt: serverTimestamp()
     }));
@@ -262,6 +266,7 @@ describe('posts', () => {
     };
 
     await assertFails(setDoc(doc(db, 'posts/empty-content'), { ...base, text: '' }));
+    await assertFails(setDoc(doc(db, 'posts/whitespace-content'), { ...base, text: '   ' }));
     await assertFails(setDoc(doc(db, 'posts/invalid-visibility'), { ...base, visibility: 'everyone' }));
     await assertFails(setDoc(doc(db, 'posts/invalid-status'), { ...base, status: 'published' }));
     await assertFails(setDoc(doc(db, 'posts/forged-created-at'), {
