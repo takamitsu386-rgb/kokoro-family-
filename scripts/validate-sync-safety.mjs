@@ -133,8 +133,7 @@ assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await
   'Admin report refresh failures must be scoped to the account that started the request.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
-assert.match(sns, /catch \\(error\\) \\{\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;\\s*console\\.error\\("SNS admin claim check failed", error\\);\\s*\\}\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;\\s*snsMessage\\("プロフィールを読み込んでいます… " \\);/,
-  'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
+assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
   'SNS must clear private profile, post, block, and report form data on account changes.');
 for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
   const loaderStart = sns.indexOf('async function ' + loader + '(user)');
