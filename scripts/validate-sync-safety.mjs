@@ -200,6 +200,15 @@ for (const [loader, firstUiWrite] of [
   assert.ok(awaitedRead >= 0 && uidGuard > awaitedRead && uiWrite > uidGuard,
     loader + ' must verify the active UID after its asynchronous read and before updating the UI.');
 }
+const loginHandlerStart = html.indexOf('loginButton.addEventListener("click"');
+const loginHandlerEnd = html.indexOf('syncButton.addEventListener("click", syncNow)', loginHandlerStart);
+assert.ok(loginHandlerStart >= 0 && loginHandlerEnd > loginHandlerStart,
+  'Google login click handler must exist.');
+const loginHandler = html.slice(loginHandlerStart, loginHandlerEnd);
+assert.match(loginHandler, /if \(logoutInProgress \|\| loginInProgress\) return;[\s\S]*?loginInProgress = true;[\s\S]*?loginButton\.disabled = true;/,
+  'Google login must ignore duplicate clicks and disable the button while authentication is starting.');
+assert.match(loginHandler, /finally \{\s*loginInProgress = false;\s*loginButton\.disabled = !!currentUser \|\| !navigator\.onLine \|\| logoutInProgress;/,
+  'Google login must release its in-progress lock and restore the button state after popup or redirect failure.');
 const uploadLocalStart = html.indexOf('async function uploadLocal(uid = currentUser?.uid)');
 const uploadLocalEnd = html.indexOf('\nasync function downloadCloud()', uploadLocalStart);
 assert.ok(uploadLocalStart >= 0 && uploadLocalEnd > uploadLocalStart, 'Cloud upload operation must exist.');
