@@ -19,6 +19,8 @@ assert.match(sync, /await uploadQueue\.catch\(\(\) => \{\}\);[\s\S]*?getDoc\(clo
   'Cloud reads must wait for queued uploads.');
 assert.match(sync, /!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/,
   'Room preference keys must reject prototype-sensitive property names before cloud import.');
+assert.equal((sync.match(/!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/g) || []).length, 4,
+  'Favorites, order, categories, and notes must each reject prototype-sensitive property names.');
 assert.match(sync, /function validCloudData\(data\)/,
   'Cloud data must be validated before import.');
 assert.match(sync, /if \(!validCloudData\(data\)\)/,
