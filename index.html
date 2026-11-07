@@ -2798,6 +2798,7 @@ if (snsApp) {
       await snsLoadPosts(user);
       await snsLoadBlocks(user);
     } catch (error) {
+      if (!snsUser || snsUser.uid !== user.uid) return;
       console.error("SNS initial load failed", error);
       snsMessage("読み込みに失敗しました。Firebaseのログイン設定と通信状態を確認してください。");
     }
@@ -2827,6 +2828,7 @@ snsAddBlock.addEventListener("click", async () => {
     await snsLoadBlocks(user);
     snsMessage("ブロックしました。相手の公開プロフィールや投稿は表示されなくなります。");
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
   } finally { snsReleaseBusyFor(user); }
@@ -2890,6 +2892,7 @@ snsSaveProfile.addEventListener("click", async () => {
     snsUpdateProfilePreview();
     snsMessage("プロフィールを保存しました。");
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS profile save failed", error);
     snsMessage("保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
   } finally { snsReleaseBusyFor(user); }
@@ -2917,6 +2920,7 @@ snsCreatePost.addEventListener("click", async () => {
     await snsLoadPosts(user);
     snsMessage("投稿を保存しました。");
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post create failed", error);
     snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
   } finally { snsReleaseBusyFor(user); }
@@ -2929,6 +2933,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     await snsLoadPosts(user);
     snsMessage("自分の投稿を読み直しました。");
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post refresh failed", error);
     snsMessage("投稿を読み込めませんでした。");
   } finally { snsReleaseBusyFor(user); }
