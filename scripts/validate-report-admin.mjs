@@ -42,24 +42,24 @@ assert.match(html, /snsAdminRequest\("\/api\/admin\/update-report"/,
   'The admin panel must update reports through the protected server endpoint.');
 
 // Report submission must remain authenticated, bounded, and server-only.
-assert.match(source, /exports\\.submitReport = onRequest\\(/,
+assert.match(source, /exports\.submitReport = onRequest\(/,
   'Report submission must be handled by a server-side endpoint.');
-assert.match(source, /verifyIdToken\\(match\\[1\\], true\\)/,
+assert.match(source, /verifyIdToken\(match\[1\], true\)/,
   'Report submission must verify the Firebase ID token and revocation.');
-assert.match(source, /targetUid === decoded\\.uid/,
+assert.match(source, /targetUid === decoded\.uid/,
   'Users must not be able to report themselves.');
-assert.match(source, /reportCategories\\.has\\(category\\)/,
+assert.match(source, /reportCategories\.has\(category\)/,
   'Report reasons must use the server-side allowlist.');
-assert.match(source, /timeZone:\\s*"Asia\\/Tokyo"/,
+assert.match(source, /timeZone:\s*"Asia\/Tokyo"/,
   'The daily report quota must use the Tokyo calendar day.');
-assert.match(source, /if \\(count >= 5\\) return false/,
+assert.match(source, /if \(count >= 5\) return false/,
   'The report endpoint must enforce the daily per-user quota.');
-assert.match(source, /tx\\.create\\(reportRef/,
+assert.match(source, /tx\.create\(reportRef/,
   'Report creation and quota accounting must be atomic.');
 const rules = readFileSync('firestore.rules', 'utf8');
-assert.match(rules, /match \\/reports\\/\\{reportId\\}\\s*\\{\\s*allow read, write: if false;/,
+assert.match(rules, /match \/reports\/\{reportId\}\s*\{\s*allow read, write: if false;/,
   'Clients must not read or modify report records.');
-assert.match(rules, /match \\/users\\/\\{userId\\}\\/reportUsage\\/\\{dayKey\\}\\s*\\{\\s*allow read, write: if false;/,
+assert.match(rules, /match \/users\/\{userId\}\/reportUsage\/\{dayKey\}\s*\{\s*allow read, write: if false;/,
   'Clients must not inspect or alter report quota counters.');
 
 console.log('Report submission protections and admin review authorization checks passed.');
