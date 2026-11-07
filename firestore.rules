@@ -136,6 +136,11 @@ service cloud.firestore {
       }
     }
 
+    // AI consultation quota counters are written only by the authenticated server function.
+    match /users/{userId}/aiUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
     // Report documents and daily usage counters are server-only.
     // Callable Cloud Functions use the Admin SDK; clients must never access these paths.
     match /reports/{reportId} {
