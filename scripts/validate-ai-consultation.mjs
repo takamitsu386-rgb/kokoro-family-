@@ -10,7 +10,7 @@ const end = source.indexOf('\n\nconst reportCategories', start);
 assert.ok(start >= 0 && end > start, 'AI consultation endpoint must exist.');
 const endpoint = source.slice(start, end);
 
-assert.match(endpoint, /region:\s*"asia\/northeast1"/, 'AI endpoint must use the expected region.');
+assert.match(endpoint, /region:\s*"asia-northeast1"/, 'AI endpoint must use the expected region.');
 assert.match(endpoint, /secrets:\s*\[openAiApiKey\]/, 'AI key must be injected as a server secret.');
 assert.match(endpoint, /verifyIdToken\(match\[1\],\s*true\)/, 'AI requests must verify Firebase token revocation.');
 assert.match(endpoint, /req\.method !== "POST"/, 'AI endpoint must reject non-POST requests.');
