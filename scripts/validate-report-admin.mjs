@@ -47,6 +47,8 @@ assert.match(html, /id="snsAdminFilter"[\s\S]*?value="pending"[\s\S]*?value="rev
   'The admin review panel must expose all supported report review states.');
 assert.match(html, /snsAdminFilter\.addEventListener\("change"/,
   'Changing the report review state must reload the selected queue.');
+assert.match(html, /if \(report\.status === "pending"\)[\s\S]*?admin\/update-report/,
+  'Only pending reports may show review action buttons.');
 assert.match(html, /tokenInfo\.claims\?\.admin === true[\s\S]*?snsAdminPanel\.hidden = false/,
   'The admin review panel must be revealed only after a verified admin claim is read.');
 assert.match(html, /fetch\(path,\s*\{[\s\S]*?Authorization.*Bearer/,
