@@ -122,6 +122,7 @@ service cloud.firestore {
         && request.resource.data.authorUid == resource.data.authorUid
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'status', 'updatedAt'])
         && validPost(request.resource.data);
 
       // Use status='deleted' so deleted posts disappear from all read paths.
