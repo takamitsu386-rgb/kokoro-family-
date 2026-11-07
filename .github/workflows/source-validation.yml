@@ -30,6 +30,8 @@ jobs:
         run: node --check functions/index.js
       - name: Check Service Worker JavaScript syntax
         run: node --check sw.js
+      - name: Validate Service Worker cache and offline safety
+        run: node scripts/validate-service-worker.mjs
       - name: Check inline application JavaScript syntax
         run: |
           node --input-type=module <<'NODE'
