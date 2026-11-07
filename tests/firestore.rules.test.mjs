@@ -172,6 +172,10 @@ describe('profiles', () => {
       updatedAt: serverTimestamp()
     }));
     await assertFails(updateDoc(profile, {
+      avatarId: 'avatar-99',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(profile, {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }));
