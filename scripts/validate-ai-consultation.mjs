@@ -59,7 +59,7 @@ assert.match(aiClient, /let aiRequestController = null/, 'The AI client must tra
 assert.match(aiClient, /aiRequestController\?\.abort\(\)/, 'Account changes must abort an in-flight AI network request.');
 assert.match(aiClient, /const requestController = new AbortController\(\)/, 'Each AI request must have its own cancellation controller.');
 assert.match(aiClient, /signal: requestController\.signal/, 'The AI fetch must receive the request cancellation signal.');
-assert.match(aiClient, /if \(aiRequestController === requestController\) aiRequestController = null/, 'Finishing an old request must not clear a newer request controller.');
+assert.match(aiClient, /if \(aiRequestController === requestController\) \{[\s\S]*?aiRequestController = null;[\s\S]*?if \(aiAuthGeneration === requestAuthGeneration\)/, 'Finishing an old request must not clear a newer request controller or unlock a newer account composer.');
 assert.match(aiClient, /aiHistory\.length = 0[\s\S]*?aiLog\.replaceChildren\(\)/, 'Account changes must clear prior conversation history and display.');
 assert.match(aiClient, /if \(aiCurrentUid !== nextUid\)[\s\S]*?aiInput\.value = ""/, 'Account changes must clear any unsent draft from the previous identity.');
 assert.match(aiClient, /getAuth\(user\.auth\.app\)\.currentUser\?\.uid !== user\.uid/, 'AI replies must be discarded if the signed-in account changes during a request.');
