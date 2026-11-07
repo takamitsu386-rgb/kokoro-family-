@@ -27,9 +27,7 @@ service cloud.firestore {
         && data.nickname is string
         && data.nickname.size() >= 1
         && data.nickname.size() <= 24
-        && data.avatarId is string
-        && data.avatarId.size() >= 1
-        && data.avatarId.size() <= 32
+        && data.avatarId in ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']
         && data.visibility in ['private', 'public']
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
