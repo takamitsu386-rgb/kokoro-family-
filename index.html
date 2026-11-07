@@ -2233,9 +2233,10 @@ try {
   downloadButton.addEventListener("click", async () => {
     const user = currentUser;
     if (!user) return;
+    const generation = authStateGeneration;
     try { await downloadCloud(); }
     catch (error) {
-      if (!currentUser || currentUser.uid !== user.uid) return;
+      if (!currentUser || currentUser.uid !== user.uid || authStateGeneration !== generation) return;
       status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。");
     }
   });
