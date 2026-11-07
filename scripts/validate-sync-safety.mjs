@@ -133,8 +133,8 @@ const staleAdminCatch = sns.indexOf('console.error("SNS admin claim check failed
 const staleAdminGuard = sns.indexOf('if (!snsUser || snsUser.uid !== user.uid) return;', staleAdminCatch);
 const profileLoadMessage = sns.indexOf('snsMessage("プロフィールを読み込んでいます…");', staleAdminGuard);
 assert.ok(staleAdminCatch >= 0 && staleAdminGuard > staleAdminCatch && profileLoadMessage > staleAdminGuard,
-  'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');\s*\}\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;\s*snsMessage\("プロフィールを読み込んでいます…"\);/,
-  'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
+  'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');
+assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
   'Admin report refresh failures must be scoped to the account that started the request.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
