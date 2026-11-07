@@ -105,6 +105,19 @@ for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
     loader + ' must discard results after an account switch.');
 }
 
+const syncNowStart = html.indexOf('async function syncNow()');
+const syncNowEnd = html.indexOf('\nfunction queueSync()', syncNowStart);
+assert.ok(syncNowStart >= 0 && syncNowEnd > syncNowStart, 'Manual cloud sync handler must exist.');
+const syncNowHandler = html.slice(syncNowStart, syncNowEnd);
+assert.match(syncNowHandler, /catch \(error\) \{\s*if \(!currentUser \|\| currentUser\.uid !== uid\) return;/,
+  'A failed manual sync must not show an old account error after an account switch.');
+const downloadHandlerStart = html.indexOf('downloadButton.addEventListener("click"');
+const downloadHandlerEnd = html.indexOf('logoutButton.addEventListener("click"', downloadHandlerStart);
+assert.ok(downloadHandlerStart >= 0 && downloadHandlerEnd > downloadHandlerStart, 'Cloud download click handler must exist.');
+const downloadHandler = html.slice(downloadHandlerStart, downloadHandlerEnd);
+assert.match(downloadHandler, /const user = currentUser;[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== user\.uid\) return;/,
+  'A failed cloud download must not overwrite the status for a newly signed-in account.');
+
 const adminFilterStart = sns.indexOf('snsAdminFilter.addEventListener("change"');
 const adminFilterEnd = sns.indexOf('if (snsApp)', adminFilterStart);
 assert.ok(adminFilterStart >= 0 && adminFilterEnd > adminFilterStart,
