@@ -49,7 +49,7 @@ assert.match(aiClient, /p\.textContent = text/, 'AI messages must be rendered as
 assert.doesNotMatch(aiClient, /\.innerHTML\s*=|insertAdjacentHTML\s*\(/, 'AI messages must not be inserted as executable HTML.');
 assert.match(aiClient, /const aiHistory = \[\]/, 'Conversation history must be held only in page memory.');
 assert.doesNotMatch(aiClient, /localStorage|sessionStorage|indexedDB/, 'AI conversation content must not be persisted by the client.');
-assert.match(aiClient, /aiAuthGeneration\+\+/, 'Account changes must invalidate outstanding AI requests.');
+assert.match(aiClient, /aiAuthGeneration\s*\+=\s*1/, 'Account changes must invalidate outstanding AI requests.');
 assert.match(aiClient, /aiHistory\.length = 0[\s\S]*?aiLog\.replaceChildren\(\)/, 'Account changes must clear prior conversation history and display.');
 assert.match(aiClient, /getAuth\(user\.auth\.app\)\.currentUser\?\.uid !== user\.uid/, 'AI replies must be discarded if the signed-in account changes during a request.');
 assert.match(aiClient, /aiInput\.value = message/, 'Failed requests for the same account must preserve the user draft for retry.');
