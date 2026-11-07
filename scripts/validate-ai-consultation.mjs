@@ -66,3 +66,12 @@ assert.match(aiClient, /getAuth\(user\.auth\.app\)\.currentUser\?\.uid !== user\
 assert.match(aiClient, /aiInput\.value = message/, 'Failed requests for the same account must preserve the user draft for retry.');
 
 console.log('AI consultation authentication, privacy, quota, safety, and Hosting checks passed.');
+
+
+// A request from a previous account must not keep the composer locked or overwrite
+// the status/input of the newly active account when its async work finally settles.
+assert.match(aiClient, /aiRequestController\?\.abort\(\);[\s\S]*?aiRequestController = null;[\s\S]*?aiBusy = false;[\s\S]*?aiSend\.disabled = false/);
+const aiFinallyStart = aiClient.lastIndexOf('} finally {');
+const aiFinally = aiClient.slice(aiFinallyStart);
+assert.match(aiFinally, /if \(aiRequestController === requestController\)[\s\S]*?if \(aiAuthGeneration === requestAuthGeneration\)[\s\S]*?aiBusy = false/);
+assert.doesNotMatch(aiFinally, /else \{[\s\S]*?aiStatus\.textContent = "アカウントが切り替わったため/);
