@@ -118,6 +118,7 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && resource.data.authorUid == request.auth.uid
+        && resource.data.status == 'active'
         && request.resource.data.authorUid == resource.data.authorUid
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time
