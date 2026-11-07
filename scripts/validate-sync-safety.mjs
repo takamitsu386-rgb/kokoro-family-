@@ -17,6 +17,8 @@ assert.match(sync, /async function uploadLocal\(uid = currentUser\?\.uid\)/,
   'Cloud upload must bind the operation to a specific signed-in UID.');
 assert.match(sync, /await uploadQueue\.catch\(\(\) => \{\}\);[\s\S]*?getDoc\(cloudRef\(uid\)\)/,
   'Cloud reads must wait for queued uploads.');
+assert.match(sync, /!\["__proto__", "constructor", "prototype"\]\.includes\(name\)/,
+  'Room preference keys must reject prototype-sensitive property names before cloud import.');
 assert.match(sync, /function validCloudData\(data\)/,
   'Cloud data must be validated before import.');
 assert.match(sync, /if \(!validCloudData\(data\)\)/,
