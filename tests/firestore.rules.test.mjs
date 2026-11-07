@@ -234,6 +234,30 @@ describe('posts', () => {
     await assertSucceeds(getDoc(postRef));
   });
 
+  it('prevents editing or restoring a deleted post', async () => {
+    await seed('posts/post-already-deleted', {
+      authorUid: 'deleted-author',
+      text: 'Previously removed',
+      visibility: 'public',
+      status: 'deleted',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const author = testEnv.authenticatedContext('deleted-author').firestore();
+    const postRef = doc(author, 'posts/post-already-deleted');
+    await assertFails(updateDoc(postRef, {
+      text: 'Edited after deletion',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(postRef, {
+      status: 'active',
+      updatedAt: serverTimestamp()
+    }));
+    const saved = await getDoc(postRef);
+    assert.equal(saved.data().status, 'deleted');
+    assert.equal(saved.data().text, 'Previously removed');
+  });
+
   it('allows only the author to edit post text', async () => {
     const alice = testEnv.authenticatedContext('alice').firestore();
     const postRef = doc(alice, 'posts/post-edit');
