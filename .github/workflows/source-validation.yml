@@ -160,6 +160,8 @@ jobs:
         run: node scripts/validate-report-admin.mjs
       - name: Validate AI consultation security and privacy
         run: node scripts/validate-ai-consultation.mjs
+      - name: Validate cloud sync and account isolation
+        run: node scripts/validate-sync-safety.mjs
       - name: Test Firestore rules in an isolated emulator
         run: npm run test:firestore
       - name: Validate JSON configuration
