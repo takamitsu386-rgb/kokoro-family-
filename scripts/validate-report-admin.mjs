@@ -11,6 +11,8 @@ assert.match(source, /verifyIdToken\(match\[1\], true\)/,
   'Admin requests must verify token validity and revocation.');
 assert.match(source, /decoded\.admin !== true/,
   'Only a verified Firebase admin custom claim may access reports.');
+assert.match(source, /new Set\(\["reviewed",\s*"actioned",\s*"dismissed"\]\)/,
+  'The server must allow only the three supported terminal review states.');
 assert.match(source, /\.where\("status",\s*"==",\s*status\)\s*\.orderBy\("createdAt",\s*"desc"\)\s*\.limit\(50\)/,
   'Report listing must be status-filtered, newest-first, and capped.');
 const indexes = JSON.parse(readFileSync('firestore.indexes.json', 'utf8'));
@@ -31,6 +33,7 @@ assert.match(source, /reviewedBy:\s*admin\.uid[\s\S]*?reviewedAt:\s*Timestamp\.n
 assert.doesNotMatch(source, /setCustomUserClaims|admin:\s*true/,
   'Application endpoints must never grant admin privileges.');
 for (const [path, functionId] of [
+  ['/api/submit-report', 'submitReport'],
   ['/api/admin/reports', 'adminListReports'],
   ['/api/admin/update-report', 'adminUpdateReport']
 ]) {
