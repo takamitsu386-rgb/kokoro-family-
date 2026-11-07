@@ -43,6 +43,10 @@ for (const [path, functionId] of [
 
 assert.match(html, /id="snsAdminPanel" hidden/,
   'The admin review panel must remain hidden by default.');
+assert.match(html, /id="snsAdminFilter"[\\s\\S]*?value="pending"[\\s\\S]*?value="reviewed"[\\s\\S]*?value="actioned"[\\s\\S]*?value="dismissed"/,
+  'The admin review panel must expose all supported report review states.');
+assert.match(html, /snsAdminFilter\.addEventListener\("change"/,
+  'Changing the report review state must reload the selected queue.');
 assert.match(html, /tokenInfo\.claims\?\.admin === true[\s\S]*?snsAdminPanel\.hidden = false/,
   'The admin review panel must be revealed only after a verified admin claim is read.');
 assert.match(html, /fetch\(path,\s*\{[\s\S]*?Authorization.*Bearer/,
