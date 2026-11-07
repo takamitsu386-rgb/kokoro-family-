@@ -2353,6 +2353,8 @@ if (aiFirebaseApp) {
     const nextUid = user ? user.uid : null;
     if (aiCurrentUid !== nextUid) {
       aiAuthGeneration += 1;
+      // Never carry an unsent draft across account identities.
+      aiInput.value = "";
     }
     if (aiCurrentUid !== null && aiCurrentUid !== nextUid) {
       aiHistory.length = 0;
