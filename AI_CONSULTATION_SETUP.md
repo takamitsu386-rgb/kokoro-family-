@@ -35,6 +35,18 @@
 
 このリポジトリの静的検証だけでは、Firebase Console上のAPIキー状態、API有効化、HTTPリファラー制限、Googleプロバイダ設定は読み取れません。現時点ではこのエラーが解消したとは扱いません。
 
+## その他のGoogleログインエラー
+
+開発画面では、代表的なFirebase Authenticationエラーに対して次の確認案内を表示します。
+
+- `auth/operation-not-allowed`: Firebase ConsoleのAuthenticationでGoogleプロバイダを有効にする。
+- `auth/app-not-authorized`: 対象FirebaseプロジェクトとWebアプリの登録・許可状態を確認する。
+- `auth/network-request-failed`: 通信状態やブラウザ・ネットワーク側の通信制限を確認する。
+- `auth/too-many-requests`: 試行を繰り返さず、時間をおいて再試行する。
+- `auth/web-storage-unsupported`: 通常のブラウザタブで開き、Cookieやサイトデータの利用設定を確認する。
+
+表示されるエラーコードを控えて管理者へ伝えれば十分です。APIキー、IDトークン、パスワードなどの認証情報は共有しないでください。
+
 ## 管理者が実行するコマンド例
 
 ```sh
