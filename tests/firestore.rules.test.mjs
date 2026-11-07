@@ -8,6 +8,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -253,6 +254,7 @@ describe('posts', () => {
       status: 'active',
       updatedAt: serverTimestamp()
     }));
+    await assertFails(deleteDoc(postRef));
     const saved = await getDoc(postRef);
     assert.equal(saved.data().status, 'deleted');
     assert.equal(saved.data().text, 'Previously removed');
