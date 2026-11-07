@@ -319,6 +319,43 @@ describe('posts', () => {
     assert.equal(saved.data().text, 'Previously removed');
   });
 
+  it('rejects invalid post edits and preserves the original post', async () => {
+    const db = testEnv.authenticatedContext('post-validation-owner').firestore();
+    const postRef = doc(db, 'posts/post-validation');
+    await assertSucceeds(setDoc(postRef, {
+      authorUid: 'post-validation-owner',
+      text: 'Original safe text',
+      visibility: 'private',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+
+    await assertFails(updateDoc(postRef, {
+      text: '',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(postRef, {
+      text: 'x'.repeat(501),
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(postRef, {
+      status: 'published',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(postRef, {
+      visibility: 'everyone',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(postRef, {
+      email: 'private@example.invalid',
+      updatedAt: serverTimestamp()
+    }));
+    const saved = await getDoc(postRef);
+    assert.equal(saved.data().text, 'Original safe text');
+    assert.equal(saved.data().status, 'active');
+  });
+
   it('allows only the author to edit post text', async () => {
     const alice = testEnv.authenticatedContext('alice').firestore();
     const postRef = doc(alice, 'posts/post-edit');
