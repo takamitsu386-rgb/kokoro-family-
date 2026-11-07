@@ -36,7 +36,9 @@ assert.match(html, /tokenInfo\.claims\?\.admin === true[\s\S]*?snsAdminPanel\.hi
   'The admin review panel must be revealed only after a verified admin claim is read.');
 assert.match(html, /fetch\(path,\s*\{[\s\S]*?Authorization.*Bearer/,
   'Admin requests must send the signed-in Firebase ID token to the server.');
-assert.match(html, /\/api\/admin\/reports[\s\S]*?\/api\/admin\/update-report/,
-  'The admin panel must use the protected server endpoints.');
+assert.match(html, /snsAdminRequest\("\/api\/admin\/reports"/,
+  'The admin panel must load reports through the protected server endpoint.');
+assert.match(html, /snsAdminRequest\("\/api\/admin\/update-report"/,
+  'The admin panel must update reports through the protected server endpoint.');
 
 console.log('Admin report review authorization and routing checks passed.');
