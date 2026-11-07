@@ -70,6 +70,17 @@ assert.match(sync, /redirectResult = await getRedirectResult\(auth\)/,
 assert.match(sync, /onAuthStateChanged\(auth, user =>/,
   'Sync state must follow Firebase authentication changes.');
 
+const loginStart = sync.indexOf('loginButton.addEventListener("click"');
+const loginEnd = sync.indexOf('syncButton.addEventListener("click"', loginStart);
+assert.ok(loginStart >= 0 && loginEnd > loginStart, 'Google login click handler must exist.');
+const loginHandler = sync.slice(loginStart, loginEnd);
+assert.match(loginHandler, /const loginGeneration = authStateGeneration;/,
+  'Each Google login attempt must capture the current authentication generation.');
+assert.match(loginHandler, /catch \(error\) \{\s*if \(authStateGeneration !== loginGeneration\) return;/,
+  'A stale Google popup failure must not overwrite a newer authentication state.');
+assert.match(loginHandler, /catch \(redirectError\) \{\s*if \(authStateGeneration !== loginGeneration\) return;/,
+  'A stale Google redirect failure must not overwrite a newer authentication state.');
+
 const authChangeStart = sync.indexOf('onAuthStateChanged(auth, user =>');
 const authChangeEnd = sync.indexOf('window.addEventListener("offline"', authChangeStart);
 assert.ok(authChangeStart >= 0 && authChangeEnd > authChangeStart,
