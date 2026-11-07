@@ -149,6 +149,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <section id="snsAdminPanel" hidden style="border:1px solid #d8d2ec;border-radius:10px;padding:14px;margin-top:18px">
 <h3>運営用：通報確認</h3>
 <p style="font-size:13px;color:#667085">管理者権限がある運営担当者だけが確認できます。通報内容は必要な範囲で慎重に扱ってください。</p>
+<label for="snsAdminFilter" style="display:block;margin-top:10px">確認状態</label>
+<select id="snsAdminFilter" style="display:block;padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<option value="pending">未確認</option><option value="reviewed">確認済み</option><option value="actioned">対応済み</option><option value="dismissed">対象外</option>
+</select>
 <button type="button" id="snsAdminRefresh">通報一覧を読み込む</button>
 <p id="snsAdminStatus" role="status" aria-live="polite">管理者権限を確認しています。</p>
 <div id="snsAdminReportList" aria-live="polite"></div>
@@ -2484,6 +2488,7 @@ const snsSubmitReport = document.getElementById("snsSubmitReport");
 const snsReportNotice = document.getElementById("snsReportNotice");
 const snsAdminPanel = document.getElementById("snsAdminPanel");
 const snsAdminRefresh = document.getElementById("snsAdminRefresh");
+const snsAdminFilter = document.getElementById("snsAdminFilter");
 const snsAdminStatus = document.getElementById("snsAdminStatus");
 const snsAdminReportList = document.getElementById("snsAdminReportList");
 const snsApp = getApps()[0];
@@ -2698,7 +2703,7 @@ function snsRenderAdminReports(reports) {
     snsAdminReportList.appendChild(article);
   }
 }
-async function snsLoadAdminReports(user, status = "pending") {
+async function snsLoadAdminReports(user, status = snsAdminFilter.value || "pending") {
   snsAdminStatus.textContent = "通報一覧を読み込んでいます…";
   const data = await snsAdminRequest("/api/admin/reports", { status }, user);
   if (!snsUser || snsUser.uid !== user.uid) return;
@@ -2707,6 +2712,14 @@ async function snsLoadAdminReports(user, status = "pending") {
 }
 snsAdminRefresh.addEventListener("click", async () => {
   if (!snsUser) return;
+  try {
+    await snsLoadAdminReports(snsUser);
+  } catch (error) {
+    snsAdminStatus.textContent = error.message || "読み込めませんでした。";
+  }
+});
+snsAdminFilter.addEventListener("change", async () => {
+  if (!snsUser || snsAdminPanel.hidden) return;
   try {
     await snsLoadAdminReports(snsUser);
   } catch (error) {
