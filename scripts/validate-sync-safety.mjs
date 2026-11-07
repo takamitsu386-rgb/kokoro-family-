@@ -79,6 +79,21 @@ assert.match(backup, /if\(applyRoom\(data\.currentRoom,false\)!==true\)throw new
 assert.match(backup, /Object\.prototype\.hasOwnProperty\.call\(data\.savedRooms,sourceName\)/,
   'Selecting a saved room from a backup must verify that the selected key is an own property.');
 
+const fullImportStart = backup.indexOf('function importRoomBackup()');
+const selectedImportStart = backup.indexOf('function importSelectedRoomFromBackup()', fullImportStart);
+assert.ok(fullImportStart >= 0 && selectedImportStart > fullImportStart, 'Full backup import handler must exist.');
+const fullImport = backup.slice(fullImportStart, selectedImportStart);
+assert.match(fullImport, /if\(!confirm\([\s\S]*?\)\)return;[\s\S]*?localStorage\.setItem\("kokoroRoomBeforeImport"/,
+  'Canceling full backup import must happen before any local data is changed.');
+assert.match(fullImport, /finally\{\s*input\.value="";\s*\}/,
+  'The backup file input must be cleared after import processing.');
+const selectedImport = backup.slice(selectedImportStart);
+assert.match(selectedImport, /if\(!saveSavedRoomsWithUndo\(nextRooms\)\)return;/,
+  'Importing one saved room must use the guarded save-and-undo path.');
+assert.match(selectedImport, /if\(Object\.keys\(rooms\)\.length>=100\)/,
+  'Importing a saved room must enforce the saved-room count limit.');
+
+
 const aiStart = html.indexOf('const aiLog = document.getElementById("aiChatLog")');
 const aiEnd = html.indexOf('</script>', aiStart);
 assert.ok(aiStart >= 0 && aiEnd > aiStart, 'AI client module must exist.');
