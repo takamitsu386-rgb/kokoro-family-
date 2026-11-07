@@ -2231,6 +2231,9 @@ try {
   });
   logoutButton.addEventListener("click", async () => {
     if (syncInProgress || logoutInProgress) { status("同期・ログアウト処理が終わってからお試しください。"); return; }
+    const logoutUser = currentUser;
+    if (!logoutUser) return;
+    const logoutUid = logoutUser.uid;
     logoutInProgress = true;
     clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null;
     clearTimeout(syncRetryTimer); syncRetryTimer = null;
@@ -2241,10 +2244,12 @@ try {
       await uploadQueue.catch(error => {
         console.warn("Pending cloud upload did not finish before logout", error);
       });
+      if (!currentUser || currentUser.uid !== logoutUid) return;
       await signOut(auth);
       initializedSyncForUid = null;
       status("ログアウトしました。端末内データは残っています。");
     } catch (error) {
+      if (!currentUser || currentUser.uid !== logoutUid) return;
       status("ログアウトできません：" + (error.code || error.message));
     } finally {
       logoutInProgress = false;
