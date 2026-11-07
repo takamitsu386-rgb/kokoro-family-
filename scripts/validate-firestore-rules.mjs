@@ -33,7 +33,7 @@ assert.match(rules, /function\s+validPost\(/,
   'Post field allowlist validation is required.');
 assert.match(rules, /allow\s+read,\s*write:\s*if\s+false;/,
   'Unimplemented SNS subcollections must remain denied by default.');
-assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/aiUsage\\/\\{dayKey\\}\\s*\\{\\s*allow\\s+read,\\s*write:\\s*if\\s+false;/,
+assert.match(rules, /match\s+\/users\/\{userId\}\/aiUsage\/\{dayKey\}\s*\{\s*allow\s+read,\s*write:\s*if\s+false;/,
   'AI usage counters must be explicitly inaccessible to clients.');
 assert.doesNotMatch(rules, /match\s+\/\{document=\*\*\}/,
   'A recursive catch-all match could unintentionally expose new collections.');
