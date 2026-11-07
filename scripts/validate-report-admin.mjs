@@ -107,4 +107,37 @@ assert.ok(reportCatchIndex >= 0 &&
   reportCatch.includes('snsReportNotice.textContent = error.message'),
   'Report errors must not overwrite the notice belonging to a newly signed-in account.');
 
-console.log('Report submission protections and admin review authorization checks passed.');
+// User-controlled SNS content and identifiers must be rendered as text, never parsed as HTML.
+const postRendererStart = html.indexOf('function snsRenderPosts(items)');
+const postRendererEnd = html.indexOf('\\nasync function snsLoadProfile', postRendererStart);
+assert.ok(postRendererStart >= 0 && postRendererEnd > postRendererStart,
+  'The SNS post renderer must exist.');
+const postRenderer = html.slice(postRendererStart, postRendererEnd);
+assert.match(postRenderer, /body\\.textContent = item\\.text/,
+  'SNS post text must be inserted as plain text.');
+assert.doesNotMatch(postRenderer, /innerHTML|insertAdjacentHTML/,
+  'SNS post content must never be interpreted as markup.');
+
+const adminRendererStart = html.indexOf('function snsRenderAdminReports(reports)');
+const adminRendererEnd = html.indexOf('\\nasync function snsLoadAdminReports', adminRendererStart);
+assert.ok(adminRendererStart >= 0 && adminRendererEnd > adminRendererStart,
+  'The admin report renderer must exist.');
+const adminRenderer = html.slice(adminRendererStart, adminRendererEnd);
+assert.match(adminRenderer, /heading\\.textContent = snsReportCategoryLabels\\[report\\.category\\]/,
+  'Report categories must be rendered as plain text.');
+assert.match(adminRenderer, /detail\\.textContent = .*report\\.reporterUid.*report\\.targetUid/,
+  'Report identifiers must be rendered as plain text.');
+assert.doesNotMatch(adminRenderer, /innerHTML|insertAdjacentHTML/,
+  'Report metadata must never be interpreted as markup.');
+
+const blockRendererStart = html.indexOf('async function snsLoadBlocks(user)');
+const blockRendererEnd = html.indexOf('\\nasync function snsEditPost', blockRendererStart);
+assert.ok(blockRendererStart >= 0 && blockRendererEnd > blockRendererStart,
+  'The block-list renderer must exist.');
+const blockRenderer = html.slice(blockRendererStart, blockRendererEnd);
+assert.match(blockRenderer, /label\\.textContent = snapshot\\.id/,
+  'Blocked user identifiers must be rendered as plain text.');
+assert.doesNotMatch(blockRenderer, /innerHTML|insertAdjacentHTML/,
+  'Blocked user identifiers must never be interpreted as markup.');
+
+console.log('Report submission, admin authorization, and SNS text-rendering safety checks passed.');
