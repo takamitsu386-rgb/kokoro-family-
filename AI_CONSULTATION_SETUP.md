@@ -8,6 +8,14 @@
 - `firebase.json`: Node.js 22のFunctions設定と、`/api/ai-consultation` を asia-northeast1 の関数へ転送する設定。
 - `.firebaserc`: Firebase CLIの既定プロジェクトを `kokoro-family` に固定。
 
+## AI相談のデータ取り扱い
+
+- 相談本文と直近最大6件の会話履歴は、認証済みリクエストとしてCloud FunctionsからOpenAI Responses APIへ送信されます。
+- APIリクエストでは `store: false` を指定しています。これはResponses APIのアプリケーション状態保存を無効にする設定であり、事業者側の不正利用監視・安全対策等に伴う保持が一切ないことを意味しません。公開前にOpenAI APIの最新データ利用・保持条件を管理者が確認してください。
+- アプリのブラウザ画面では会話をメモリ上にだけ保持し、Firestore・localStorage・sessionStorage・IndexedDBへ会話本文を保存しません。画面の再読み込みやアカウント切り替えで画面上の会話は消えます。
+- Firestoreに保存するのは、利用者UIDと東京日付ごとの相談回数・更新時刻だけです。相談本文は利用回数記録へ含めません。
+- 公開前に、利用者へ「相談内容が外部AIサービスへ送信されること」「専門家や緊急窓口の代わりではないこと」を分かりやすく案内し、保護者・運営者が適切な利用条件を確認してください。
+
 ## 公開前に必要なこと
 
 1. FirebaseプロジェクトIDが `kokoro-family` であることを確認する。別プロジェクトへ誤公開しない。
