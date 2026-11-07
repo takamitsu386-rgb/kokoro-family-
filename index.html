@@ -1856,16 +1856,16 @@ function validSavedRoomPrefs(value) {
   return !!value && typeof value === "object" && !Array.isArray(value) &&
     Array.isArray(value.favorites) && Array.isArray(value.order) &&
     value.favorites.length <= 100 && value.order.length <= 100 &&
-    value.favorites.every(name => typeof name === "string" && name.length <= 80) &&
-    value.order.every(name => typeof name === "string" && name.length <= 80) &&
+    value.favorites.every(name => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name)) &&
+    value.order.every(name => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name)) &&
     new Set(value.favorites).size === value.favorites.length &&
     new Set(value.order).size === value.order.length &&
     !!value.categories && typeof value.categories === "object" && !Array.isArray(value.categories) &&
     Object.keys(value.categories).length <= 100 &&
-    Object.entries(value.categories).every(([name, category]) => typeof name === "string" && name.length <= 80 && typeof category === "string" && category.length <= 24) &&
+    Object.entries(value.categories).every(([name, category]) => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name) && typeof category === "string" && category.length <= 24) &&
     !!value.notes && typeof value.notes === "object" && !Array.isArray(value.notes) &&
     Object.keys(value.notes).length <= 100 &&
-    Object.entries(value.notes).every(([name, note]) => typeof name === "string" && name.length <= 80 && typeof note === "string" && note.length <= 500);
+    Object.entries(value.notes).every(([name, note]) => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name) && typeof note === "string" && note.length <= 500);
 }
 function defaultSavedRoomPrefs() {
   return { favorites: [], order: [], categories: {}, notes: {} };
