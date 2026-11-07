@@ -261,6 +261,16 @@ const downloadStart = html.indexOf('async function downloadCloud()');
 const downloadEnd = html.indexOf('\nasync function syncNow()', downloadStart);
 assert.ok(downloadStart >= 0 && downloadEnd > downloadStart, 'Cloud download operation must exist.');
 const downloadOperation = html.slice(downloadStart, downloadEnd);
+
+const syncOperationStart = html.indexOf('async function syncNow()');
+const syncOperationEnd = html.indexOf('\nfunction queueSync()', syncOperationStart);
+assert.ok(syncOperationStart >= 0 && syncOperationEnd > syncOperationStart, 'Manual cloud sync operation must exist.');
+const syncOperation = html.slice(syncOperationStart, syncOperationEnd);
+assert.match(syncOperation, /await uploadQueue;\s*if \(!isCurrentAccount\(\)\)[\s\S]*?const snapshot = await getDoc\(cloudRef\(uid\)\)/,
+  'Manual cloud sync must stop when a preceding local upload failed instead of proceeding to cloud reads or writes.');
+assert.doesNotMatch(syncOperation, /await uploadQueue\.catch\(\(\) => \{\}\)/,
+  'Manual cloud sync must not swallow pending upload failures.');
+
 assert.match(downloadOperation, /await uploadQueue;\s*if \(!isCurrentAccount\(\)\)[\s\S]*?const snapshot = await getDoc\(cloudRef\(uid\)\)/,
   'Cloud download must stop if a pending local upload failed instead of silently continuing to replace local data with cloud data.');
 assert.doesNotMatch(downloadOperation, /await uploadQueue\.catch\(\(\) => \{\}\)/,
