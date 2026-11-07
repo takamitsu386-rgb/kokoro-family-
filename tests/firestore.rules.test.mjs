@@ -409,6 +409,16 @@ describe('blocks', () => {
     await assertSucceeds(getDocs(collection(blockOwnerDb, 'users/block-owner/blocks')));
   });
 
+  it('requires a server timestamp when creating a block record', async () => {
+    const db = testEnv.authenticatedContext('timestamp-block-owner').firestore();
+    await assertFails(setDoc(doc(db, 'users/timestamp-block-owner/blocks/target'), {
+      createdAt: new Date('2020-01-01T00:00:00.000Z')
+    }));
+    await assertSucceeds(setDoc(doc(db, 'users/timestamp-block-owner/blocks/target'), {
+      createdAt: serverTimestamp()
+    }));
+  });
+
   it('denies self-blocking, spoofed block records, and access to another user block list', async () => {
     const alice = testEnv.authenticatedContext('block-owner-2').firestore();
     await assertFails(setDoc(doc(alice, 'users/block-owner-2/blocks/block-owner-2'), {
