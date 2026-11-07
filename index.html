@@ -2127,6 +2127,7 @@ async function syncNow() {
 function queueSync() {
   if (!currentUser || logoutInProgress) return;
   const queuedUid = currentUser.uid;
+  const queuedGeneration = authStateGeneration;
   let syncWasInitialized = initializedSyncForUid === queuedUid;
   if (!syncWasInitialized) {
     try { syncWasInitialized = localStorage.getItem("kokoroCloudSyncUid") === queuedUid; }
@@ -2143,7 +2144,7 @@ function queueSync() {
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = setTimeout(async () => {
     window.__kokoroSyncTimer = null;
-    if (!currentUser || currentUser.uid !== queuedUid) return;
+    if (!currentUser || currentUser.uid !== queuedUid || authStateGeneration !== queuedGeneration) return;
     if (syncInProgress) {
       syncPending = true;
       return;
@@ -2154,7 +2155,7 @@ function queueSync() {
     }
     try {
       await uploadLocal(queuedUid);
-      if (currentUser && currentUser.uid === queuedUid) {
+      if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {
         clearTimeout(syncRetryTimer);
         syncRetryTimer = null;
         syncRetryCount = 0;
@@ -2163,14 +2164,14 @@ function queueSync() {
       }
     } catch (error) {
       console.error(error);
-      if (currentUser && currentUser.uid === queuedUid) {
+      if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {
         status("クラウド同期に失敗しました。端末内には保存されています。");
         if (syncRetryCount < 3) {
           const delay = [3000, 10000, 30000][syncRetryCount++];
           clearTimeout(syncRetryTimer);
           syncRetryTimer = setTimeout(() => {
             syncRetryTimer = null;
-            if (currentUser && currentUser.uid === queuedUid && !logoutInProgress) queueSync();
+            if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration && !logoutInProgress) queueSync();
           }, delay);
         } else {
           status("自動再試行を3回行いました。端末内データは保存済みです。通信復帰後か「同期する」から再試行できます。");
