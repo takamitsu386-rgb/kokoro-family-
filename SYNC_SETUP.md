@@ -2,7 +2,7 @@
 
 ## 実装状況（2026-11-04）
 
-開発ブランチ `development-kokoro-app` の `index.html` に、Firebase Authentication と Cloud Firestore を使う同期機能の土台を実装済みです。
+開発ブランチ `feature/ai-consultation-integration` の `index.html` に、Firebase Authentication と Cloud Firestore を使う同期機能の土台を実装しています。
 
 - Googleログイン／ログアウト
 - 初回同期時に、既存クラウドデータを読み込むか端末データをアップロードするか確認
