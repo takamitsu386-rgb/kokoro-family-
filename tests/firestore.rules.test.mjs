@@ -463,16 +463,24 @@ describe('blocks', () => {
       nickname: 'Target', avatarId: 'avatar-01', visibility: 'public',
       createdAt: new Date(), updatedAt: new Date()
     });
+    await seed('posts/block-target-post', {
+      authorUid: 'block-target-profile', text: 'Public post', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
 
     const viewer = testEnv.authenticatedContext('block-viewer').firestore();
     const targetProfile = doc(viewer, 'profiles/block-target-profile');
+    const targetPost = doc(viewer, 'posts/block-target-post');
     const blockRecord = doc(viewer, 'users/block-viewer/blocks/block-target-profile');
 
     await assertSucceeds(getDoc(targetProfile));
+    await assertSucceeds(getDoc(targetPost));
     await assertSucceeds(setDoc(blockRecord, { createdAt: serverTimestamp() }));
     await assertFails(getDoc(targetProfile));
+    await assertFails(getDoc(targetPost));
     await assertSucceeds(deleteDoc(blockRecord));
     await assertSucceeds(getDoc(targetProfile));
+    await assertSucceeds(getDoc(targetPost));
   });
 
 });
