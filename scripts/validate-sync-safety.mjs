@@ -77,15 +77,15 @@ const snsStart = html.indexOf('const snsStatus = document.getElementById("snsSta
 const snsEnd = html.indexOf('</script>', snsStart);
 assert.ok(snsStart >= 0 && snsEnd > snsStart, 'SNS client module must exist.');
 const sns = html.slice(snsStart, snsEnd);
-assert.doesNotMatch(sns, /finally\\s*\\{\\s*snsSetBusy\\(false\\);/,
+assert.doesNotMatch(sns, /finally\s*\{\s*snsSetBusy\(false\);/,
   'SNS asynchronous cleanup must never release a possibly newer account busy state unconditionally.');
-assert.ok((sns.match(/finally \\{ snsReleaseBusyFor\\(user\\); \\}/g) || []).length >= 5,
+assert.ok((sns.match(/finally \{ snsReleaseBusyFor\(user\); \}/g) || []).length >= 5,
   'SNS profile, post, report, and refresh operations must use account-scoped busy cleanup.');
-assert.match(sns, /function snsReleaseBusyFor\(user\) \{[\\s\\S]*?if \(user && snsUser\?\.uid === user\.uid\) snsSetBusy\(false\);/,
+assert.match(sns, /function snsReleaseBusyFor\(user\) \{[\s\S]*?if \(user && snsUser\?\.uid === user\.uid\) snsSetBusy\(false\);/,
   'A stale SNS request must not unlock controls belonging to a different account.');
 assert.match(sns, /finally \{ snsReleaseBusyFor\(activeUser\); \}/,
   'Unblocking must release its busy state only for the account that started it.');
-assert.match(sns, /finally \{\\s*snsReleaseBusyFor\(user\);\\s*\}/,
+assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user\);\s*\}/,
   'Post edits and deletions must release their busy state only for the account that started them.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
