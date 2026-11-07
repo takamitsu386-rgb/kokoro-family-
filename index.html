@@ -2672,6 +2672,7 @@ async function snsAdminRequest(path, body, user) {
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
     body: JSON.stringify(body || {})
   });
+  if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "運営用機能を利用できませんでした。");
   return data;
@@ -2711,6 +2712,7 @@ function snsRenderAdminReports(reports) {
             snsAdminStatus.textContent = "確認状態を更新しました。";
             await snsLoadAdminReports(user);
           } catch (error) {
+            if (!snsUser || snsUser.uid !== user.uid) return;
             snsAdminStatus.textContent = error.message || "更新できませんでした。";
             button.disabled = false;
           }
@@ -2734,18 +2736,22 @@ async function snsLoadAdminReports(user, status = snsAdminFilter.value || "pendi
   snsAdminStatus.textContent = "通報一覧を表示しています（最大50件）。";
 }
 snsAdminRefresh.addEventListener("click", async () => {
-  if (!snsUser) return;
+  const user = snsUser;
+  if (!user) return;
   try {
-    await snsLoadAdminReports(snsUser);
+    await snsLoadAdminReports(user);
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     snsAdminStatus.textContent = error.message || "読み込めませんでした。";
   }
 });
 snsAdminFilter.addEventListener("change", async () => {
-  if (!snsUser || snsAdminPanel.hidden) return;
+  const user = snsUser;
+  if (!user || snsAdminPanel.hidden) return;
   try {
-    await snsLoadAdminReports(snsUser);
+    await snsLoadAdminReports(user);
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     snsAdminStatus.textContent = error.message || "読み込めませんでした。";
   }
 });
