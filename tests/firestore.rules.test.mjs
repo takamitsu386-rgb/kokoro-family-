@@ -250,6 +250,27 @@ describe('posts', () => {
     await assertSucceeds(getDoc(doc(bob, 'posts/post-public')));
   });
 
+  it('rejects empty posts and invalid visibility, status, or timestamps at creation', async () => {
+    const db = testEnv.authenticatedContext('post-create-validation').firestore();
+    const base = {
+      authorUid: 'post-create-validation',
+      text: 'A valid post',
+      visibility: 'private',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    await assertFails(setDoc(doc(db, 'posts/empty-content'), { ...base, text: '   ' }));
+    await assertFails(setDoc(doc(db, 'posts/invalid-visibility'), { ...base, visibility: 'everyone' }));
+    await assertFails(setDoc(doc(db, 'posts/invalid-status'), { ...base, status: 'published' }));
+    await assertFails(setDoc(doc(db, 'posts/forged-created-at'), {
+      ...base,
+      createdAt: new Date('2020-01-01T00:00:00.000Z')
+    }));
+    await assertSucceeds(setDoc(doc(db, 'posts/valid-create'), base));
+  });
+
   it('keeps private posts readable only by their author', async () => {
     await seed('posts/post-private', {
       authorUid: 'alice',
