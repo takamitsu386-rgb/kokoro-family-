@@ -2180,6 +2180,7 @@ try {
   db = getFirestore(app);
   loginButton.addEventListener("click", async () => {
     if (logoutInProgress) return;
+    const loginGeneration = authStateGeneration;
     authErrorMessage = null;
     const provider = new GoogleAuthProvider();
     const mobileBrowser = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
@@ -2201,10 +2202,12 @@ try {
       status("Googleログイン中…");
       await signInWithPopup(auth, provider);
     } catch (error) {
+      if (authStateGeneration !== loginGeneration) return;
       if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/cancelled-popup-request"].includes(error.code)) {
         try {
           await startRedirect();
         } catch (redirectError) {
+          if (authStateGeneration !== loginGeneration) return;
           try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
           const detail = authErrorDetail(redirectError) || "ブラウザの通常タブで開き直してお試しください。";
           authErrorMessage = "ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail;
