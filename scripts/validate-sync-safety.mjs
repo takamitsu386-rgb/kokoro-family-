@@ -257,6 +257,15 @@ assert.ok(downloadHandlerStart >= 0 && downloadHandlerEnd > downloadHandlerStart
 const downloadHandler = html.slice(downloadHandlerStart, downloadHandlerEnd);
 assert.match(downloadHandler, /const user = currentUser;[\s\S]*?const generation = authStateGeneration;[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== user\.uid \|\| authStateGeneration !== generation\) return;/,
   'A failed cloud download must not overwrite the status after an account switch, including a rapid return to the same UID.');
+const downloadStart = html.indexOf('async function downloadCloud()');
+const downloadEnd = html.indexOf('\nasync function syncNow()', downloadStart);
+assert.ok(downloadStart >= 0 && downloadEnd > downloadStart, 'Cloud download operation must exist.');
+const downloadOperation = html.slice(downloadStart, downloadEnd);
+assert.match(downloadOperation, /await uploadQueue;\s*if \(!isCurrentAccount\(\)\)[\s\S]*?const snapshot = await getDoc\(cloudRef\(uid\)\)/,
+  'Cloud download must stop if a pending local upload failed instead of silently continuing to replace local data with cloud data.');
+assert.doesNotMatch(downloadOperation, /await uploadQueue\.catch\(\(\) => \{\}\)/,
+  'Cloud download must not swallow pending upload failures before a potentially destructive import.');
+
 
 const adminFilterStart = sns.indexOf('snsAdminFilter.addEventListener("change"');
 const adminFilterEnd = sns.indexOf('if (snsApp)', adminFilterStart);
