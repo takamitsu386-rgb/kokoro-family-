@@ -2340,6 +2340,9 @@ try {
   });
   window.addEventListener("online", () => {
     loginButton.disabled = !!currentUser || logoutInProgress || loginInProgress;
+    clearTimeout(syncRetryTimer);
+    syncRetryTimer = null;
+    syncRetryCount = 0;
     setSyncBusy(syncInProgress);
     if (!currentUser) {
       status("通信が戻りました。Googleログインを利用できます。");
