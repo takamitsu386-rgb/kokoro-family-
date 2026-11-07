@@ -2854,6 +2854,7 @@ snsSubmitReport.addEventListener("click", async () => {
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({ targetUid, category })
     });
+    if (!snsUser || snsUser.uid !== user.uid) return;
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "通報を送信できませんでした。");
     if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
@@ -2861,6 +2862,7 @@ snsSubmitReport.addEventListener("click", async () => {
     snsReportCategory.value = "";
     snsReportNotice.textContent = "通報を受け付けました。内容は非公開で保存されます。";
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
   } finally { snsReleaseBusyFor(user); }
 });
