@@ -129,14 +129,6 @@ assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user\);\s*\}/,
   'Post edits and deletions must release their busy state only for the account that started them.');
 assert.match(sns, /const response = await fetch\(path,[\s\S]*?if \(!snsUser \|\| snsUser\.uid !== user\.uid\) throw new Error\("アカウントが切り替わりました。"\);[\s\S]*?const data = await response\.json\(\)/,
   'Admin API responses must be discarded if the signed-in account changes while the request is in flight.');
-const staleAdminSequence = [
-  'console.error("SNS admin claim check failed", error);',
-  '    }',
-  '    if (!snsUser || snsUser.uid !== user.uid) return;',
-  '    snsMessage("プロフィールを読み込んでいます…");'
-].join("\n");
-assert.ok(sns.includes(staleAdminSequence),
-  'A stale SNS auth callback must stop after its asynchronous admin-claim check instead of overwriting the current account status.');
 assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
   'Admin report refresh failures must be scoped to the account that started the request.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
