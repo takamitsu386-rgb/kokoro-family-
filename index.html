@@ -1826,7 +1826,7 @@ function status(message) {
 function authErrorDetail(error) {
   switch (error?.code) {
     case "auth/api-key-not-valid":
-      return "FirebaseのWeb APIキーが無効か、APIキーの制限でAuthenticationから拒否されています。FirebaseプロジェクトのWebアプリ設定とAPIキー制限を確認してください。";
+      return "FirebaseのWeb APIキーが無効か、APIキーの制限でAuthenticationから拒否されています。Firebase ConsoleのWebアプリ設定と、Google Cloud ConsoleのAPIキー設定を確認し、Identity Toolkit APIが許可されていること、HTTPリファラー制限に現在のサイトのドメインが含まれていることを確認してください。";
     case "auth/unauthorized-domain":
       return "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。";
     case "auth/operation-not-allowed":
