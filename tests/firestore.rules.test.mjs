@@ -175,6 +175,14 @@ describe('profiles', () => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }));
+    await assertFails(updateDoc(profile, {
+      email: 'private@example.invalid',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(profile, {
+      visibility: 'everyone',
+      updatedAt: serverTimestamp()
+    }));
     const saved = await getDoc(profile);
     assert.equal(saved.data().nickname, 'Valid name');
   });
