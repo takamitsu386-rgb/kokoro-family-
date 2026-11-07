@@ -244,8 +244,8 @@ const downloadHandlerStart = html.indexOf('downloadButton.addEventListener("clic
 const downloadHandlerEnd = html.indexOf('logoutButton.addEventListener("click"', downloadHandlerStart);
 assert.ok(downloadHandlerStart >= 0 && downloadHandlerEnd > downloadHandlerStart, 'Cloud download click handler must exist.');
 const downloadHandler = html.slice(downloadHandlerStart, downloadHandlerEnd);
-assert.match(downloadHandler, /const user = currentUser;[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== user\.uid\) return;/,
-  'A failed cloud download must not overwrite the status for a newly signed-in account.');
+assert.match(downloadHandler, /const user = currentUser;[\s\S]*?const generation = authStateGeneration;[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== user\.uid \|\| authStateGeneration !== generation\) return;/,
+  'A failed cloud download must not overwrite the status after an account switch, including a rapid return to the same UID.');
 
 const adminFilterStart = sns.indexOf('snsAdminFilter.addEventListener("change"');
 const adminFilterEnd = sns.indexOf('if (snsApp)', adminFilterStart);
