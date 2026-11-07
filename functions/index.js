@@ -15,7 +15,11 @@ const allowedOrigins = new Set([
 ]);
 
 function sendJson(res, status, body) {
-  res.status(status).set("Content-Type", "application/json; charset=utf-8").send(body);
+  res.status(status)
+    .set("Content-Type", "application/json; charset=utf-8")
+    .set("Cache-Control", "no-store, max-age=0, private")
+    .set("Pragma", "no-cache")
+    .send(body);
 }
 
 exports.aiConsultation = onRequest({
