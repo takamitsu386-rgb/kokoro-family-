@@ -204,10 +204,10 @@ const loginHandlerStart = html.indexOf('loginButton.addEventListener("click"');
 const loginHandlerEnd = html.indexOf('syncButton.addEventListener("click", syncNow)', loginHandlerStart);
 assert.ok(loginHandlerStart >= 0 && loginHandlerEnd > loginHandlerStart,
   'Google login click handler must exist.');
-const loginHandler = html.slice(loginHandlerStart, loginHandlerEnd);
-assert.match(loginHandler, /if \(logoutInProgress \|\| loginInProgress\) return;[\s\S]*?loginInProgress = true;[\s\S]*?loginButton\.disabled = true;/,
+const googleLoginHandler = html.slice(loginHandlerStart, loginHandlerEnd);
+assert.match(googleLoginHandler, /if \(logoutInProgress \|\| loginInProgress\) return;[\s\S]*?loginInProgress = true;[\s\S]*?loginButton\.disabled = true;/,
   'Google login must ignore duplicate clicks and disable the button while authentication is starting.');
-assert.match(loginHandler, /finally \{\s*loginInProgress = false;\s*loginButton\.disabled = !!currentUser \|\| !navigator\.onLine \|\| logoutInProgress;/,
+assert.match(googleLoginHandler, /finally \{\s*loginInProgress = false;\s*loginButton\.disabled = !!currentUser \|\| !navigator\.onLine \|\| logoutInProgress;/,
   'Google login must release its in-progress lock and restore the button state after popup or redirect failure.');
 const uploadLocalStart = html.indexOf('async function uploadLocal(uid = currentUser?.uid)');
 const uploadLocalEnd = html.indexOf('\nasync function downloadCloud()', uploadLocalStart);
