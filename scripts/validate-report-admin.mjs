@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 const source = readFileSync('functions/index.js', 'utf8');
 const config = JSON.parse(readFileSync('firebase.json', 'utf8'));
+const html = readFileSync('index.html', 'utf8');
 
 assert.match(source, /async function verifyAdminRequest\(req, res\)/,
   'Admin endpoints must share the server-side authentication check.');
@@ -28,5 +29,14 @@ for (const [path, functionId] of [
   assert.equal(rewrite?.function?.region, 'asia-northeast1',
     `Incorrect region for ${path}.`);
 }
+
+assert.match(html, /id="snsAdminPanel" hidden/,
+  'The admin review panel must remain hidden by default.');
+assert.match(html, /tokenInfo\.claims\?\.admin === true[\s\S]*?snsAdminPanel\.hidden = false/,
+  'The admin review panel must be revealed only after a verified admin claim is read.');
+assert.match(html, /fetch\(path,\s*\{[\s\S]*?Authorization.*Bearer/,
+  'Admin requests must send the signed-in Firebase ID token to the server.');
+assert.match(html, /\/api\/admin\/reports[\s\S]*?\/api\/admin\/update-report/,
+  'The admin panel must use the protected server endpoints.');
 
 console.log('Admin report review authorization and routing checks passed.');
