@@ -206,8 +206,8 @@ assert.ok(uploadLocalStart >= 0 && uploadLocalEnd > uploadLocalStart, 'Cloud upl
 const uploadLocalOperation = html.slice(uploadLocalStart, uploadLocalEnd);
 assert.match(uploadLocalOperation, /if \(!uid \|\| !currentUser \|\| currentUser\.uid !== uid\) throw new Error/,
   'Cloud uploads must reject a UID that is not the active account before queueing.');
-assert.match(uploadLocalOperation, /uploadQueue\.catch\(\(\) => \{\}\)\.then\(async \(\) => \{\s*if \(!currentUser \|\| currentUser\.uid !== uid\) throw new Error/,
-  'Queued cloud uploads must re-check the active account immediately before reading local data and writing.');
+assert.match(uploadLocalOperation, /uploadQueue\.catch\(\(\) => \{\}\)\.then\(async \(\) => \{\s*if \(!currentUser \|\| currentUser\.uid !== uid \|\| authStateGeneration !== generation\) throw new Error/,
+  'Queued cloud uploads must re-check the active account and generation immediately before reading local data and writing.');
 assert.match(uploadLocalOperation, /await setDoc\(cloudRef\(uid\),[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== uid\) throw new Error/,
   'Cloud upload completion must verify the originating account before reporting success.');
 
