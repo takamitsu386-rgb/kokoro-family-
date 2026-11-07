@@ -109,6 +109,24 @@ describe('profiles', () => {
     }));
   });
 
+  it('denies public profile reads in both directions when either user has blocked the other', async () => {
+    await seed('profiles/alice', {
+      nickname: 'Alice', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('profiles/bob', {
+      nickname: 'Bob', avatarId: 'avatar-02', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/alice/blocks/bob', { createdAt: new Date() });
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(alice, 'profiles/bob')));
+    await assertFails(getDoc(doc(bob, 'profiles/alice')));
+    await assertSucceeds(getDoc(doc(alice, 'profiles/alice')));
+    await assertSucceeds(getDoc(doc(bob, 'profiles/bob')));
+  });
+
   it('rejects UID spoofing and sensitive or unapproved profile fields', async () => {
     const db = testEnv.authenticatedContext('alice').firestore();
     await assertFails(setDoc(doc(db, 'profiles/bob'), {
@@ -280,6 +298,24 @@ describe('posts', () => {
     await seed('users/bob/blocks/alice', { createdAt: new Date() });
     const bob = testEnv.authenticatedContext('bob').firestore();
     await assertFails(getDoc(doc(bob, 'posts/post-blocked')));
+  });
+
+  it('denies public post reads in both directions when either user has blocked the other', async () => {
+    await seed('posts/alice-public', {
+      authorUid: 'alice', text: 'Alice post', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/bob-public', {
+      authorUid: 'bob', text: 'Bob post', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/alice/blocks/bob', { createdAt: new Date() });
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(alice, 'posts/bob-public')));
+    await assertFails(getDoc(doc(bob, 'posts/alice-public')));
+    await assertSucceeds(getDoc(doc(alice, 'posts/alice-public')));
+    await assertSucceeds(getDoc(doc(bob, 'posts/bob-public')));
   });
 
   it('denies unauthenticated post reads', async () => {
