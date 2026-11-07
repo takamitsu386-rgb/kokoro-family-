@@ -105,6 +105,13 @@ for (const loader of ['snsLoadProfile', 'snsLoadPosts', 'snsLoadBlocks']) {
     loader + ' must discard results after an account switch.');
 }
 
+const downloadCloudStart = html.indexOf('async function downloadCloud()');
+const downloadCloudEnd = html.indexOf('\nasync function syncNow()', downloadCloudStart);
+assert.ok(downloadCloudStart >= 0 && downloadCloudEnd > downloadCloudStart, 'Cloud download operation must exist.');
+const downloadCloudOperation = html.slice(downloadCloudStart, downloadCloudEnd);
+assert.match(downloadCloudOperation, /if \(!currentUser \|\| currentUser\.uid !== uid\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*applyCloudDataSafely\(data\);/,
+  'Cloud data must not be applied after the account changes during the confirmation prompt.');
+
 const syncNowStart = html.indexOf('async function syncNow()');
 const syncNowEnd = html.indexOf('\nfunction queueSync()', syncNowStart);
 assert.ok(syncNowStart >= 0 && syncNowEnd > syncNowStart, 'Manual cloud sync handler must exist.');
