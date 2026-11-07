@@ -213,3 +213,122 @@ exports.submitReport = onRequest({
     return sendJson(res, 500, { error: "通報を送信できませんでした。時間をおいて再度お試しください。" });
   }
 });
+
+
+const reportReviewStatuses = new Set(["reviewed", "actioned", "dismissed"]);
+
+async function verifyAdminRequest(req, res) {
+  const authHeader = req.get("authorization") || "";
+  const match = authHeader.match(/^Bearer (.+)$/);
+  if (!match) {
+    sendJson(res, 401, { error: "ログインが必要です。" });
+    return null;
+  }
+  const decoded = await getAuth().verifyIdToken(match[1], true);
+  if (decoded.admin !== true) {
+    sendJson(res, 403, { error: "運営担当者のみ利用できます。" });
+    return null;
+  }
+  return decoded;
+}
+
+function setReportCors(req, res) {
+  const origin = req.get("origin");
+  if (origin && allowedOrigins.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  }
+  res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  return origin;
+}
+
+// Admin access is controlled only by the verified Firebase custom claim.
+// No client-facing endpoint can grant or modify this claim.
+exports.adminListReports = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 2,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = setReportCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const admin = await verifyAdminRequest(req, res);
+    if (!admin) return;
+    const status = typeof req.body?.status === "string" ? req.body.status : "pending";
+    if (!["pending", ...reportReviewStatuses].includes(status)) {
+      return sendJson(res, 400, { error: "確認状態を指定してください。" });
+    }
+
+    const snapshot = await getFirestore()
+      .collection("reports")
+      .where("status", "==", status)
+      .limit(50)
+      .get();
+    const reports = snapshot.docs.map(item => {
+      const data = item.data();
+      return {
+        id: item.id,
+        reporterUid: data.reporterUid,
+        targetUid: data.targetUid,
+        category: data.category,
+        status: data.status,
+        createdAtMs: data.createdAt?.toMillis?.() ?? null
+      };
+    }).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+
+    return sendJson(res, 200, { reports });
+  } catch (error) {
+    console.error("Admin report list error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "通報一覧を読み込めませんでした。" });
+  }
+});
+
+exports.adminUpdateReport = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 2,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = setReportCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const admin = await verifyAdminRequest(req, res);
+    if (!admin) return;
+    const reportId = typeof req.body?.reportId === "string" ? req.body.reportId : "";
+    const status = typeof req.body?.status === "string" ? req.body.status : "";
+    if (!/^[A-Za-z0-9_-]{20}$/.test(reportId) || !reportReviewStatuses.has(status)) {
+      return sendJson(res, 400, { error: "通報番号または確認状態を確認してください。" });
+    }
+
+    const reportRef = getFirestore().collection("reports").doc(reportId);
+    const updated = await getFirestore().runTransaction(async tx => {
+      const snapshot = await tx.get(reportRef);
+      if (!snapshot.exists || snapshot.data().status !== "pending") return false;
+      tx.update(reportRef, {
+        status,
+        reviewedBy: admin.uid,
+        reviewedAt: Timestamp.now()
+      });
+      return true;
+    });
+    if (!updated) return sendJson(res, 409, { error: "この通報は存在しないか、すでに確認済みです。再読み込みしてください。" });
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    console.error("Admin report update error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "通報の確認状態を更新できませんでした。" });
+  }
+});
