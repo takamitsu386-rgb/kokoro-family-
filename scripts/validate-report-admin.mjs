@@ -76,6 +76,16 @@ assert.match(source, /if \(count >= 5\) return false/,
   'The report endpoint must enforce the daily per-user quota.');
 assert.match(source, /tx\.create\(reportRef/,
   'Report creation and quota accounting must be atomic.');
+assert.match(source, /if \(req\.method !== "POST"\)[\s\S]*?405/,
+  'Report and admin endpoints must reject non-POST requests.');
+assert.match(source, /origin && !allowedOrigins\.has\(origin\)/,
+  'Report and admin endpoints must reject unapproved browser origins.');
+assert.match(source, /await getAuth\(\)\.getUser\(targetUid\)/,
+  'A report target must identify an existing Firebase user.');
+assert.match(source, /Number\.isSafeInteger\(storedCount\)[\s\S]*?\? storedCount : 5/,
+  'Malformed daily quota counters must fail closed.');
+assert.match(source, /if \(count >= 5\) return false/,
+  'The quota limit must be checked inside the same transaction as report creation.');
 const rules = readFileSync('firestore.rules', 'utf8');
 assert.match(rules, /match \/reports\/\{reportId\}\s*\{\s*allow read, write: if false;/,
   'Clients must not read or modify report records.');
