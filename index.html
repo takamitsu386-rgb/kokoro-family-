@@ -2085,7 +2085,7 @@ async function syncNow() {
   try {
     clearTimeout(window.__kokoroSyncTimer);
     window.__kokoroSyncTimer = null;
-    await uploadQueue.catch(() => {});
+    await uploadQueue;
     if (!isCurrentAccount()) throw new Error("同期前にGoogleアカウントが切り替わりました。もう一度お試しください。");
     if (!navigator.onLine) throw new Error("通信が切れたため同期を中止しました。端末内データはそのままです。");
     const snapshot = await getDoc(cloudRef(uid));
