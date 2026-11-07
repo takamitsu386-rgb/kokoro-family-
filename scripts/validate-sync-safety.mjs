@@ -226,14 +226,18 @@ const downloadCloudStart = html.indexOf('async function downloadCloud()');
 const downloadCloudEnd = html.indexOf('\nasync function syncNow()', downloadCloudStart);
 assert.ok(downloadCloudStart >= 0 && downloadCloudEnd > downloadCloudStart, 'Cloud download operation must exist.');
 const downloadCloudOperation = html.slice(downloadCloudStart, downloadCloudEnd);
-assert.match(downloadCloudOperation, /if \(!currentUser \|\| currentUser\.uid !== uid\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*applyCloudDataSafely\(data\);/,
-  'Cloud data must not be applied after the account changes during the confirmation prompt.');
+assert.match(downloadCloudOperation, /const generation = authStateGeneration;[\s\S]*?const isCurrentAccount = \(\) => !!currentUser && currentUser\.uid === uid && authStateGeneration === generation;/,
+  'Cloud downloads must capture the authentication generation to reject rapid account switches.');
+assert.match(downloadCloudOperation, /if \(!isCurrentAccount\(\)\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*applyCloudDataSafely\(data\);/,
+  'Cloud data must not be applied after the account changes during the confirmation prompt, including A-to-B-to-A switches.');
 
 const syncNowStart = html.indexOf('async function syncNow()');
 const syncNowEnd = html.indexOf('\nfunction queueSync()', syncNowStart);
 assert.ok(syncNowStart >= 0 && syncNowEnd > syncNowStart, 'Manual cloud sync handler must exist.');
 const syncNowHandler = html.slice(syncNowStart, syncNowEnd);
-assert.match(syncNowHandler, /catch \(error\) \{\s*if \(!currentUser \|\| currentUser\.uid !== uid\) return;/,
+assert.match(syncNowHandler, /const generation = authStateGeneration;[\s\S]*?const isCurrentAccount = \(\) => !!currentUser && currentUser\.uid === uid && authStateGeneration === generation;/,
+  'Manual sync must capture the authentication generation to reject rapid account switches.');
+assert.match(syncNowHandler, /catch \(error\) \{\s*if \(!isCurrentAccount\(\)\) return;/,
   'A failed manual sync must not show an old account error after an account switch.');
 const downloadHandlerStart = html.indexOf('downloadButton.addEventListener("click"');
 const downloadHandlerEnd = html.indexOf('logoutButton.addEventListener("click"', downloadHandlerStart);
