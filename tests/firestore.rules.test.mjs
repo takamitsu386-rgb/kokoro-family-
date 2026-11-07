@@ -85,6 +85,24 @@ describe('profiles', () => {
     await assertSucceeds(getDoc(profile));
   });
 
+  it('denies unauthenticated access and physical deletion of profiles', async () => {
+    await seed('profiles/locked-profile', {
+      nickname: 'Locked', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    const guest = testEnv.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(guest, 'profiles/locked-profile')));
+    await assertFails(setDoc(doc(guest, 'profiles/guest-profile'), {
+      nickname: 'Guest', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+
+    const owner = testEnv.authenticatedContext('locked-profile').firestore();
+    await assertFails(deleteDoc(doc(owner, 'profiles/locked-profile')));
+    const saved = await getDoc(doc(owner, 'profiles/locked-profile'));
+    assert.equal(saved.data().nickname, 'Locked');
+  });
+
   it('allows another signed-in user to read an explicitly public profile', async () => {
     await seed('profiles/alice', {
       nickname: 'Alice',
