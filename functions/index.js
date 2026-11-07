@@ -267,6 +267,7 @@ exports.adminListReports = onRequest({
     const snapshot = await getFirestore()
       .collection("reports")
       .where("status", "==", status)
+      .orderBy("createdAt", "desc")
       .limit(50)
       .get();
     const reports = snapshot.docs.map(item => {
@@ -279,7 +280,7 @@ exports.adminListReports = onRequest({
         status: data.status,
         createdAtMs: data.createdAt?.toMillis?.() ?? null
       };
-    }).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+    });
 
     return sendJson(res, 200, { reports });
   } catch (error) {
