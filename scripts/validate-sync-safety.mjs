@@ -51,6 +51,10 @@ assert.match(sync, /logoutInProgress = true;[\s\S]*?await uploadQueue\.catch[\s\
   'Logout must stop new syncs and wait for queued uploads before signing out.');
 assert.match(sync, /const logoutUser = currentUser;[\s\S]*?const logoutUid = logoutUser\.uid;[\s\S]*?await uploadQueue\.catch[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== logoutUid\) return;[\s\S]*?await signOut\(auth\)/,
   'Logout must confirm the original account is still active after waiting for queued uploads.');
+assert.match(sync, /const logoutGeneration = authStateGeneration;[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== logoutUid \|\| authStateGeneration !== logoutGeneration\) return;[\s\S]*?await signOut\(auth\)/,
+  'Logout must reject stale work even if the same UID becomes active again after an intervening account switch.');
+assert.match(sync, /catch \(error\) \{\s*if \(!currentUser \|\| currentUser\.uid !== logoutUid \|\| authStateGeneration !== logoutGeneration\) return;/,
+  'A stale logout error must not overwrite status after a rapid account switch.');
 assert.match(sync, /catch \(error\) \{\s*if \(!currentUser \|\| currentUser\.uid !== logoutUid\) return;\s*status\("ログアウトできません："/,
   'A logout failure from an old account must not overwrite the current account status.');
 assert.match(sync, /const delay = \[3000, 10000, 30000\]\[syncRetryCount\+\+\]/,
@@ -73,6 +77,8 @@ assert.ok(authChangeStart >= 0 && authChangeEnd > authChangeStart,
 const authChangeHandler = sync.slice(authChangeStart, authChangeEnd);
 assert.match(authChangeHandler, /if \(currentUser\?\.uid !== user\?\.uid\) \{[\s\S]*?clearTimeout\(window\.__kokoroSyncTimer\)[\s\S]*?clearTimeout\(syncRetryTimer\)[\s\S]*?syncRetryCount = 0;[\s\S]*?syncPending = false;[\s\S]*?initializedSyncForUid = null;/,
   'An account change must cancel old scheduled uploads and retries and reset per-account sync state.');
+assert.match(authChangeHandler, /authStateGeneration \+= 1;/,
+  'Every authentication identity transition must advance a generation counter, including rapid switches back to a prior UID.');
 const offlineStart = sync.indexOf('window.addEventListener("offline"');
 const onlineStart = sync.indexOf('window.addEventListener("online"', offlineStart);
 const visibilityStart = sync.indexOf('document.addEventListener("visibilitychange"', onlineStart);
