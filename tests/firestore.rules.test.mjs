@@ -356,6 +356,26 @@ describe('posts', () => {
     const guest = testEnv.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(guest, 'posts/post-public-unauth')));
   });
+  it('denies public post reads when either the author or viewer has blocked the other', async () => {
+    await seed('posts/post-blocked-by-author', {
+      authorUid: 'post-author', text: 'Hidden after block', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/post-author/blocks/post-viewer', { createdAt: new Date() });
+    const author = testEnv.authenticatedContext('post-author').firestore();
+    const viewer = testEnv.authenticatedContext('post-viewer').firestore();
+    await assertSucceeds(getDoc(doc(author, 'posts/post-blocked-by-author')));
+    await assertFails(getDoc(doc(viewer, 'posts/post-blocked-by-author')));
+
+    await seed('posts/post-blocked-by-viewer', {
+      authorUid: 'another-post-author', text: 'Hidden by viewer block', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/post-viewer-2/blocks/another-post-author', { createdAt: new Date() });
+    const viewerWhoBlocked = testEnv.authenticatedContext('post-viewer-2').firestore();
+    await assertFails(getDoc(doc(viewerWhoBlocked, 'posts/post-blocked-by-viewer')));
+  });
+
 });
 
 describe('blocks', () => {
