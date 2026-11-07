@@ -110,21 +110,21 @@ describe('profiles', () => {
   });
 
   it('denies public profile reads in both directions when either user has blocked the other', async () => {
-    await seed('profiles/alice', {
-      nickname: 'Alice', avatarId: 'avatar-01', visibility: 'public',
+    await seed('profiles/profile-owner', {
+      nickname: 'Owner', avatarId: 'avatar-01', visibility: 'public',
       createdAt: new Date(), updatedAt: new Date()
     });
-    await seed('profiles/bob', {
-      nickname: 'Bob', avatarId: 'avatar-02', visibility: 'public',
+    await seed('profiles/profile-viewer', {
+      nickname: 'Viewer', avatarId: 'avatar-02', visibility: 'public',
       createdAt: new Date(), updatedAt: new Date()
     });
-    await seed('users/alice/blocks/bob', { createdAt: new Date() });
-    const alice = testEnv.authenticatedContext('alice').firestore();
-    const bob = testEnv.authenticatedContext('bob').firestore();
-    await assertFails(getDoc(doc(alice, 'profiles/bob')));
-    await assertFails(getDoc(doc(bob, 'profiles/alice')));
-    await assertSucceeds(getDoc(doc(alice, 'profiles/alice')));
-    await assertSucceeds(getDoc(doc(bob, 'profiles/bob')));
+    await seed('users/profile-owner/blocks/profile-viewer', { createdAt: new Date() });
+    const owner = testEnv.authenticatedContext('profile-owner').firestore();
+    const viewer = testEnv.authenticatedContext('profile-viewer').firestore();
+    await assertFails(getDoc(doc(owner, 'profiles/profile-viewer')));
+    await assertFails(getDoc(doc(viewer, 'profiles/profile-owner')));
+    await assertSucceeds(getDoc(doc(owner, 'profiles/profile-owner')));
+    await assertSucceeds(getDoc(doc(viewer, 'profiles/profile-viewer')));
   });
 
   it('rejects UID spoofing and sensitive or unapproved profile fields', async () => {
@@ -301,21 +301,21 @@ describe('posts', () => {
   });
 
   it('denies public post reads in both directions when either user has blocked the other', async () => {
-    await seed('posts/alice-public', {
-      authorUid: 'alice', text: 'Alice post', visibility: 'public',
+    await seed('posts/post-owner-public', {
+      authorUid: 'post-owner', text: 'Owner post', visibility: 'public',
       status: 'active', createdAt: new Date(), updatedAt: new Date()
     });
-    await seed('posts/bob-public', {
-      authorUid: 'bob', text: 'Bob post', visibility: 'public',
+    await seed('posts/post-viewer-public', {
+      authorUid: 'post-viewer', text: 'Viewer post', visibility: 'public',
       status: 'active', createdAt: new Date(), updatedAt: new Date()
     });
-    await seed('users/alice/blocks/bob', { createdAt: new Date() });
-    const alice = testEnv.authenticatedContext('alice').firestore();
-    const bob = testEnv.authenticatedContext('bob').firestore();
-    await assertFails(getDoc(doc(alice, 'posts/bob-public')));
-    await assertFails(getDoc(doc(bob, 'posts/alice-public')));
-    await assertSucceeds(getDoc(doc(alice, 'posts/alice-public')));
-    await assertSucceeds(getDoc(doc(bob, 'posts/bob-public')));
+    await seed('users/post-owner/blocks/post-viewer', { createdAt: new Date() });
+    const owner = testEnv.authenticatedContext('post-owner').firestore();
+    const viewer = testEnv.authenticatedContext('post-viewer').firestore();
+    await assertFails(getDoc(doc(owner, 'posts/post-viewer-public')));
+    await assertFails(getDoc(doc(viewer, 'posts/post-owner-public')));
+    await assertSucceeds(getDoc(doc(owner, 'posts/post-owner-public')));
+    await assertSucceeds(getDoc(doc(viewer, 'posts/post-viewer-public')));
   });
 
   it('denies unauthenticated post reads', async () => {
@@ -335,43 +335,44 @@ describe('posts', () => {
 describe('blocks', () => {
   it('allows a user to block another user and read their own block list', async () => {
     const db = testEnv.authenticatedContext('alice').firestore();
-    await assertSucceeds(setDoc(doc(db, 'users/alice/blocks/bob'), {
+    await assertSucceeds(setDoc(doc(db, 'users/block-owner/blocks/block-target'), {
       createdAt: serverTimestamp()
     }));
-    await assertSucceeds(getDoc(doc(db, 'users/alice/blocks/bob')));
-    await assertSucceeds(getDocs(collection(db, 'users/alice/blocks')));
+    const blockOwnerDb = testEnv.authenticatedContext('block-owner').firestore();
+    await assertSucceeds(getDoc(doc(blockOwnerDb, 'users/block-owner/blocks/block-target')));
+    await assertSucceeds(getDocs(collection(blockOwnerDb, 'users/block-owner/blocks')));
   });
 
   it('denies self-blocking, spoofed block records, and access to another user block list', async () => {
-    const alice = testEnv.authenticatedContext('alice').firestore();
-    await assertFails(setDoc(doc(alice, 'users/alice/blocks/alice'), {
+    const alice = testEnv.authenticatedContext('block-owner-2').firestore();
+    await assertFails(setDoc(doc(alice, 'users/block-owner-2/blocks/block-owner-2'), {
       createdAt: serverTimestamp()
     }));
-    await assertFails(setDoc(doc(alice, 'users/bob/blocks/charlie'), {
+    await assertFails(setDoc(doc(alice, 'users/other-owner/blocks/stranger'), {
       createdAt: serverTimestamp()
     }));
-    await assertFails(setDoc(doc(alice, 'users/alice/blocks/bob'), {
+    await assertFails(setDoc(doc(alice, 'users/block-owner-2/blocks/block-target-2'), {
       createdAt: serverTimestamp(),
       note: 'extra data'
     }));
-    const bob = testEnv.authenticatedContext('bob').firestore();
-    await assertFails(getDoc(doc(bob, 'users/alice/blocks/bob')));
-    await assertFails(getDocs(collection(bob, 'users/alice/blocks')));
+    const bob = testEnv.authenticatedContext('block-target-2').firestore();
+    await assertFails(getDoc(doc(bob, 'users/block-owner-2/blocks/block-target-2')));
+    await assertFails(getDocs(collection(bob, 'users/block-owner-2/blocks')));
   });
 
   it('allows the owner to unblock and prevents others from removing a block', async () => {
-    await seed('users/alice/blocks/bob', { createdAt: new Date() });
-    const bob = testEnv.authenticatedContext('bob').firestore();
-    await assertFails(updateDoc(doc(bob, 'users/alice/blocks/bob'), {
+    await seed('users/unblock-owner/blocks/unblock-target', { createdAt: new Date() });
+    const bob = testEnv.authenticatedContext('unblock-target').firestore();
+    await assertFails(updateDoc(doc(bob, 'users/unblock-owner/blocks/unblock-target'), {
       createdAt: serverTimestamp()
     }));
     await assertFails((async () => {
       const { deleteDoc } = await import('firebase/firestore');
-      return deleteDoc(doc(bob, 'users/alice/blocks/bob'));
+      return deleteDoc(doc(bob, 'users/unblock-owner/blocks/unblock-target'));
     })());
-    const alice = testEnv.authenticatedContext('alice').firestore();
+    const alice = testEnv.authenticatedContext('unblock-owner').firestore();
     const { deleteDoc } = await import('firebase/firestore');
-    await assertSucceeds(deleteDoc(doc(alice, 'users/alice/blocks/bob')));
+    await assertSucceeds(deleteDoc(doc(alice, 'users/unblock-owner/blocks/unblock-target')));
   });
 });
 
