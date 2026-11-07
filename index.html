@@ -2109,6 +2109,7 @@ async function syncNow() {
     initializedSyncForUid = uid;
     markCloudSync(uid);
   } catch (error) {
+    if (!currentUser || currentUser.uid !== uid) return;
     console.error(error);
     status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
   } finally {
@@ -2220,8 +2221,13 @@ try {
   });
   syncButton.addEventListener("click", syncNow);
   downloadButton.addEventListener("click", async () => {
+    const user = currentUser;
+    if (!user) return;
     try { await downloadCloud(); }
-    catch (error) { status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。"); }
+    catch (error) {
+      if (!currentUser || currentUser.uid !== user.uid) return;
+      status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。");
+    }
   });
   logoutButton.addEventListener("click", async () => {
     if (syncInProgress || logoutInProgress) { status("同期・ログアウト処理が終わってからお試しください。"); return; }
