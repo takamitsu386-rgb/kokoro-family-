@@ -334,7 +334,7 @@ describe('posts', () => {
 
 describe('blocks', () => {
   it('allows a user to block another user and read their own block list', async () => {
-    const db = testEnv.authenticatedContext('alice').firestore();
+    const db = testEnv.authenticatedContext('block-owner').firestore();
     await assertSucceeds(setDoc(doc(db, 'users/block-owner/blocks/block-target'), {
       createdAt: serverTimestamp()
     }));
