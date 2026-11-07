@@ -49,6 +49,10 @@ assert.match(sync, /if \(syncInProgress\) \{\s*syncPending = true;/,
   'Automatic sync requests must be deferred while another sync is active.');
 assert.match(sync, /logoutInProgress = true;[\s\S]*?await uploadQueue\.catch[\s\S]*?await signOut\(auth\)/,
   'Logout must stop new syncs and wait for queued uploads before signing out.');
+assert.match(sync, /const logoutUser = currentUser;[\\s\\S]*?const logoutUid = logoutUser\\.uid;[\\s\\S]*?await uploadQueue\\.catch[\\s\\S]*?if \\(!currentUser \\|\\| currentUser\\.uid !== logoutUid\\) return;[\\s\\S]*?await signOut\\(auth\\)/,
+  'Logout must confirm the original account is still active after waiting for queued uploads.');
+assert.match(sync, /catch \\(error\\) \\{\\s*if \\(!currentUser \\|\\| currentUser\\.uid !== logoutUid\\) return;\\s*status\\("ログアウトできません："/,
+  'A logout failure from an old account must not overwrite the current account status.');
 assert.match(sync, /const delay = \[3000, 10000, 30000\]\[syncRetryCount\+\+\]/,
   'Automatic sync retries must be bounded with increasing delays.');
 assert.match(sync, /const mobileBrowser = \/Android\|iPhone\|iPad\|iPod\/i\.test\(navigator\.userAgent\)/,
