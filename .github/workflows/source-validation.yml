@@ -32,6 +32,8 @@ jobs:
         run: node --check sw.js
       - name: Validate Service Worker cache and offline safety
         run: node scripts/validate-service-worker.mjs
+      - name: Validate Firebase Hosting security headers
+        run: node scripts/validate-hosting-security.mjs
       - name: Check inline application JavaScript syntax
         run: |
           node --input-type=module <<'NODE'
