@@ -14,6 +14,8 @@ assert.match(endpoint, /region:\s*"asia-northeast1"/, 'AI endpoint must use the 
 assert.match(endpoint, /secrets:\s*\[openAiApiKey\]/, 'AI key must be injected as a server secret.');
 assert.match(endpoint, /verifyIdToken\(match\[1\],\s*true\)/, 'AI requests must verify Firebase token revocation.');
 assert.match(endpoint, /req\.method !== "POST"/, 'AI endpoint must reject non-POST requests.');
+assert.match(source, /Cache-Control\", \"no-store, max-age=0, private\"/, 'JSON API responses must not be cached because they may contain private user data.');
+assert.match(source, /Pragma\", \"no-cache\"/, 'JSON API responses must include a legacy no-cache directive.');
 assert.match(endpoint, /allowedOrigins\.has\(origin\)/, 'AI endpoint must enforce the origin allowlist.');
 assert.match(endpoint, /message\.length > 1200/, 'User messages must have a strict size limit.');
 assert.match(endpoint, /history\.slice\(-6\)/, 'Conversation history must be limited to the latest six entries.');
