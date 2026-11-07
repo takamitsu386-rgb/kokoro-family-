@@ -2514,6 +2514,10 @@ function snsSetBusy(value) {
   snsBusy = value;
   [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
 }
+function snsReleaseBusyFor(user) {
+  // A request from a signed-out or previous account must not unlock the new account's UI.
+  if (user && snsUser?.uid === user.uid) snsSetBusy(false);
+}
 function snsRenderPosts(items) {
   snsPostList.replaceChildren();
   if (!items.length) {
@@ -2599,7 +2603,7 @@ async function snsLoadBlocks(user) {
       } catch (error) {
         console.error("SNS unblock failed", error);
         snsMessage("ブロックを解除できませんでした。");
-      } finally { snsSetBusy(false); }
+      } finally { snsReleaseBusyFor(activeUser); }
     });
     row.append(label, unblock);
     snsBlockList.appendChild(row);
@@ -2628,7 +2632,7 @@ async function snsEditPost(postId, currentText) {
     console.error("SNS post edit failed", error);
     snsMessage("更新できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
-    snsSetBusy(false);
+    snsReleaseBusyFor(user);
   }
 }
 async function snsDeletePost(postId) {
@@ -2648,7 +2652,7 @@ async function snsDeletePost(postId) {
     console.error("SNS post delete failed", error);
     snsMessage("削除できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
-    snsSetBusy(false);
+    snsReleaseBusyFor(user);
   }
 }
 
