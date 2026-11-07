@@ -37,6 +37,9 @@ assert.match(endpoint, /auth\/id-token-revoked/, 'Revoked tokens must be handled
 const rewrite = config.hosting?.rewrites?.find(item => item.source === '/api/ai-consultation');
 assert.equal(rewrite?.function?.functionId, 'aiConsultation', 'AI Hosting rewrite must target the expected function.');
 assert.equal(rewrite?.function?.region, 'asia-northeast1', 'AI Hosting rewrite must use the expected region.');
+assert.match(html, /相談内容は返答のため外部AIサービスへ送信されます/, 'The AI screen must disclose external processing before users submit a message.');
+assert.match(html, /個人が特定される情報は入力しないでください/, 'The AI screen must warn users not to submit identifying information.');
+assert.match(html, /AIの返答は専門家による診断や助言の代わりではありません/, 'The AI screen must explain that it is not a professional substitute.');
 assert.match(html, /fetch\("\/api\/ai-consultation"/, 'The client must use the same-origin AI endpoint.');
 assert.doesNotMatch(html, /\bsk-[A-Za-z0-9_-]{20,}\b/, 'A possible OpenAI secret must never be embedded in client HTML.');
 
