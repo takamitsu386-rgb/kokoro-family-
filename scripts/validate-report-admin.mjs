@@ -11,8 +11,19 @@ assert.match(source, /verifyIdToken\(match\[1\], true\)/,
   'Admin requests must verify token validity and revocation.');
 assert.match(source, /decoded\.admin !== true/,
   'Only a verified Firebase admin custom claim may access reports.');
-assert.match(source, /\.where\("status",\s*"==",\s*status\)\s*\.limit\(50\)/,
-  'Report listing must be status-filtered and capped.');
+assert.match(source, /\.where\("status",\s*"==",\s*status\)\s*\.orderBy\("createdAt",\s*"desc"\)\s*\.limit\(50\)/,
+  'Report listing must be status-filtered, newest-first, and capped.');
+const indexes = JSON.parse(readFileSync('firestore.indexes.json', 'utf8'));
+assert.ok(indexes.indexes.some(index =>
+  index.collectionGroup === 'reports' &&
+  index.queryScope === 'COLLECTION' &&
+  JSON.stringify(index.fields) === JSON.stringify([
+    { fieldPath: 'status', order: 'ASCENDING' },
+    { fieldPath: 'createdAt', order: 'DESCENDING' }
+  ])
+), 'The report queue composite index must match its status/newest-first query.');
+assert.equal(config.firestore?.indexes, 'firestore.indexes.json',
+  'Firebase must be configured to deploy the report queue composite index.');
 assert.match(source, /tx\.get\(reportRef\)[\s\S]*?snapshot\.data\(\)\.status !== "pending"/,
   'Only pending reports may be reviewed.');
 assert.match(source, /reviewedBy:\s*admin\.uid[\s\S]*?reviewedAt:\s*Timestamp\.now\(\)/,
