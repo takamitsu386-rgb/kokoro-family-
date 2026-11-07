@@ -107,6 +107,8 @@ assert.match(offlineHandler, /clearTimeout\(syncRetryTimer\);[\s\S]*?syncRetryTi
 const onlineHandler = sync.slice(onlineStart, visibilityStart);
 assert.match(onlineHandler, /if \(!currentUser\) \{[\s\S]*?return;[\s\S]*?queueSync\(\);/,
   'Coming back online must retry only when a user is signed in.');
+assert.match(onlineHandler, /clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;[\s\S]*?queueSync\(\);/,
+  'Returning online after exhausting automatic retries must reset the retry budget and start a fresh retry cycle.');
 const visibilityHandler = sync.slice(visibilityStart);
 assert.match(visibilityHandler, /document\.visibilityState !== "visible" \|\| !currentUser[\s\S]*?const uid = currentUser\.uid[\s\S]*?initializedSyncForUid === uid[\s\S]*?queueSync\(\);/,
   'Returning to the app must check sync state against the currently signed-in UID.');
