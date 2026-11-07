@@ -66,6 +66,29 @@ assert.match(sync, /redirectResult = await getRedirectResult\(auth\)/,
 assert.match(sync, /onAuthStateChanged\(auth, user =>/,
   'Sync state must follow Firebase authentication changes.');
 
+const authChangeStart = sync.indexOf('onAuthStateChanged(auth, user =>');
+const authChangeEnd = sync.indexOf('window.addEventListener("offline"', authChangeStart);
+assert.ok(authChangeStart >= 0 && authChangeEnd > authChangeStart,
+  'Firebase auth change handler must be bounded before network event handlers.');
+const authChangeHandler = sync.slice(authChangeStart, authChangeEnd);
+assert.match(authChangeHandler, /if \(currentUser\?\.uid !== user\?\.uid\) \{[\s\S]*?clearTimeout\(window\.__kokoroSyncTimer\)[\s\S]*?clearTimeout\(syncRetryTimer\)[\s\S]*?syncRetryCount = 0;[\s\S]*?syncPending = false;[\s\S]*?initializedSyncForUid = null;/,
+  'An account change must cancel old scheduled uploads and retries and reset per-account sync state.');
+const offlineStart = sync.indexOf('window.addEventListener("offline"');
+const onlineStart = sync.indexOf('window.addEventListener("online"', offlineStart);
+const visibilityStart = sync.indexOf('document.addEventListener("visibilitychange"', onlineStart);
+assert.ok(offlineStart >= 0 && onlineStart > offlineStart && visibilityStart > onlineStart,
+  'Offline, online, and visibility handlers must remain present and ordered.');
+const offlineHandler = sync.slice(offlineStart, onlineStart);
+assert.match(offlineHandler, /clearTimeout\(syncRetryTimer\);[\s\S]*?syncRetryTimer = null;/,
+  'Going offline must cancel a pending cloud retry timer.');
+const onlineHandler = sync.slice(onlineStart, visibilityStart);
+assert.match(onlineHandler, /if \(!currentUser\) \{[\s\S]*?return;[\s\S]*?queueSync\(\);/,
+  'Coming back online must retry only when a user is signed in.');
+const visibilityHandler = sync.slice(visibilityStart);
+assert.match(visibilityHandler, /document\.visibilityState !== "visible" \|\| !currentUser[\s\S]*?const uid = currentUser\.uid[\s\S]*?initializedSyncForUid === uid[\s\S]*?queueSync\(\);/,
+  'Returning to the app must check sync state against the currently signed-in UID.');
+
+
 const backupStart = html.indexOf('const MAX_BACKUP_BYTES=10*1024*1024;');
 const backupEnd = html.indexOf('let uploadQueue = Promise.resolve()', backupStart);
 assert.ok(backupStart >= 0 && backupEnd > backupStart, 'Backup export and import handlers must exist.');
