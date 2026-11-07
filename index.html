@@ -60,6 +60,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 @media(min-width:900px){main{max-width:1100px}.room{height:420px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
+
+.ai-notice{padding:12px;border-radius:10px;background:#fff7e8;border:1px solid #f0d39b;color:#704b1b;font-size:14px}.ai-chat-log{display:flex;flex-direction:column;gap:10px;min-height:90px;max-height:360px;overflow-y:auto;padding:12px;margin:12px 0;background:#f7f7fc;border-radius:12px}.ai-chat-log p{margin:0;padding:10px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}.ai-chat-log .ai-welcome,.ai-chat-log .ai-assistant{background:#fff;align-self:flex-start;max-width:95%}.ai-chat-log .ai-user{background:#e9e5ff;align-self:flex-end;max-width:95%}#aiStatus{font-size:13px;color:#596579}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#6759d8">
@@ -74,13 +76,89 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#ai-consultation">AI相談</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-actions"><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+</section>
+<section class="panel" id="ai-consultation">
+<h2>💬 AI相談</h2>
+<p>気持ちや日々の困りごとを、落ち着いて整理するための相談スペースです。</p>
+<p class="ai-notice">相談内容は返答のため外部AIサービスへ送信されます。会話履歴はアプリ内に保存されず、ページを再読み込みしたり閉じたりすると消えます。名前・住所・学校名・電話番号など、個人が特定される情報は入力しないでください。AIの返答は専門家による診断や助言の代わりではありません。</p>
+<div id="aiChatLog" class="ai-chat-log" role="log" aria-live="polite" aria-label="相談の会話">
+<p class="ai-welcome">こんにちは。話したいことを、書ける範囲で入力してください。うまくまとまっていなくても大丈夫です。</p>
+</div>
+<label for="aiMessage">相談したいこと</label>
+<textarea id="aiMessage" rows="3" maxlength="1200" placeholder="ここに入力（最大1200文字）" style="display:block;width:100%;padding:12px;border:1px solid #cbd2e1;border-radius:10px;font:inherit"></textarea>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<button class="primary" id="aiSend" type="button">送信する</button>
+<button id="aiClear" type="button">この画面の会話を消す</button>
+<span id="aiStatus" role="status" aria-live="polite">送信にはGoogleログインとAI機能の公開設定が必要です。</span>
+</div>
+<p style="font-size:13px;color:#667085">つらさが強いときや、身の安全に不安があるときは、AIだけで抱えず、近くの信頼できる大人にも伝えてください。</p>
+</section>
+<section class="panel" id="sns">
+<h2>👥 SNS（プロフィール・自分の投稿）</h2>
+<p>ログインして、自分のプロフィールと投稿を管理できます。投稿は最初「自分のみ」に設定されます。公開を選ぶ場合は、個人が特定される情報を書かないでください。</p>
+<p id="snsStatus" role="status" aria-live="polite">Googleログインの状態を確認しています。</p>
+<div id="snsSignedOut" hidden><p>プロフィールや投稿を使うには、先に上の「スマホ・PC同期」からGoogleログインしてください。</p></div>
+<div id="snsSignedIn" hidden>
+<h3>プロフィール</h3>
+<label for="snsNickname">ニックネーム（24文字以内）</label>
+<input id="snsNickname" maxlength="24" autocomplete="nickname" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<label for="snsAvatar" style="display:block;margin-top:8px">アイコン</label>
+<select id="snsAvatar" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<option value="avatar-01">🌷 お花</option><option value="avatar-02">🐱 ねこ</option><option value="avatar-03">🐻 くま</option><option value="avatar-04">⭐ 星</option><option value="avatar-05">🐰 うさぎ</option>
+</select>
+<div id="snsProfilePreview" role="status" aria-live="polite" style="display:flex;align-items:center;gap:10px;margin:12px 0;padding:12px;background:#f7f5ff;border:1px solid #e5e0ff;border-radius:10px"><span id="snsPreviewAvatar" aria-hidden="true" style="font-size:32px">🌷</span><span><strong id="snsPreviewNickname">ニックネーム未設定</strong><br><small id="snsPreviewVisibility">公開範囲：自分のみ</small></span></div>
+<label for="snsProfileVisibility" style="display:block;margin-top:8px">プロフィール公開範囲</label>
+<select id="snsProfileVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="public">公開</option></select>
+<button type="button" id="snsSaveProfile" class="primary" style="margin-top:10px">プロフィールを保存</button>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>投稿する</h3>
+<label for="snsPostText">投稿内容（500文字以内）</label>
+<textarea id="snsPostText" maxlength="500" rows="4" placeholder="個人情報を書かずに投稿しよう" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"></textarea>
+<label for="snsPostVisibility" style="display:block;margin-top:8px">投稿の公開範囲</label>
+<select id="snsPostVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="public">公開</option></select>
+<button type="button" id="snsCreatePost" class="primary" style="margin-top:10px">投稿を保存</button>
+<h3 style="margin-top:20px">自分の投稿</h3>
+<button type="button" id="snsRefreshPosts">投稿を読み直す</button>
+<div id="snsPostList" aria-live="polite"><p>ログインすると自分の投稿が表示されます。</p></div>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>ユーザーを通報</h3>
+<p style="font-size:13px;color:#667085">困った行為や不適切な内容を運営に知らせます。通報は非公開で保存されます。個人情報や詳しい事情は入力しないでください。</p>
+<label for="snsReportUid">通報する相手のユーザーID</label>
+<input id="snsReportUid" maxlength="128" autocomplete="off" spellcheck="false" placeholder="ユーザーIDを入力" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<label for="snsReportCategory" style="display:block;margin-top:8px">通報理由</label>
+<select id="snsReportCategory" style="display:block;padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<option value="">理由を選択</option><option value="harassment">いやがらせ・迷惑行為</option><option value="bullying">いじめ・脅し</option><option value="inappropriate_content">不適切な内容</option><option value="privacy">個人情報の掲載</option><option value="impersonation">なりすまし</option><option value="other">その他</option>
+</select>
+<button type="button" id="snsSubmitReport" style="margin-top:8px">通報を送信</button>
+<p id="snsReportNotice" role="status" aria-live="polite">通報は1日5件までです。緊急の危険がある場合は、近くの信頼できる大人にすぐ伝えてください。</p>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>ブロック管理</h3>
+<p style="font-size:13px;color:#667085">相手のユーザーIDを入力すると、その相手の公開プロフィールや投稿を表示しないようにします。ユーザーIDは相手本人から安全な方法で教えてもらってください。</p>
+<label for="snsBlockUid">ブロックするユーザーID</label>
+<input id="snsBlockUid" maxlength="128" autocomplete="off" spellcheck="false" placeholder="ユーザーIDを入力" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" id="snsAddBlock" style="margin-top:8px">このユーザーをブロック</button>
+<h4>ブロック中のユーザー</h4>
+<div id="snsBlockList" aria-live="polite"><p>ログインすると一覧が表示されます。</p></div>
+<section id="snsAdminPanel" hidden style="border:1px solid #d8d2ec;border-radius:10px;padding:14px;margin-top:18px">
+<h3>運営用：通報確認</h3>
+<p style="font-size:13px;color:#667085">管理者権限がある運営担当者だけが確認できます。通報内容は必要な範囲で慎重に扱ってください。</p>
+<label for="snsAdminFilter" style="display:block;margin-top:10px">確認状態</label>
+<select id="snsAdminFilter" style="display:block;padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<option value="pending">未確認</option><option value="reviewed">確認済み</option><option value="actioned">対応済み</option><option value="dismissed">対象外</option>
+</select>
+<button type="button" id="snsAdminRefresh">通報一覧を読み込む</button>
+<p id="snsAdminStatus" role="status" aria-live="polite">管理者権限を確認しています。</p>
+<div id="snsAdminReportList" aria-live="polite"></div>
+</section>
+</div>
+<p style="font-size:13px;color:#667085">全体タイムライン、コメント、いいね、友達申請はまだ準備中です。通報確認画面は管理者権限を持つ運営担当者だけが利用できます。</p>
 </section>
 <section class="panel" id="cloud-sync">
 <h2>☁️ スマホ・PC同期</h2>
@@ -1739,10 +1817,33 @@ const syncButton = document.getElementById("cloudSyncNow");
 const downloadButton = document.getElementById("cloudDownload");
 const logoutButton = document.getElementById("cloudLogout");
 let auth, db, currentUser = null;
+let loginInProgress = false;
+let authStateGeneration = 0;
+let authErrorMessage = null;
 let initializedSyncForUid = null;
 
 function status(message) {
   if (statusEl) statusEl.textContent = message;
+}
+function authErrorDetail(error) {
+  switch (error?.code) {
+    case "auth/api-key-not-valid":
+      return "FirebaseのWeb APIキーが無効か、APIキーの制限でAuthenticationから拒否されています。Firebase ConsoleのWebアプリ設定と、Google Cloud ConsoleのAPIキー設定を確認し、Identity Toolkit APIが許可されていること、HTTPリファラー制限に現在のサイトのドメインが含まれていることを確認してください。";
+    case "auth/unauthorized-domain":
+      return "Firebase Authenticationの承認済みドメインに、このサイトのドメイン「" + location.hostname + "」を追加してください。";
+    case "auth/operation-not-allowed":
+      return "Firebase ConsoleのAuthenticationでGoogleログインが有効になっているか確認してください。";
+    case "auth/app-not-authorized":
+      return "このWebアプリがFirebase Authenticationで許可されていません。FirebaseプロジェクトとWebアプリの設定を確認してください。";
+    case "auth/network-request-failed":
+      return "通信に失敗しました。ネット接続やブラウザの通信制限を確認して、再試行してください。";
+    case "auth/too-many-requests":
+      return "ログイン試行が一時的に制限されています。時間をおいてから再試行してください。";
+    case "auth/web-storage-unsupported":
+      return "このブラウザではログイン情報を保存できません。通常のブラウザタブで開き、Cookieとサイトデータの利用設定を確認してください。";
+    default:
+      return "";
+  }
 }
 function validRoomData(value) {
   // Use the same strict validator as local saves and backup imports.
@@ -1757,16 +1858,16 @@ function validSavedRoomPrefs(value) {
   return !!value && typeof value === "object" && !Array.isArray(value) &&
     Array.isArray(value.favorites) && Array.isArray(value.order) &&
     value.favorites.length <= 100 && value.order.length <= 100 &&
-    value.favorites.every(name => typeof name === "string" && name.length <= 80) &&
-    value.order.every(name => typeof name === "string" && name.length <= 80) &&
+    value.favorites.every(name => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name)) &&
+    value.order.every(name => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name)) &&
     new Set(value.favorites).size === value.favorites.length &&
     new Set(value.order).size === value.order.length &&
     !!value.categories && typeof value.categories === "object" && !Array.isArray(value.categories) &&
     Object.keys(value.categories).length <= 100 &&
-    Object.entries(value.categories).every(([name, category]) => typeof name === "string" && name.length <= 80 && typeof category === "string" && category.length <= 24) &&
+    Object.entries(value.categories).every(([name, category]) => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name) && typeof category === "string" && category.length <= 24) &&
     !!value.notes && typeof value.notes === "object" && !Array.isArray(value.notes) &&
     Object.keys(value.notes).length <= 100 &&
-    Object.entries(value.notes).every(([name, note]) => typeof name === "string" && name.length <= 80 && typeof note === "string" && note.length <= 500);
+    Object.entries(value.notes).every(([name, note]) => typeof name === "string" && name.length <= 80 && !["__proto__", "constructor", "prototype"].includes(name) && typeof note === "string" && note.length <= 500);
 }
 function defaultSavedRoomPrefs() {
   return { favorites: [], order: [], categories: {}, notes: {} };
@@ -1913,15 +2014,16 @@ function setSyncBusy(busy) {
   if (logoutButton) logoutButton.disabled = busy || logoutInProgress || !currentUser;
 }
 async function uploadLocal(uid = currentUser?.uid) {
+  const generation = authStateGeneration;
   if (!uid || !currentUser || currentUser.uid !== uid) throw new Error("ログイン状態が変わりました。もう一度同期してください。");
   const task = uploadQueue.catch(() => {}).then(async () => {
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期待ちの間にGoogleアカウントが切り替わりました。もう一度同期してください。");
+    if (!currentUser || currentUser.uid !== uid || authStateGeneration !== generation) throw new Error("同期待ちの間にGoogleアカウントが切り替わりました。もう一度同期してください。");
     const payload = localPayload();
     await setDoc(cloudRef(uid), {
       ...payload,
       updatedAt: serverTimestamp()
     });
-    if (!currentUser || currentUser.uid !== uid) throw new Error("保存後にGoogleアカウントが切り替わりました。");
+    if (!currentUser || currentUser.uid !== uid || authStateGeneration !== generation) throw new Error("保存後にGoogleアカウントが切り替わりました。");
   });
   uploadQueue = task;
   await task;
@@ -1933,14 +2035,16 @@ async function downloadCloud() {
   setSyncBusy(true);
   try {
   const uid = currentUser.uid;
+  const generation = authStateGeneration;
+  const isCurrentAccount = () => !!currentUser && currentUser.uid === uid && authStateGeneration === generation;
   if (!navigator.onLine) throw new Error("オフラインのためクラウド読み込みを開始できません。端末内データはそのままです。");
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = null;
   await uploadQueue.catch(() => {});
-  if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み前にGoogleアカウントが切り替わりました。もう一度お試しください。");
+  if (!isCurrentAccount()) throw new Error("読み込み前にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!navigator.onLine) throw new Error("通信が切れたためクラウド読み込みを中止しました。端末内データはそのままです。");
   const snapshot = await getDoc(cloudRef(uid));
-  if (!currentUser || currentUser.uid !== uid) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+  if (!isCurrentAccount()) throw new Error("読み込み中にGoogleアカウントが切り替わりました。もう一度お試しください。");
   if (!navigator.onLine) throw new Error("読み込み中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
   if (!snapshot.exists()) {
     status("クラウドにデータはありません。端末内のデータはそのままです。");
@@ -1951,7 +2055,7 @@ async function downloadCloud() {
     throw new Error("クラウドデータの形式またはサイズを確認できません。端末内データは変更していません。");
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
-  if (!currentUser || currentUser.uid !== uid) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+  if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
   applyCloudDataSafely(data);
   initializedSyncForUid = uid;
   markCloudSync(uid);
@@ -1969,6 +2073,8 @@ async function syncNow() {
   syncInProgress = true;
   setSyncBusy(true);
   const uid = currentUser.uid;
+  const generation = authStateGeneration;
+  const isCurrentAccount = () => !!currentUser && currentUser.uid === uid && authStateGeneration === generation;
   if (!navigator.onLine) {
     syncInProgress = false;
     setSyncBusy(false);
@@ -1980,10 +2086,10 @@ async function syncNow() {
     clearTimeout(window.__kokoroSyncTimer);
     window.__kokoroSyncTimer = null;
     await uploadQueue.catch(() => {});
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期前にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    if (!isCurrentAccount()) throw new Error("同期前にGoogleアカウントが切り替わりました。もう一度お試しください。");
     if (!navigator.onLine) throw new Error("通信が切れたため同期を中止しました。端末内データはそのままです。");
     const snapshot = await getDoc(cloudRef(uid));
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     if (!navigator.onLine) throw new Error("同期中に通信が切れたため、クラウドデータの反映・上書きを中止しました。端末内データはそのままです。");
     const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === uid;
     if (snapshot.exists() && !alreadyInitialized) {
@@ -1993,23 +2099,24 @@ async function syncNow() {
         if (!validCloudData(data)) {
           throw new Error("クラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
         }
-        if (!currentUser || currentUser.uid !== uid) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+        if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
         applyCloudDataSafely(data);
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
         await uploadLocal(uid);
-        if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+        if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
         status("この端末のデータをクラウドに保存しました。");
       }
     } else {
       await uploadLocal(uid);
-      if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+      if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
       status("同期しました。クラウドに保存済みです。");
     }
-    if (!currentUser || currentUser.uid !== uid) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
+    if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     initializedSyncForUid = uid;
     markCloudSync(uid);
   } catch (error) {
+    if (!isCurrentAccount()) return;
     console.error(error);
     status("同期できませんでした：" + (error.code || error.message || "設定を確認してください") + "。端末内データは保持されています。");
   } finally {
@@ -2021,6 +2128,7 @@ async function syncNow() {
 function queueSync() {
   if (!currentUser || logoutInProgress) return;
   const queuedUid = currentUser.uid;
+  const queuedGeneration = authStateGeneration;
   let syncWasInitialized = initializedSyncForUid === queuedUid;
   if (!syncWasInitialized) {
     try { syncWasInitialized = localStorage.getItem("kokoroCloudSyncUid") === queuedUid; }
@@ -2037,7 +2145,7 @@ function queueSync() {
   clearTimeout(window.__kokoroSyncTimer);
   window.__kokoroSyncTimer = setTimeout(async () => {
     window.__kokoroSyncTimer = null;
-    if (!currentUser || currentUser.uid !== queuedUid) return;
+    if (!currentUser || currentUser.uid !== queuedUid || authStateGeneration !== queuedGeneration) return;
     if (syncInProgress) {
       syncPending = true;
       return;
@@ -2048,7 +2156,7 @@ function queueSync() {
     }
     try {
       await uploadLocal(queuedUid);
-      if (currentUser && currentUser.uid === queuedUid) {
+      if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {
         clearTimeout(syncRetryTimer);
         syncRetryTimer = null;
         syncRetryCount = 0;
@@ -2057,14 +2165,14 @@ function queueSync() {
       }
     } catch (error) {
       console.error(error);
-      if (currentUser && currentUser.uid === queuedUid) {
+      if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {
         status("クラウド同期に失敗しました。端末内には保存されています。");
         if (syncRetryCount < 3) {
           const delay = [3000, 10000, 30000][syncRetryCount++];
           clearTimeout(syncRetryTimer);
           syncRetryTimer = setTimeout(() => {
             syncRetryTimer = null;
-            if (currentUser && currentUser.uid === queuedUid && !logoutInProgress) queueSync();
+            if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration && !logoutInProgress) queueSync();
           }, delay);
         } else {
           status("自動再試行を3回行いました。端末内データは保存済みです。通信復帰後か「同期する」から再試行できます。");
@@ -2078,38 +2186,93 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
   loginButton.addEventListener("click", async () => {
-    if (logoutInProgress) return;
-    try {
-      status("Googleログイン中…");
-      await signInWithPopup(auth, new GoogleAuthProvider());
-    } catch (error) {
-      if (error.code === "auth/popup-blocked") {
-        try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
-        catch (redirectError) { status("ログインできません：" + (redirectError.code || redirectError.message)); }
-      } else if (error.code === "auth/popup-closed-by-user") {
-        status("ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。");
-      } else {
-        status("ログインできません：" + (error.code || error.message));
+    if (logoutInProgress || loginInProgress) return;
+    loginInProgress = true;
+    loginButton.disabled = true;
+    const loginGeneration = authStateGeneration;
+    authErrorMessage = null;
+    const provider = new GoogleAuthProvider();
+    const mobileBrowser = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    const returnToAi = location.hash === "#ai-consultation";
+    const startRedirect = async () => {
+      status("Googleログイン画面へ移動します…");
+      try {
+        if (returnToAi) sessionStorage.setItem("kokoroReturnToAiAfterLogin", "1");
+        else sessionStorage.removeItem("kokoroReturnToAiAfterLogin");
+      } catch (storageError) {}
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (error) {
+        try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
+        throw error;
       }
+    };
+    try {
+      if (mobileBrowser) {
+        await startRedirect();
+        return;
+      }
+      status("Googleログイン中…");
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      if (authStateGeneration !== loginGeneration) return;
+      if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/cancelled-popup-request"].includes(error.code)) {
+        try {
+          await startRedirect();
+        } catch (redirectError) {
+          if (authStateGeneration !== loginGeneration) return;
+          try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
+          const detail = authErrorDetail(redirectError) || "ブラウザの通常タブで開き直してお試しください。";
+          authErrorMessage = "ログインできません：" + (redirectError.code || redirectError.message) + "。" + detail;
+          status(authErrorMessage);
+        }
+      } else if (error.code === "auth/popup-closed-by-user") {
+        authErrorMessage = "ログイン画面が閉じられました。必要な場合は、もう一度ログインしてください。";
+        status(authErrorMessage);
+      } else {
+        const detail = authErrorDetail(error);
+        authErrorMessage = "ログインできません：" + (error.code || error.message) + (detail ? "。" + detail : "");
+        status(authErrorMessage);
+      }
+    } finally {
+      loginInProgress = false;
+      loginButton.disabled = !!currentUser || !navigator.onLine || logoutInProgress;
     }
   });
   syncButton.addEventListener("click", syncNow);
   downloadButton.addEventListener("click", async () => {
+    const user = currentUser;
+    if (!user) return;
+    const generation = authStateGeneration;
     try { await downloadCloud(); }
-    catch (error) { status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。"); }
+    catch (error) {
+      if (!currentUser || currentUser.uid !== user.uid || authStateGeneration !== generation) return;
+      status("読み込みできません：" + (error.code || error.message) + "。端末内データは保持されています。");
+    }
   });
   logoutButton.addEventListener("click", async () => {
     if (syncInProgress || logoutInProgress) { status("同期・ログアウト処理が終わってからお試しください。"); return; }
+    const logoutUser = currentUser;
+    if (!logoutUser) return;
+    const logoutUid = logoutUser.uid;
+    const logoutGeneration = authStateGeneration;
     logoutInProgress = true;
     clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null;
     clearTimeout(syncRetryTimer); syncRetryTimer = null;
     syncRetryCount = 0; syncPending = false;
     setSyncBusy(syncInProgress);
     try {
+      // Finish any already-started automatic upload before ending the auth session.
+      await uploadQueue.catch(error => {
+        console.warn("Pending cloud upload did not finish before logout", error);
+      });
+      if (!currentUser || currentUser.uid !== logoutUid || authStateGeneration !== logoutGeneration) return;
       await signOut(auth);
       initializedSyncForUid = null;
       status("ログアウトしました。端末内データは残っています。");
     } catch (error) {
+      if (!currentUser || currentUser.uid !== logoutUid || authStateGeneration !== logoutGeneration) return;
       status("ログアウトできません：" + (error.code || error.message));
     } finally {
       logoutInProgress = false;
@@ -2117,9 +2280,27 @@ try {
       setSyncBusy(syncInProgress);
     }
   });
-  await getRedirectResult(auth).catch(error => status("ログイン結果を確認できません：" + (error.code || error.message)));
+  let redirectResult = null;
+  try {
+    redirectResult = await getRedirectResult(auth);
+  } catch (error) {
+    try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
+    const detail = authErrorDetail(error) || "もう一度ログインをお試しください。";
+    authErrorMessage = "ログイン結果を確認できません：" + (error.code || error.message) + "。" + detail;
+    status(authErrorMessage);
+  }
+  let returnToAi = false;
+  try {
+    returnToAi = sessionStorage.getItem("kokoroReturnToAiAfterLogin") === "1";
+    if (returnToAi) sessionStorage.removeItem("kokoroReturnToAiAfterLogin");
+  } catch (storageError) {}
+  if (returnToAi && (redirectResult?.user || auth.currentUser)) {
+    location.hash = "ai-consultation";
+    requestAnimationFrame(() => document.getElementById("ai-consultation")?.scrollIntoView({ behavior: "auto", block: "start" }));
+  }
   onAuthStateChanged(auth, user => {
     if (currentUser?.uid !== user?.uid) {
+      authStateGeneration += 1;
       clearTimeout(window.__kokoroSyncTimer);
       window.__kokoroSyncTimer = null;
       clearTimeout(syncRetryTimer);
@@ -2129,7 +2310,7 @@ try {
       initializedSyncForUid = null;
     }
     currentUser = user;
-    loginButton.disabled = !!user || !navigator.onLine || logoutInProgress;
+    loginButton.disabled = !!user || !navigator.onLine || logoutInProgress || loginInProgress;
     setSyncBusy(syncInProgress);
     logoutButton.disabled = syncInProgress || logoutInProgress || !user;
     if (!navigator.onLine) {
@@ -2137,7 +2318,10 @@ try {
         ? "オフラインです。端末内の保存は続けられます。通信が戻るとクラウド同期を再開できます。"
         : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
     } else if (user) {
+      authErrorMessage = null;
       status("ログイン中：" + (user.email || "Googleアカウント") + "。初回は「同期する」を押してください。");
+    } else if (authErrorMessage) {
+      status(authErrorMessage);
     } else {
       status("未接続：この端末内に保存しています。");
     }
@@ -2155,7 +2339,7 @@ try {
       : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
   });
   window.addEventListener("online", () => {
-    loginButton.disabled = !!currentUser || logoutInProgress;
+    loginButton.disabled = !!currentUser || logoutInProgress || loginInProgress;
     setSyncBusy(syncInProgress);
     if (!currentUser) {
       status("通信が戻りました。Googleログインを利用できます。");
@@ -2185,10 +2369,632 @@ try {
 }
 </script>
 
+<script type="module">
+import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+
+const aiLog = document.getElementById("aiChatLog");
+const aiInput = document.getElementById("aiMessage");
+const aiSend = document.getElementById("aiSend");
+const aiClear = document.getElementById("aiClear");
+const aiStatus = document.getElementById("aiStatus");
+const aiHistory = [];
+let aiBusy = false;
+let aiCurrentUid = null;
+let aiAuthGeneration = 0;
+let aiRequestController = null;
+const aiFirebaseApp = getApps()[0];
+if (aiFirebaseApp) {
+  onAuthStateChanged(getAuth(aiFirebaseApp), user => {
+    const nextUid = user ? user.uid : null;
+    if (aiCurrentUid !== nextUid) {
+      aiAuthGeneration += 1;
+      // Stop an in-flight network request as soon as its account is no longer active.
+      aiRequestController?.abort();
+      aiRequestController = null;
+      // Release the old request's UI lock immediately; its finally block is generation-guarded.
+      aiBusy = false;
+      aiSend.disabled = false;
+      if (aiClear) aiClear.disabled = false;
+      aiInput.disabled = false;
+      aiLog.setAttribute("aria-busy", "false");
+      // Never carry an unsent draft across account identities.
+      aiInput.value = "";
+    }
+    if (aiCurrentUid !== null && aiCurrentUid !== nextUid) {
+      aiHistory.length = 0;
+      aiLog.replaceChildren();
+      const welcome = document.createElement("p");
+      welcome.className = "ai-welcome";
+      welcome.textContent = "ログインアカウントが変わったため、前の会話をこの画面から消しました。新しい相談を入力できます。";
+      aiLog.appendChild(welcome);
+      aiStatus.textContent = "アカウント切り替えに伴い、会話をリセットしました。";
+    }
+    aiCurrentUid = nextUid;
+  });
+}
+
+function addAiMessage(role, text) {
+  const p = document.createElement("p");
+  p.className = role === "user" ? "ai-user" : "ai-assistant";
+  p.textContent = text;
+  aiLog.appendChild(p);
+  aiLog.scrollTop = aiLog.scrollHeight;
+  return p;
+}
+aiClear?.addEventListener("click", () => {
+  if (aiBusy) return;
+  aiHistory.length = 0;
+  aiLog.replaceChildren();
+  const welcome = document.createElement("p");
+  welcome.className = "ai-welcome";
+  welcome.textContent = "会話を消しました。新しい相談を入力できます。";
+  aiLog.appendChild(welcome);
+  aiStatus.textContent = "この画面の会話を消しました。";
+});
+aiInput?.addEventListener("keydown", event => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    aiSend?.click();
+  }
+});
+aiSend?.addEventListener("click", async () => {
+  if (aiBusy) return;
+  const message = aiInput.value.trim();
+  if (!message) { aiStatus.textContent = "相談内容を入力してください。"; return; }
+  if (message.length > 1200) { aiStatus.textContent = "1200文字以内で入力してください。"; return; }
+  let user;
+  try {
+    const app = getApps()[0];
+    if (!app) throw new Error("Firebase未初期化");
+    user = getAuth(app).currentUser;
+    if (!user) { aiStatus.textContent = "先に「スマホ・PC同期」からGoogleログインしてください。"; return; }
+  } catch (error) {
+    aiStatus.textContent = "ログイン機能を準備できません。ページを再読み込みしてください。";
+    return;
+  }
+  const requestAuthGeneration = aiAuthGeneration;
+  const requestController = new AbortController();
+  aiRequestController = requestController;
+  aiBusy = true;
+  aiSend.disabled = true;
+  if (aiClear) aiClear.disabled = true;
+  aiStatus.textContent = "返答を確認しています…";
+  aiInput.disabled = true;
+  aiLog.setAttribute("aria-busy", "true");
+  const previous = aiHistory.slice(-6);
+  const userBubble = addAiMessage("user", message);
+  aiInput.value = "";
+  try {
+    const token = await user.getIdToken();
+    if (aiAuthGeneration !== requestAuthGeneration || getAuth(user.auth.app).currentUser?.uid !== user.uid) {
+      throw new Error("ログインアカウントが切り替わりました。相談内容を確認して再送してください。");
+    }
+    const response = await fetch("/api/ai-consultation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ message, history: previous }),
+      signal: requestController.signal
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "現在、相談機能を利用できません。");
+    if (aiAuthGeneration !== requestAuthGeneration || getAuth(user.auth.app).currentUser?.uid !== user.uid) {
+      throw new Error("ログインアカウントが切り替わったため、返答を表示しませんでした。相談内容を確認して再送してください。");
+    }
+    const answer = typeof data.reply === "string" ? data.reply : "";
+    if (!answer) throw new Error("返答を受け取れませんでした。");
+    aiHistory.push({ role: "user", content: message }, { role: "assistant", content: answer });
+    addAiMessage("assistant", answer);
+    aiStatus.textContent = "返答しました。";
+  } catch (error) {
+    userBubble.remove();
+    const sameAccount = aiAuthGeneration === requestAuthGeneration && getAuth(user.auth.app).currentUser?.uid === user.uid;
+    if (sameAccount) {
+      aiInput.value = message;
+      aiStatus.textContent = error.message || "通信できませんでした。入力内容は残しています。";
+    }
+  } finally {
+    // An older request must never unlock or overwrite controls owned by a newer request.
+    if (aiRequestController === requestController) {
+      aiRequestController = null;
+      if (aiAuthGeneration === requestAuthGeneration) {
+        aiBusy = false;
+        aiLog.setAttribute("aria-busy", "false");
+        aiSend.disabled = false;
+        if (aiClear) aiClear.disabled = false;
+        aiInput.disabled = false;
+      }
+    }
+  }
+});
+</script>
+
 <script>
 if("serviceWorker" in navigator && location.protocol==="https"){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 }
 </script>
+<script type="module">
+import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+const snsStatus = document.getElementById("snsStatus");
+const snsSignedOut = document.getElementById("snsSignedOut");
+const snsSignedIn = document.getElementById("snsSignedIn");
+const snsNickname = document.getElementById("snsNickname");
+const snsAvatar = document.getElementById("snsAvatar");
+const snsProfileVisibility = document.getElementById("snsProfileVisibility");
+const snsPreviewAvatar = document.getElementById("snsPreviewAvatar");
+const snsPreviewNickname = document.getElementById("snsPreviewNickname");
+const snsPreviewVisibility = document.getElementById("snsPreviewVisibility");
+const snsAvatarEmojis = { "avatar-01":"🌷", "avatar-02":"🐱", "avatar-03":"🐻", "avatar-04":"⭐", "avatar-05":"🐰" };
+function snsUpdateProfilePreview() {
+  if (snsPreviewAvatar) snsPreviewAvatar.textContent = snsAvatarEmojis[snsAvatar.value] || "🌷";
+  if (snsPreviewNickname) snsPreviewNickname.textContent = snsNickname.value.trim() || "ニックネーム未設定";
+  if (snsPreviewVisibility) snsPreviewVisibility.textContent = "公開範囲：" + (snsProfileVisibility.value === "public" ? "公開" : "自分のみ");
+}
+snsNickname.addEventListener("input", snsUpdateProfilePreview);
+snsAvatar.addEventListener("change", snsUpdateProfilePreview);
+snsProfileVisibility.addEventListener("change", snsUpdateProfilePreview);
+const snsPostText = document.getElementById("snsPostText");
+const snsPostVisibility = document.getElementById("snsPostVisibility");
+const snsPostList = document.getElementById("snsPostList");
+const snsSaveProfile = document.getElementById("snsSaveProfile");
+const snsCreatePost = document.getElementById("snsCreatePost");
+const snsRefreshPosts = document.getElementById("snsRefreshPosts");
+const snsBlockUid = document.getElementById("snsBlockUid");
+const snsAddBlock = document.getElementById("snsAddBlock");
+const snsBlockList = document.getElementById("snsBlockList");
+const snsReportUid = document.getElementById("snsReportUid");
+const snsReportCategory = document.getElementById("snsReportCategory");
+const snsSubmitReport = document.getElementById("snsSubmitReport");
+const snsReportNotice = document.getElementById("snsReportNotice");
+const snsAdminPanel = document.getElementById("snsAdminPanel");
+const snsAdminRefresh = document.getElementById("snsAdminRefresh");
+const snsAdminFilter = document.getElementById("snsAdminFilter");
+const snsAdminStatus = document.getElementById("snsAdminStatus");
+const snsAdminReportList = document.getElementById("snsAdminReportList");
+const snsApp = getApps()[0];
+let snsDb = null;
+let snsUser = null;
+let snsBusy = false;
+
+function snsMessage(message) { snsStatus.textContent = message; }
+function snsSetBusy(value) {
+  snsBusy = value;
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+}
+function snsReleaseBusyFor(user) {
+  // A request from a signed-out or previous account must not unlock the new account's UI.
+  if (user && snsUser?.uid === user.uid) snsSetBusy(false);
+}
+function snsRenderPosts(items) {
+  snsPostList.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "まだ投稿はありません。";
+    snsPostList.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const article = document.createElement("article");
+    article.style.cssText = "border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:10px 0";
+    const body = document.createElement("p");
+    body.style.whiteSpace = "pre-wrap";
+    body.textContent = item.text;
+    const meta = document.createElement("small");
+    meta.textContent = item.visibility === "public" ? "公開投稿" : "自分のみ";
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "投稿を編集";
+    edit.addEventListener("click", () => snsEditPost(item.id, item.text));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "この投稿を削除";
+    remove.setAttribute("aria-label", "投稿を削除");
+    remove.addEventListener("click", () => snsDeletePost(item.id));
+    article.append(body, meta, document.createElement("br"), edit, document.createTextNode(" "), remove);
+    snsPostList.appendChild(article);
+  }
+}
+async function snsLoadProfile(user) {
+  const snapshot = await getDoc(doc(snsDb, "profiles", user.uid));
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  if (!snapshot.exists()) {
+    snsNickname.value = "";
+    snsAvatar.value = "avatar-01";
+    snsProfileVisibility.value = "private";
+    snsUpdateProfilePreview();
+    snsMessage("プロフィールを作成できます。公開範囲は最初「自分のみ」です。");
+    return;
+  }
+  const profile = snapshot.data();
+  snsNickname.value = profile.nickname || "";
+  snsAvatar.value = profile.avatarId || "avatar-01";
+  snsProfileVisibility.value = profile.visibility || "private";
+  snsUpdateProfilePreview();
+  snsMessage("ログイン中です。プロフィールと自分の投稿を管理できます。");
+}
+async function snsLoadPosts(user) {
+  const result = await getDocs(query(collection(snsDb, "posts"), where("authorUid", "==", user.uid)));
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  const posts = result.docs.map(snapshot => ({ id: snapshot.id, ...snapshot.data() }))
+    .filter(post => post.status === "active")
+    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+  snsRenderPosts(posts);
+}
+async function snsLoadBlocks(user) {
+  const result = await getDocs(collection(snsDb, "users", user.uid, "blocks"));
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  snsBlockList.replaceChildren();
+  if (result.empty) {
+    const empty = document.createElement("p");
+    empty.textContent = "ブロック中のユーザーはいません。";
+    snsBlockList.appendChild(empty);
+    return;
+  }
+  for (const snapshot of result.docs) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #eee";
+    const label = document.createElement("span");
+    label.textContent = snapshot.id;
+    const unblock = document.createElement("button");
+    unblock.type = "button";
+    unblock.textContent = "ブロック解除";
+    unblock.addEventListener("click", async () => {
+      if (!snsUser || snsBusy) return;
+      const activeUser = snsUser;
+      snsSetBusy(true);
+      try {
+        await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
+        if (!snsUser || snsUser.uid !== activeUser.uid) return;
+        await snsLoadBlocks(activeUser);
+        snsMessage("ブロックを解除しました。");
+      } catch (error) {
+        if (!snsUser || snsUser.uid !== activeUser.uid) return;
+        console.error("SNS unblock failed", error);
+        snsMessage("ブロックを解除できませんでした。");
+      } finally { snsReleaseBusyFor(activeUser); }
+    });
+    row.append(label, unblock);
+    snsBlockList.appendChild(row);
+  }
+}
+async function snsEditPost(postId, currentText) {
+  if (!snsUser || snsBusy || !postId) return;
+  const edited = window.prompt("投稿内容を編集（1〜500文字）", currentText);
+  if (edited === null) return;
+  const text = edited.trim();
+  if (!text || text.length > 500) {
+    snsMessage("投稿は1〜500文字で入力してください。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await updateDoc(doc(snsDb, "posts", postId), {
+      text,
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    await snsLoadPosts(user);
+    snsMessage("投稿を更新しました。");
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("SNS post edit failed", error);
+    snsMessage("更新できませんでした。投稿者本人でログインしているか確認してください。");
+  } finally {
+    snsReleaseBusyFor(user);
+  }
+}
+async function snsDeletePost(postId) {
+  if (!snsUser || snsBusy || !postId) return;
+  if (!window.confirm("この投稿を削除しますか？")) return;
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await updateDoc(doc(snsDb, "posts", postId), {
+      status: "deleted",
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    await snsLoadPosts(user);
+    snsMessage("投稿を削除しました。");
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("SNS post delete failed", error);
+    snsMessage("削除できませんでした。投稿者本人でログインしているか確認してください。");
+  } finally {
+    snsReleaseBusyFor(user);
+  }
+}
+
+const snsReportCategoryLabels = {
+  harassment: "いやがらせ・迷惑行為",
+  bullying: "いじめ・脅し",
+  inappropriate_content: "不適切な内容",
+  privacy: "個人情報の掲載",
+  impersonation: "なりすまし",
+  other: "その他"
+};
+async function snsAdminRequest(path, body, user) {
+  const token = await user.getIdToken();
+  if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+    body: JSON.stringify(body || {})
+  });
+  if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "運営用機能を利用できませんでした。");
+  return data;
+}
+function snsRenderAdminReports(reports) {
+  snsAdminReportList.replaceChildren();
+  if (!reports.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "この状態の通報はありません。";
+    snsAdminReportList.appendChild(empty);
+    return;
+  }
+  for (const report of reports) {
+    const article = document.createElement("article");
+    article.style.cssText = "border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:10px 0";
+    const heading = document.createElement("strong");
+    heading.textContent = snsReportCategoryLabels[report.category] || "不明な理由";
+    const detail = document.createElement("p");
+    detail.style.cssText = "font-size:13px;overflow-wrap:anywhere";
+    const date = report.createdAtMs ? new Date(report.createdAtMs).toLocaleString("ja-JP") : "日時不明";
+    detail.textContent = "通報者ID：" + report.reporterUid + " / 対象ID：" + report.targetUid + " / 受付：" + date;
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+    if (report.status === "pending") {
+      for (const [status, label] of [["reviewed", "確認済み"], ["actioned", "対応済み"], ["dismissed", "対象外"]]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", async () => {
+          const user = snsUser;
+          if (!user || snsBusy) return;
+          button.disabled = true;
+          snsAdminStatus.textContent = "更新しています…";
+          try {
+            await snsAdminRequest("/api/admin/update-report", { reportId: report.id, status }, user);
+            if (!snsUser || snsUser.uid !== user.uid) return;
+            snsAdminStatus.textContent = "確認状態を更新しました。";
+            await snsLoadAdminReports(user);
+          } catch (error) {
+            if (!snsUser || snsUser.uid !== user.uid) return;
+            snsAdminStatus.textContent = error.message || "更新できませんでした。";
+            button.disabled = false;
+          }
+        });
+        actions.appendChild(button);
+      }
+    } else {
+      const state = document.createElement("span");
+      state.textContent = "確認状態：" + ({ reviewed: "確認済み", actioned: "対応済み", dismissed: "対象外" }[report.status] || "不明");
+      actions.appendChild(state);
+    }
+    article.append(heading, detail, actions);
+    snsAdminReportList.appendChild(article);
+  }
+}
+async function snsLoadAdminReports(user, status = snsAdminFilter.value || "pending") {
+  snsAdminStatus.textContent = "通報一覧を読み込んでいます…";
+  const data = await snsAdminRequest("/api/admin/reports", { status }, user);
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  snsRenderAdminReports(Array.isArray(data.reports) ? data.reports : []);
+  snsAdminStatus.textContent = "通報一覧を表示しています（最大50件）。";
+}
+snsAdminRefresh.addEventListener("click", async () => {
+  const user = snsUser;
+  if (!user) return;
+  try {
+    await snsLoadAdminReports(user);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsAdminStatus.textContent = error.message || "読み込めませんでした。";
+  }
+});
+snsAdminFilter.addEventListener("change", async () => {
+  const user = snsUser;
+  if (!user || snsAdminPanel.hidden) return;
+  try {
+    await snsLoadAdminReports(user);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsAdminStatus.textContent = error.message || "読み込めませんでした。";
+  }
+});
+
+if (snsApp) {
+  snsDb = getFirestore(snsApp);
+  onAuthStateChanged(getAuth(snsApp), async user => {
+    const accountChanged = snsUser?.uid !== user?.uid;
+    if (accountChanged) {
+      // Never leave the previous account's private profile, posts, or block list visible.
+      snsNickname.value = "";
+      snsAvatar.value = "avatar-01";
+      snsProfileVisibility.value = "private";
+      snsUpdateProfilePreview();
+      snsRenderPosts([]);
+      snsBlockList.replaceChildren();
+      snsBlockUid.value = "";
+      snsReportUid.value = "";
+      snsReportCategory.value = "";
+    }
+    snsUser = user;
+    snsSignedOut.hidden = !!user;
+    snsSignedIn.hidden = !user;
+    snsSetBusy(false);
+    snsAdminPanel.hidden = true;
+    snsAdminReportList.replaceChildren();
+    if (!user) {
+      snsMessage("未ログインです。Googleログイン後に利用できます。");
+      snsRenderPosts([]);
+      return;
+    }
+    try {
+      const tokenInfo = await user.getIdTokenResult(true);
+      if (tokenInfo.claims?.admin === true && snsUser?.uid === user.uid) {
+        snsAdminPanel.hidden = false;
+        snsAdminStatus.textContent = "管理者権限を確認しました。";
+      }
+    } catch (error) {
+      if (!snsUser || snsUser.uid !== user.uid) return;
+      console.error("SNS admin claim check failed", error);
+    }
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsMessage("プロフィールを読み込んでいます…");
+    try {
+      await snsLoadProfile(user);
+      await snsLoadPosts(user);
+      await snsLoadBlocks(user);
+    } catch (error) {
+      if (!snsUser || snsUser.uid !== user.uid) return;
+      console.error("SNS initial load failed", error);
+      snsMessage("読み込みに失敗しました。Firebaseのログイン設定と通信状態を確認してください。");
+    }
+  });
+} else {
+  snsMessage("Firebaseが初期化されていません。ログイン設定を確認してください。");
+}
+snsAddBlock.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const targetUid = snsBlockUid.value.trim();
+  if (!targetUid || targetUid.length > 128 || !/^[A-Za-z0-9_-]+$/.test(targetUid)) {
+    snsMessage("正しいユーザーIDを入力してください。");
+    return;
+  }
+  if (targetUid === snsUser.uid) {
+    snsMessage("自分自身はブロックできません。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), {
+      createdAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    snsBlockUid.value = "";
+    await snsLoadBlocks(user);
+    snsMessage("ブロックしました。相手の公開プロフィールや投稿は表示されなくなります。");
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("SNS block failed", error);
+    snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
+  } finally { snsReleaseBusyFor(user); }
+});
+snsSubmitReport.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const targetUid = snsReportUid.value.trim();
+  const category = snsReportCategory.value;
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === snsUser.uid) {
+    snsReportNotice.textContent = "相手のユーザーIDを確認してください。自分自身は通報できません。";
+    return;
+  }
+  if (!category) {
+    snsReportNotice.textContent = "通報理由を選択してください。";
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  snsReportNotice.textContent = "通報を送信しています…";
+  try {
+    const token = await user.getIdToken();
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    const response = await fetch("/api/submit-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ targetUid, category })
+    });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "通報を送信できませんでした。");
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    snsReportUid.value = "";
+    snsReportCategory.value = "";
+    snsReportNotice.textContent = "通報を受け付けました。内容は非公開で保存されます。";
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
+  } finally { snsReleaseBusyFor(user); }
+});
+snsSaveProfile.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const nickname = snsNickname.value.trim();
+  if (!nickname || nickname.length > 24) {
+    snsMessage("ニックネームを1〜24文字で入力してください。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    const profileRef = doc(snsDb, "profiles", user.uid);
+    const existing = await getDoc(profileRef);
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    await setDoc(profileRef, {
+      nickname,
+      avatarId: snsAvatar.value,
+      visibility: snsProfileVisibility.value,
+      createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    snsUpdateProfilePreview();
+    snsMessage("プロフィールを保存しました。");
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("SNS profile save failed", error);
+    snsMessage("保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
+  } finally { snsReleaseBusyFor(user); }
+});
+snsCreatePost.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const text = snsPostText.value.trim();
+  if (!text || text.length > 500) {
+    snsMessage("投稿内容を1〜500文字で入力してください。");
+    return;
+  }
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await setDoc(doc(collection(snsDb, "posts")), {
+      authorUid: user.uid,
+      text,
+      visibility: snsPostVisibility.value,
+      status: "active",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    snsPostText.value = "";
+    await snsLoadPosts(user);
+    snsMessage("投稿を保存しました。");
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("SNS post create failed", error);
+    snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
+  } finally { snsReleaseBusyFor(user); }
+});
+snsRefreshPosts.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const user = snsUser;
+  snsSetBusy(true);
+  try {
+    await snsLoadPosts(user);
+    snsMessage("自分の投稿を読み直しました。");
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("SNS post refresh failed", error);
+    snsMessage("投稿を読み込めませんでした。");
+  } finally { snsReleaseBusyFor(user); }
+});
+</script>
+
 </body>
 </html>

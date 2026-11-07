@@ -1,10 +1,164 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function blockedBetween(viewerUid, ownerUid) {
+      return viewerUid != ownerUid
+        && (
+          exists(/databases/$(database)/documents/users/$(viewerUid)/blocks/$(ownerUid))
+          || exists(/databases/$(database)/documents/users/$(ownerUid)/blocks/$(viewerUid))
+        );
+    }
+
+    function validProfile(data) {
+      return data.keys().hasAll([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.nickname is string
+        && data.nickname.size() >= 1
+        && data.nickname.size() <= 24
+        && data.nickname.matches('.*\\S.*')
+        && data.avatarId in ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']
+        && data.visibility in ['private', 'public']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function validPost(data) {
+      return data.keys().hasAll([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 500
+        && data.text.matches('.*\\S.*')
+        && data.visibility in ['private', 'public']
+        && data.status in ['active', 'deleted']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Existing private room data: keep this path owner-only and unchanged.
     match /users/{userId}/kokoro/{documentId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId
-                         && documentId == "data";
+      allow read, write: if owns(userId) && documentId == "data";
+    }
+
+    // A user may create or remove only their own block records.
+    // Block records contain no profile or private user information.
+    match /users/{userId}/blocks/{targetUid} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && targetUid != userId
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.keys().hasAll(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if owns(userId);
+    }
+
+    // Public-facing profile contains only an explicit allowlist of fields.
+    match /profiles/{uid} {
+      allow get, list: if owns(uid)
+        || (
+          signedIn()
+          && resource.data.visibility == 'public'
+          && !blockedBetween(request.auth.uid, uid)
+        );
+
+      allow create: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    // Posts are private by default; only explicit public + active posts are readable by others.
+    match /posts/{postId} {
+      // Direct reads may access public active posts unless either side has blocked the other.
+      allow get: if signedIn()
+        && (
+          resource.data.authorUid == request.auth.uid
+          || (
+            resource.data.visibility == 'public'
+            && resource.data.status == 'active'
+            && !blockedBetween(request.auth.uid, resource.data.authorUid)
+          )
+        );
+
+      // Collection queries are owner-only until a block-aware feed endpoint is implemented.
+      allow list: if signedIn()
+        && resource.data.authorUid == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && validPost(request.resource.data)
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && resource.data.status == 'active'
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'status', 'updatedAt'])
+        && validPost(request.resource.data);
+
+      // Use status='deleted' so deleted posts disappear from all read paths.
+      allow delete: if false;
+
+      // Comments and likes remain denied until their own rules and tests are ready.
+      match /comments/{commentId} {
+        allow read, write: if false;
+      }
+      match /likes/{likerUid} {
+        allow read, write: if false;
+      }
+    }
+
+    // AI consultation quota counters are written only by the authenticated server function.
+    match /users/{userId}/aiUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Report documents and daily usage counters are server-only.
+    // Callable Cloud Functions use the Admin SDK; clients must never access these paths.
+    match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/reportUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Friend requests remain closed until their workflow is implemented.
+    match /friendRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/following/{targetUid} {
+      allow read, write: if false;
     }
   }
 }

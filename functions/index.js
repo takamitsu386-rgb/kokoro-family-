@@ -1,0 +1,339 @@
+const { onRequest } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
+const { initializeApp } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
+const { getFirestore, Timestamp } = require("firebase-admin/firestore");
+
+initializeApp();
+
+const openAiApiKey = defineSecret("OPENAI_API_KEY");
+const allowedOrigins = new Set([
+  "https://kokoro-family.web.app",
+  "https://kokoro-family.firebaseapp.com",
+  "http://localhost:5000",
+  "http://127.0.0.1:5000"
+]);
+
+function sendJson(res, status, body) {
+  res.status(status)
+    .set("Content-Type", "application/json; charset=utf-8")
+    .set("Cache-Control", "no-store, max-age=0, private")
+    .set("Pragma", "no-cache")
+    .send(body);
+}
+
+exports.aiConsultation = onRequest({
+  region: "asia-northeast1",
+  secrets: [openAiApiKey],
+  maxInstances: 3,
+  timeoutSeconds: 60,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = req.get("origin");
+  if (origin && allowedOrigins.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  }
+  res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const authHeader = req.get("authorization") || "";
+    const match = authHeader.match(/^Bearer (.+)$/);
+    if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
+
+    const decoded = await getAuth().verifyIdToken(match[1], true);
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (!message || message.length > 1200) {
+      return sendJson(res, 400, { error: "相談内容は1〜1200文字で入力してください。" });
+    }
+
+    const history = Array.isArray(req.body?.history) ? req.body.history.slice(-6) : [];
+    const safeHistory = history
+      .filter(item => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string")
+      .map(item => ({ role: item.role, content: item.content.slice(0, 1200) }));
+    const now = new Date();
+    const tokyoDate = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(now).reduce((parts, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
+    const usageRef = getFirestore().doc(`users/${decoded.uid}/aiUsage/${dayKey}`);
+
+    const allowed = await getFirestore().runTransaction(async tx => {
+      const snap = await tx.get(usageRef);
+      const storedCount = snap.exists ? snap.data().count : 0;
+      // Treat malformed counters as exhausted rather than accidentally allowing unlimited requests.
+      const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 10;
+      if (count >= 10) return false;
+      tx.set(usageRef, {
+        count: count + 1,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      return true;
+    });
+    if (!allowed) return sendJson(res, 429, { error: "本日の相談回数の上限に達しました。時間をおいて利用してください。" });
+
+    const input = [
+      ...safeHistory,
+      { role: "user", content: message }
+    ];
+    const upstream = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openAiApiKey.value()}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        instructions: "あなたは未成年者にも適した、穏やかで安全な相談相手です。相手の気持ちを否定せず、決めつけず、短く分かりやすい日本語で返答してください。必要なら一度に一つだけ質問してください。診断や専門家の代替を名乗らないでください。自傷・自殺、暴力、虐待、危険な行為について具体的な方法や詳細を示さず、安全を優先して近くの信頼できる大人や適切な支援につなげてください。個人情報を尋ねないでください。",
+        input,
+        max_output_tokens: 500,
+        store: false
+      }),
+      signal: AbortSignal.timeout(45000)
+    });
+
+    if (!upstream.ok) {
+      console.error("AI provider request failed:", upstream.status);
+      return sendJson(res, 502, { error: "AIから返答を受け取れませんでした。少し時間をおいて再度お試しください。" });
+    }
+    const result = await upstream.json();
+    const replyFromOutput = Array.isArray(result.output)
+      ? result.output.flatMap(item =>
+          item?.type === "message" && Array.isArray(item.content)
+            ? item.content.filter(part => part?.type === "output_text" && typeof part.text === "string").map(part => part.text)
+            : []
+        ).join("\n").trim()
+      : "";
+    const reply = replyFromOutput || (typeof result.output_text === "string" ? result.output_text.trim() : "");
+    if (!reply) return sendJson(res, 502, { error: "返答を受け取れませんでした。もう一度お試しください。" });
+
+    return sendJson(res, 200, { reply });
+  } catch (error) {
+    console.error("AI consultation error:", error?.message || error);
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      return sendJson(res, 504, { error: "AIの返答に時間がかかっています。少し時間をおいて再度お試しください。" });
+    }
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "相談機能でエラーが発生しました。入力内容は画面に残して再試行できます。" });
+  }
+});
+
+
+const reportCategories = new Set([
+  "harassment",
+  "bullying",
+  "inappropriate_content",
+  "privacy",
+  "impersonation",
+  "other"
+]);
+
+exports.submitReport = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 3,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = req.get("origin");
+  if (origin && allowedOrigins.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  }
+  res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const authHeader = req.get("authorization") || "";
+    const match = authHeader.match(/^Bearer (.+)$/);
+    if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
+
+    const decoded = await getAuth().verifyIdToken(match[1], true);
+    const targetUid = typeof req.body?.targetUid === "string" ? req.body.targetUid.trim() : "";
+    const category = typeof req.body?.category === "string" ? req.body.category : "";
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === decoded.uid) {
+      return sendJson(res, 400, { error: "通報する相手のユーザーIDを確認してください。" });
+    }
+    if (!reportCategories.has(category)) {
+      return sendJson(res, 400, { error: "通報理由を選択してください。" });
+    }
+    try {
+      await getAuth().getUser(targetUid);
+    } catch (lookupError) {
+      if (lookupError?.code === "auth/user-not-found") {
+        return sendJson(res, 400, { error: "通報する相手のユーザーIDを確認してください。" });
+      }
+      throw lookupError;
+    }
+
+    const db = getFirestore();
+    const now = new Date();
+    const tokyoDate = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(now).reduce((parts, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
+    const usageRef = db.doc(`users/${decoded.uid}/reportUsage/${dayKey}`);
+    const reportRef = db.collection("reports").doc();
+
+    const allowed = await db.runTransaction(async tx => {
+      const snap = await tx.get(usageRef);
+      const storedCount = snap.exists ? snap.data().count : 0;
+      const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 5;
+      if (count >= 5) return false;
+      tx.set(usageRef, { count: count + 1, updatedAt: Timestamp.now() }, { merge: true });
+      tx.create(reportRef, {
+        reporterUid: decoded.uid,
+        targetUid,
+        category,
+        status: "pending",
+        createdAt: Timestamp.now()
+      });
+      return true;
+    });
+
+    if (!allowed) return sendJson(res, 429, { error: "本日の通報上限に達しました。必要な場合は信頼できる大人にも相談してください。" });
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    console.error("Report submission error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "通報を送信できませんでした。時間をおいて再度お試しください。" });
+  }
+});
+
+
+const reportReviewStatuses = new Set(["reviewed", "actioned", "dismissed"]);
+
+async function verifyAdminRequest(req, res) {
+  const authHeader = req.get("authorization") || "";
+  const match = authHeader.match(/^Bearer (.+)$/);
+  if (!match) {
+    sendJson(res, 401, { error: "ログインが必要です。" });
+    return null;
+  }
+  const decoded = await getAuth().verifyIdToken(match[1], true);
+  if (decoded.admin !== true) {
+    sendJson(res, 403, { error: "運営担当者のみ利用できます。" });
+    return null;
+  }
+  return decoded;
+}
+
+function setReportCors(req, res) {
+  const origin = req.get("origin");
+  if (origin && allowedOrigins.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  }
+  res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  return origin;
+}
+
+// Admin access is controlled only by the verified Firebase custom claim.
+// No client-facing endpoint can grant or modify this claim.
+exports.adminListReports = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 2,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = setReportCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const admin = await verifyAdminRequest(req, res);
+    if (!admin) return;
+    const status = typeof req.body?.status === "string" ? req.body.status : "pending";
+    if (!["pending", ...reportReviewStatuses].includes(status)) {
+      return sendJson(res, 400, { error: "確認状態を指定してください。" });
+    }
+
+    const snapshot = await getFirestore()
+      .collection("reports")
+      .where("status", "==", status)
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get();
+    const reports = snapshot.docs.map(item => {
+      const data = item.data();
+      return {
+        id: item.id,
+        reporterUid: data.reporterUid,
+        targetUid: data.targetUid,
+        category: data.category,
+        status: data.status,
+        createdAtMs: data.createdAt?.toMillis?.() ?? null
+      };
+    });
+
+    return sendJson(res, 200, { reports });
+  } catch (error) {
+    console.error("Admin report list error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "通報一覧を読み込めませんでした。" });
+  }
+});
+
+exports.adminUpdateReport = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 2,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = setReportCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const admin = await verifyAdminRequest(req, res);
+    if (!admin) return;
+    const reportId = typeof req.body?.reportId === "string" ? req.body.reportId : "";
+    const status = typeof req.body?.status === "string" ? req.body.status : "";
+    if (!/^[A-Za-z0-9_-]{20}$/.test(reportId) || !reportReviewStatuses.has(status)) {
+      return sendJson(res, 400, { error: "通報番号または確認状態を確認してください。" });
+    }
+
+    const reportRef = getFirestore().collection("reports").doc(reportId);
+    const updated = await getFirestore().runTransaction(async tx => {
+      const snapshot = await tx.get(reportRef);
+      if (!snapshot.exists || snapshot.data().status !== "pending") return false;
+      tx.update(reportRef, {
+        status,
+        reviewedBy: admin.uid,
+        reviewedAt: Timestamp.now()
+      });
+      return true;
+    });
+    if (!updated) return sendJson(res, 409, { error: "この通報は存在しないか、すでに確認済みです。再読み込みしてください。" });
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    console.error("Admin report update error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "通報の確認状態を更新できませんでした。" });
+  }
+});

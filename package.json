@@ -1,0 +1,17 @@
+{
+  "name": "kokoro-family",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test:firestore": "firebase emulators:exec --only firestore --project demo-kokoro-family-rules \"node --test tests/firestore.rules.test.mjs\"",
+    "validate:firestore": "node scripts/validate-firestore-rules.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.2.0",
+    "firebase-tools": "15.35.0"
+  }
+}

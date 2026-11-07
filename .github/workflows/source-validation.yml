@@ -1,0 +1,184 @@
+name: Source validation
+
+on:
+  push:
+    branches:
+      - development-kokoro-app
+      - feature/ai-consultation-integration
+  pull_request:
+    branches:
+      - development-kokoro-app
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Set up Java for the Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install Firestore rules test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check Cloud Functions JavaScript syntax
+        run: node --check functions/index.js
+      - name: Check Service Worker JavaScript syntax
+        run: node --check sw.js
+      - name: Validate Service Worker cache and offline safety
+        run: node scripts/validate-service-worker.mjs
+      - name: Validate Firebase Hosting security headers
+        run: node scripts/validate-hosting-security.mjs
+      - name: Check inline application JavaScript syntax
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+
+          const html = readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+          let checked = 0;
+
+          for (let i = 0; i < scripts.length; i += 1) {
+            const [, attributes, source] = scripts[i];
+            if (/\bsrc\s*=/.test(attributes) || !source.trim()) continue;
+
+            const isModule = /\btype\s*=\s*["']module["']/i.test(attributes);
+            const args = isModule ? ['--check', '--input-type=module'] : ['--check'];
+            const result = spawnSync(process.execPath, args, {
+              input: source,
+              encoding: 'utf8'
+            });
+
+            if (result.status !== 0) {
+              process.stderr.write('Inline script ' + (i + 1) + ' has a syntax error.\n');
+              process.stderr.write(result.stderr || result.stdout || '');
+              process.exit(result.status || 1);
+            }
+            checked += 1;
+          }
+
+          if (checked === 0) {
+            throw new Error('No inline application scripts were found.');
+          }
+          console.log('Checked ' + checked + ' inline application scripts.');
+          NODE
+      - name: Validate Firebase wiring and secret handling
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const config = JSON.parse(readFileSync('firebase.json', 'utf8'));
+          const project = JSON.parse(readFileSync('.firebaserc', 'utf8'));
+          const html = readFileSync('index.html', 'utf8');
+          const fn = readFileSync('functions/index.js', 'utf8');
+
+          if (project.projects?.default !== 'kokoro-family') {
+            throw new Error('Unexpected default Firebase project.');
+          }
+
+          const expectedFirebaseConfig = [
+            /apiKey:\s*["'][^"']+["']/,
+            /authDomain:\s*["']kokoro-family\.firebaseapp\.com["']/,
+            /projectId:\s*["']kokoro-family["']/,
+            /appId:\s*["']1:760866517067:web:[a-f0-9]+["']/
+          ];
+          if (expectedFirebaseConfig.some(pattern => !pattern.test(html))) {
+            throw new Error('Firebase Web config is incomplete or does not match the selected project.');
+          }
+          if (!fn.includes('"https://kokoro-family.web.app"') ||
+              !fn.includes('"https://kokoro-family.firebaseapp.com"')) {
+            throw new Error('AI function CORS origins do not include the Firebase Hosting domains.');
+          }
+
+          const rewrite = config.hosting?.rewrites?.find(
+            item => item.source === '/api/ai-consultation'
+          );
+          if (rewrite?.function?.functionId !== 'aiConsultation' ||
+              rewrite?.function?.region !== 'asia-northeast1') {
+            throw new Error('AI consultation Hosting rewrite is missing or inconsistent.');
+          }
+
+          if (!fn.includes('defineSecret("OPENAI_API_KEY")') ||
+              !fn.includes('secrets: [openAiApiKey]')) {
+            throw new Error('AI API key must be provided through Firebase Secret Manager.');
+          }
+          if (!html.includes('fetch("/api/ai-consultation"')) {
+            throw new Error('AI consultation client endpoint is missing.');
+          }
+          if (/\bsk-[A-Za-z0-9_-]{20,}\b/.test(html)) {
+            throw new Error('A possible OpenAI secret key was found in client HTML.');
+          }
+          const loginFlowChecks = [
+            [/const mobileBrowser = \/Android\|iPhone\|iPad\|iPod\/i\.test\(navigator\.userAgent\)/, 'Mobile login must be detected for redirect-based authentication.'],
+            [/await signInWithRedirect\(auth, provider\)/, 'Mobile login must use the redirect flow.'],
+            [/await signInWithPopup\(auth, provider\)/, 'Desktop login must retain the popup flow.'],
+            [/redirectResult = await getRedirectResult\(auth\)/, 'Redirect results must be processed on app initialization.'],
+            [/onAuthStateChanged\(auth, user =>/, 'Login state must be observed after redirect processing.'],
+            [/case "auth\/api-key-not-valid":/, 'Invalid Firebase Web API keys must show a targeted diagnostic.'],
+            [/Identity Toolkit API/, 'Invalid API key diagnostics must identify the required Firebase Authentication API.'],
+            [/case "auth\/unauthorized-domain":/, 'Unauthorized Hosting domains must show a targeted diagnostic.'],
+            [/case "auth\/operation-not-allowed":/, 'Disabled Google sign-in must show a targeted diagnostic.'],
+            [/case "auth\/app-not-authorized":/, 'Unauthorized Firebase web apps must show a targeted diagnostic.'],
+            [/case "auth\/network-request-failed":/, 'Network failures must show a retry diagnostic.'],
+            [/case "auth\/too-many-requests":/, 'Rate-limited login attempts must show a wait-and-retry diagnostic.'],
+            [/case "auth\/web-storage-unsupported":/, 'Unsupported browser storage must show a browser-settings diagnostic.']
+          ];
+          for (const [pattern, message] of loginFlowChecks) {
+            if (!pattern.test(html)) throw new Error(message);
+          }
+          console.log('Firebase project, AI secret wiring, and Google login flow are consistent.');
+          NODE
+      - name: Validate app navigation and PWA assets
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, existsSync } from 'node:fs';
+
+          const html = readFileSync('index.html', 'utf8');
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+          if (duplicateIds.length) {
+            throw new Error('Duplicate HTML IDs: ' + duplicateIds.join(', '));
+          }
+
+          const idSet = new Set(ids);
+          const anchors = [...html.matchAll(/href=["']#([^"']+)["']/g)].map(match => match[1]);
+          const missingTargets = [...new Set(anchors.filter(target => !idSet.has(target)))];
+          if (missingTargets.length) {
+            throw new Error('Navigation links point to missing IDs: ' + missingTargets.join(', '));
+          }
+
+          const manifest = JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));
+          if (!manifest.name || !manifest.start_url || !Array.isArray(manifest.icons)) {
+            throw new Error('PWA manifest is missing required app metadata.');
+          }
+
+          for (const asset of ['./', './index.html', './manifest.webmanifest', './icon.svg']) {
+            const path = asset === './' ? 'index.html' : asset.slice(2);
+            if (!existsSync(path)) {
+              throw new Error('Service Worker app-shell asset is missing: ' + asset);
+            }
+          }
+          console.log('Checked unique HTML IDs, in-page navigation, PWA manifest, and app-shell assets.');
+          NODE
+      - name: Validate Firestore private-data access rules
+        run: node scripts/validate-firestore-rules.mjs
+      - name: Validate admin report review authorization
+        run: node scripts/validate-report-admin.mjs
+      - name: Validate AI consultation security and privacy
+        run: node scripts/validate-ai-consultation.mjs
+      - name: Validate cloud sync and account isolation
+        run: node scripts/validate-sync-safety.mjs
+      - name: Test Firestore rules in an isolated emulator
+        run: npm run test:firestore
+      - name: Validate JSON configuration
+        run: |
+          node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
+          node -e "JSON.parse(require('node:fs').readFileSync('.firebaserc', 'utf8'))"
+          node -e "JSON.parse(require('node:fs').readFileSync('functions/package.json', 'utf8'))"
+          node -e "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8'))"
