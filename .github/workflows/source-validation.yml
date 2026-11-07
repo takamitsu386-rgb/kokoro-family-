@@ -146,6 +146,8 @@ jobs:
           NODE
       - name: Validate Firestore private-data access rules
         run: node scripts/validate-firestore-rules.mjs
+      - name: Validate admin report review authorization
+        run: node scripts/validate-report-admin.mjs
       - name: Test Firestore rules in an isolated emulator
         run: npm run test:firestore
       - name: Validate JSON configuration
