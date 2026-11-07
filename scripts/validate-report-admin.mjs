@@ -92,4 +92,15 @@ assert.match(rules, /match \/reports\/\{reportId\}\s*\{\s*allow read, write: if 
 assert.match(rules, /match \/users\/\{userId\}\/reportUsage\/\{dayKey\}\s*\{\s*allow read, write: if false;/,
   'Clients must not inspect or alter report quota counters.');
 
+const reportHandlerStart = html.indexOf('snsSubmitReport.addEventListener("click"');
+const reportHandlerEnd = html.indexOf('snsSaveProfile.addEventListener("click"', reportHandlerStart);
+assert.ok(reportHandlerStart >= 0 && reportHandlerEnd > reportHandlerStart,
+  'The SNS report submission handler must exist.');
+const reportHandler = html.slice(reportHandlerStart, reportHandlerEnd);
+assert.ok(reportHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
+  reportHandler.indexOf('await fetch("/api/submit-report"') < reportHandler.indexOf('const data = await response.json()'),
+  'Report responses must be discarded before parsing when the signed-in account changes.');
+assert.match(reportHandler, /catch \\(error\\) \\{\\s*if \\(!snsUser \\|\\| snsUser\\.uid !== user\\.uid\\) return;\\s*snsReportNotice\\.textContent/,
+  'Report errors must not overwrite the notice belonging to a newly signed-in account.');
+
 console.log('Report submission protections and admin review authorization checks passed.');
