@@ -2806,8 +2806,10 @@ if (snsApp) {
         snsAdminStatus.textContent = "管理者権限を確認しました。";
       }
     } catch (error) {
+      if (!snsUser || snsUser.uid !== user.uid) return;
       console.error("SNS admin claim check failed", error);
     }
+    if (!snsUser || snsUser.uid !== user.uid) return;
     snsMessage("プロフィールを読み込んでいます…");
     try {
       await snsLoadProfile(user);
