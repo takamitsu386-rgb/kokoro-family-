@@ -135,12 +135,18 @@ service cloud.firestore {
       }
     }
 
-    // Friend requests and reports remain closed until their workflows are implemented.
-    match /friendRequests/{requestId} {
+    // Report documents and daily usage counters are server-only.
+    // Callable Cloud Functions use the Admin SDK; clients must never access these paths.
+    match /reports/{reportId} {
       allow read, write: if false;
     }
 
-    match /reports/{reportId} {
+    match /users/{userId}/reportUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Friend requests remain closed until their workflow is implemented.
+    match /friendRequests/{requestId} {
       allow read, write: if false;
     }
 
