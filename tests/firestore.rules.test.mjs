@@ -148,6 +148,37 @@ describe('profiles', () => {
     await assertSucceeds(getDoc(doc(owner, 'profiles/owner-blocked-by-viewer')));
   });
 
+  it('rejects invalid profile lengths, avatar values, and changes to creation time', async () => {
+    const db = testEnv.authenticatedContext('profile-validation-owner').firestore();
+    const profile = doc(db, 'profiles/profile-validation-owner');
+    await assertSucceeds(setDoc(profile, {
+      nickname: 'Valid name',
+      avatarId: 'avatar-01',
+      visibility: 'private',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+
+    await assertFails(updateDoc(profile, {
+      nickname: '',
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(profile, {
+      nickname: 'x'.repeat(25),
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(profile, {
+      avatarId: 'x'.repeat(33),
+      updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(profile, {
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+    const saved = await getDoc(profile);
+    assert.equal(saved.data().nickname, 'Valid name');
+  });
+
   it('rejects UID spoofing and sensitive or unapproved profile fields', async () => {
     const db = testEnv.authenticatedContext('alice').firestore();
     await assertFails(setDoc(doc(db, 'profiles/bob'), {
