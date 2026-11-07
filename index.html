@@ -2601,6 +2601,7 @@ async function snsLoadBlocks(user) {
         await snsLoadBlocks(activeUser);
         snsMessage("ブロックを解除しました。");
       } catch (error) {
+        if (!snsUser || snsUser.uid !== activeUser.uid) return;
         console.error("SNS unblock failed", error);
         snsMessage("ブロックを解除できませんでした。");
       } finally { snsReleaseBusyFor(activeUser); }
@@ -2629,6 +2630,7 @@ async function snsEditPost(postId, currentText) {
     await snsLoadPosts(user);
     snsMessage("投稿を更新しました。");
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post edit failed", error);
     snsMessage("更新できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
@@ -2649,6 +2651,7 @@ async function snsDeletePost(postId) {
     await snsLoadPosts(user);
     snsMessage("投稿を削除しました。");
   } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post delete failed", error);
     snsMessage("削除できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
