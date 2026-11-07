@@ -16,4 +16,6 @@ for (const [key, expected] of [
 ]) {
   assert.equal(headers.get(key), expected, 'Missing or incorrect Hosting security header: ' + key);
 }
+assert.equal(headers.has('x-frame-options'), false,
+  'Do not apply a global X-Frame-Options header that could block Firebase Auth helper iframes.');
 console.log('Firebase Hosting baseline security headers passed.');
