@@ -62,6 +62,23 @@ assert.match(sync, /redirectResult = await getRedirectResult\(auth\)/,
 assert.match(sync, /onAuthStateChanged\(auth, user =>/,
   'Sync state must follow Firebase authentication changes.');
 
+const backupStart = html.indexOf('const MAX_BACKUP_BYTES=10*1024*1024;');
+const backupEnd = html.indexOf('let uploadQueue = Promise.resolve()', backupStart);
+assert.ok(backupStart >= 0 && backupEnd > backupStart, 'Backup export and import handlers must exist.');
+const backup = html.slice(backupStart, backupEnd);
+assert.match(backup, /if\(file\.size>MAX_BACKUP_BYTES\)/,
+  'Backup preview and import must reject oversized files.');
+assert.match(backup, /if\(request!==backupPreviewRequest\)return;/,
+  'An older asynchronous backup preview must not replace a newer file selection.');
+assert.match(backup, /!validRoomData\(data\.currentRoom\)[\s\S]*?!validSavedRooms\(data\.savedRooms\)[\s\S]*?!validSavedRoomPrefs\(previewPrefs\)/,
+  'Backup preview must validate current room, saved rooms, and preferences before rendering.');
+assert.match(backup, /kokoroRoomBeforeImport[\s\S]*?kokoroSavedRoomsBeforeImport[\s\S]*?kokoroSavedRoomPrefsBeforeImport/,
+  'Full backup import must preserve recovery copies of all local datasets.');
+assert.match(backup, /if\(applyRoom\(data\.currentRoom,false\)!==true\)throw new Error\("room restore failed"\)[\s\S]*?if\(previousRoom===null\)localStorage\.removeItem\("kokoroRoom"\)/,
+  'Full backup import must restore prior local datasets if applying the imported room fails.');
+assert.match(backup, /Object\.prototype\.hasOwnProperty\.call\(data\.savedRooms,sourceName\)/,
+  'Selecting a saved room from a backup must verify that the selected key is an own property.');
+
 const aiStart = html.indexOf('const aiLog = document.getElementById("aiChatLog")');
 const aiEnd = html.indexOf('</script>', aiStart);
 assert.ok(aiStart >= 0 && aiEnd > aiStart, 'AI client module must exist.');
