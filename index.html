@@ -2201,7 +2201,12 @@ try {
         if (returnToAi) sessionStorage.setItem("kokoroReturnToAiAfterLogin", "1");
         else sessionStorage.removeItem("kokoroReturnToAiAfterLogin");
       } catch (storageError) {}
-      await signInWithRedirect(auth, provider);
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (error) {
+        try { sessionStorage.removeItem("kokoroReturnToAiAfterLogin"); } catch (storageError) {}
+        throw error;
+      }
     };
     try {
       if (mobileBrowser) {
