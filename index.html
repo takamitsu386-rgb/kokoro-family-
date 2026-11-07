@@ -146,6 +146,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="snsAddBlock" style="margin-top:8px">このユーザーをブロック</button>
 <h4>ブロック中のユーザー</h4>
 <div id="snsBlockList" aria-live="polite"><p>ログインすると一覧が表示されます。</p></div>
+<section id="snsAdminPanel" hidden style="border:1px solid #d8d2ec;border-radius:10px;padding:14px;margin-top:18px">
+<h3>運営用：通報確認</h3>
+<p style="font-size:13px;color:#667085">管理者権限がある運営担当者だけが確認できます。通報内容は必要な範囲で慎重に扱ってください。</p>
+<button type="button" id="snsAdminRefresh">通報一覧を読み込む</button>
+<p id="snsAdminStatus" role="status" aria-live="polite">管理者権限を確認しています。</p>
+<div id="snsAdminReportList" aria-live="polite"></div>
+</section>
 </div>
 <p style="font-size:13px;color:#667085">全体タイムライン、コメント、いいね、友達申請はまだ準備中です。通報は送信できますが、運営側の確認画面はまだありません。</p>
 </section>
@@ -2475,6 +2482,10 @@ const snsReportUid = document.getElementById("snsReportUid");
 const snsReportCategory = document.getElementById("snsReportCategory");
 const snsSubmitReport = document.getElementById("snsSubmitReport");
 const snsReportNotice = document.getElementById("snsReportNotice");
+const snsAdminPanel = document.getElementById("snsAdminPanel");
+const snsAdminRefresh = document.getElementById("snsAdminRefresh");
+const snsAdminStatus = document.getElementById("snsAdminStatus");
+const snsAdminReportList = document.getElementById("snsAdminReportList");
 const snsApp = getApps()[0];
 let snsDb = null;
 let snsUser = null;
@@ -2622,6 +2633,87 @@ async function snsDeletePost(postId) {
     snsSetBusy(false);
   }
 }
+
+const snsReportCategoryLabels = {
+  harassment: "いやがらせ・迷惑行為",
+  bullying: "いじめ・脅し",
+  inappropriate_content: "不適切な内容",
+  privacy: "個人情報の掲載",
+  impersonation: "なりすまし",
+  other: "その他"
+};
+async function snsAdminRequest(path, body, user) {
+  const token = await user.getIdToken();
+  if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+    body: JSON.stringify(body || {})
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "運営用機能を利用できませんでした。");
+  return data;
+}
+function snsRenderAdminReports(reports) {
+  snsAdminReportList.replaceChildren();
+  if (!reports.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "この状態の通報はありません。";
+    snsAdminReportList.appendChild(empty);
+    return;
+  }
+  for (const report of reports) {
+    const article = document.createElement("article");
+    article.style.cssText = "border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:10px 0";
+    const heading = document.createElement("strong");
+    heading.textContent = snsReportCategoryLabels[report.category] || "不明な理由";
+    const detail = document.createElement("p");
+    detail.style.cssText = "font-size:13px;overflow-wrap:anywhere";
+    const date = report.createdAtMs ? new Date(report.createdAtMs).toLocaleString("ja-JP") : "日時不明";
+    detail.textContent = "通報者ID：" + report.reporterUid + " / 対象ID：" + report.targetUid + " / 受付：" + date;
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+    for (const [status, label] of [["reviewed", "確認済み"], ["actioned", "対応済み"], ["dismissed", "対象外"]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", async () => {
+        const user = snsUser;
+        if (!user || snsBusy) return;
+        button.disabled = true;
+        snsAdminStatus.textContent = "更新しています…";
+        try {
+          await snsAdminRequest("/api/admin/update-report", { reportId: report.id, status }, user);
+          if (!snsUser || snsUser.uid !== user.uid) return;
+          snsAdminStatus.textContent = "確認状態を更新しました。";
+          await snsLoadAdminReports(user);
+        } catch (error) {
+          snsAdminStatus.textContent = error.message || "更新できませんでした。";
+          button.disabled = false;
+        }
+      });
+      actions.appendChild(button);
+    }
+    article.append(heading, detail, actions);
+    snsAdminReportList.appendChild(article);
+  }
+}
+async function snsLoadAdminReports(user, status = "pending") {
+  snsAdminStatus.textContent = "通報一覧を読み込んでいます…";
+  const data = await snsAdminRequest("/api/admin/reports", { status }, user);
+  if (!snsUser || snsUser.uid !== user.uid) return;
+  snsRenderAdminReports(Array.isArray(data.reports) ? data.reports : []);
+  snsAdminStatus.textContent = "通報一覧を表示しています（最大50件）。";
+}
+snsAdminRefresh.addEventListener("click", async () => {
+  if (!snsUser) return;
+  try {
+    await snsLoadAdminReports(snsUser);
+  } catch (error) {
+    snsAdminStatus.textContent = error.message || "読み込めませんでした。";
+  }
+});
+
 if (snsApp) {
   snsDb = getFirestore(snsApp);
   onAuthStateChanged(getAuth(snsApp), async user => {
@@ -2629,10 +2721,21 @@ if (snsApp) {
     snsSignedOut.hidden = !!user;
     snsSignedIn.hidden = !user;
     snsSetBusy(false);
+    snsAdminPanel.hidden = true;
+    snsAdminReportList.replaceChildren();
     if (!user) {
       snsMessage("未ログインです。Googleログイン後に利用できます。");
       snsRenderPosts([]);
       return;
+    }
+    try {
+      const tokenInfo = await user.getIdTokenResult(true);
+      if (tokenInfo.claims?.admin === true && snsUser?.uid === user.uid) {
+        snsAdminPanel.hidden = false;
+        snsAdminStatus.textContent = "管理者権限を確認しました。";
+      }
+    } catch (error) {
+      console.error("SNS admin claim check failed", error);
     }
     snsMessage("プロフィールを読み込んでいます…");
     try {
