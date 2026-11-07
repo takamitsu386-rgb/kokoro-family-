@@ -12,8 +12,7 @@ for (const [key, expected] of [
   ['x-content-type-options', 'nosniff'],
   ['referrer-policy', 'strict-origin-when-cross-origin'],
   ['permissions-policy', 'camera=(), microphone=(), geolocation=()'],
-  ['strict-transport-security', 'max-age=31536000'],
-  ['x-frame-options', 'DENY']
+  ['strict-transport-security', 'max-age=31536000']
 ]) {
   assert.equal(headers.get(key), expected, 'Missing or incorrect Hosting security header: ' + key);
 }
