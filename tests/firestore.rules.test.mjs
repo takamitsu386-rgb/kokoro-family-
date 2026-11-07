@@ -76,6 +76,12 @@ describe('profiles', () => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }));
+    for (const avatarId of ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']) {
+      await assertSucceeds(updateDoc(profile, {
+        avatarId,
+        updatedAt: serverTimestamp()
+      }));
+    }
     await assertSucceeds(getDoc(profile));
   });
 
