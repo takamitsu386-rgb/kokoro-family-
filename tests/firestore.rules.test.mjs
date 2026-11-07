@@ -345,7 +345,8 @@ describe('SNS features not yet implemented remain denied', () => {
     'posts/post-1/likes/alice',
     'users/alice/following/bob',
     'friendRequests/request-1',
-    'reports/report-1'
+    'reports/report-1',
+    'users/alice/reportUsage/2026-11-07'
   ];
 
   for (const path of deniedPaths) {
