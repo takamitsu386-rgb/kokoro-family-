@@ -337,4 +337,13 @@ assert.match(mirror,/roomSize-current-item\[dimension\]/,'Mirroring must calcula
 assert.match(mirror,/Math\.max\(0,Math\.min/,'Mirrored positions must stay inside the room.');
 assert.match(mirror,/autoSaveRoom\(\)/,'Mirroring must save through the existing room save path.');
 assert.match(mirror,/previous\.forEach/,'Mirroring must roll back positions if saving fails.');
+
+const overlapCheck=source.slice(source.indexOf('function checkFurnitureOverlaps('),source.indexOf('function autoArrangeFurniture(spacingScale=1)'));
+assert.match(source,/checkFurnitureOverlaps\(\)/,'Room editor must expose a furniture overlap check.');
+assert.match(source,/id="furnitureOverlapReport"/,'Room editor must provide an accessible overlap report region.');
+assert.match(overlapCheck,/getBoundingClientRect\(\)/,'Overlap checking must use rendered furniture bounds.');
+assert.match(overlapCheck,/width>2&&height>2/,'Overlap checking must ignore negligible edge contact.');
+assert.match(overlapCheck,/overlaps\.sort/,'Overlap results must prioritize larger overlaps.');
+assert.match(overlapCheck,/root\.appendChild/,'Overlap results must be rendered as text nodes.');
+assert.match(overlapCheck,/保存データは変更しません/,'Overlap checking must not mutate saved room data.');
 console.log('Saved room comparison CSV checks passed.');
