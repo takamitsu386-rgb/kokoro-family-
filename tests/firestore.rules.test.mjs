@@ -726,6 +726,7 @@ describe('friend requests', () => {
     await assertSucceeds(updateDoc(doc(recipient, 'friendRequests/friend-sender_friend-target'), {
       status: 'accepted', updatedAt: serverTimestamp()
     }));
+    await assertSucceeds(getDocs(query(collection(recipient, 'friendRequests'), where('toUid', '==', 'friend-target'))));
     await assertFails(updateDoc(doc(recipient, 'friendRequests/friend-sender_friend-target'), {
       status: 'pending', updatedAt: serverTimestamp()
     }));
