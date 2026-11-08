@@ -307,6 +307,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="rotateSelected(-45)">左に45°</button>
 <button type="button" onclick="rotateSelected(45)">右に45°</button>
 <button type="button" onclick="resetSelectedFurnitureRotation()">↩️ 回転を0°に戻す</button>
+<label for="furnitureRotationAngle">回転角度を指定（0〜359°）</label>
+<input id="furnitureRotationAngle" type="number" min="0" max="359" step="1" value="0" inputmode="numeric" style="width:100px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" onclick="setSelectedFurnitureRotation()">指定した角度にする</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
 <div class="items" aria-label="選んだ家具の配置場所">
 <button type="button" onclick="placeSelectedAtCorner('top-left')">↖️ 左上</button>
@@ -1422,6 +1425,29 @@ document.getElementById('selectedMessage').textContent='保存できなかった
 return;
 }
 document.getElementById('selectedMessage').textContent='家具を'+(degrees>0?'右に':'左に')+Math.abs(degrees)+'°回転しました。';
+}
+function setSelectedFurnitureRotation(){
+const status=document.getElementById('selectedMessage');
+if(!selectedFurniture||!room.contains(selectedFurniture)){
+status.textContent='先に角度を指定したい家具をタップしてね。';return;
+}
+const input=document.getElementById('furnitureRotationAngle');
+const raw=input?input.value:'';
+const degrees=Number(raw);
+if(raw.trim()===''||!Number.isInteger(degrees)||degrees<0||degrees>359){
+status.textContent='回転角度は0〜359の整数で指定してください。';return;
+}
+const previous=selectedFurniture.style.rotate;
+const next=degrees+'deg';
+if(previous===next||(degrees===0&&(!previous||previous==='0deg'))){
+status.textContent='この家具はすでに指定した角度です。';return;
+}
+selectedFurniture.style.rotate=next;
+if(!autoSaveRoom()){
+selectedFurniture.style.rotate=previous;
+status.textContent='保存できなかったため、家具の向きを元に戻しました。';return;
+}
+status.textContent='選択した家具を'+degrees+'°に設定しました。「1つ戻す」で元に戻せます。';
 }
 function resetSelectedFurnitureRotation(){
 if(!selectedFurniture||!room.contains(selectedFurniture)){
