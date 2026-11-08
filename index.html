@@ -268,6 +268,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h2>🛋️ 家具を追加</h2>
 <div class="items" id="furniture"></div>
 <p id="furnitureCategoryStatus" role="status" aria-live="polite" style="font-size:13px;color:#667085;margin:6px 2px">家具を70種類表示中</p>
+<h2>📊 お部屋の家具バランス</h2>
+<p>今のお部屋に置いた家具を種類ごとに集計して、配置のヒントを確認できます。</p>
+<button type="button" onclick="analyzeRoomFurniture()">家具の内訳・配置ヒントを見る</button>
+<div id="roomFurnitureReport" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px;background:#fafaff"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
@@ -504,6 +508,63 @@ document.getElementById('floor').style.backgroundImage='none';
 }
 function updateFurnitureCount(){
 document.getElementById('furnitureCount').textContent='🪑 お部屋の家具：'+room.querySelectorAll('.furniture').length+'個';
+}
+function analyzeRoomFurniture(){
+  const root=document.getElementById('roomFurnitureReport');
+  if(!root)return;
+  const groups={
+    '家具':['🛏️','🛋️','🪑','🪞','🖥️','📚','🛁','🚪','🪟','💡','🧺','🖼️','🕯️','🪜','🧹','🧴','🧼','🛒','📺','⌚','🧦','👒','👜','🎒','🕰️','🪔','🗄️','🗃️','🛎️','🧯','🪭','🪮','🪥'],
+    '植物':['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷','🪺','🦋'],
+    '動物・ぬいぐるみ':['🧸','🐱','🐶','🐰'],
+    '食べ物・飲み物':['🍓','🧁','🍰','🍉','🍊','🥛','☕','🫖'],
+    '小物・その他':['🎀','🧩','🎨','🖌️','🎻','🎸','🧿','🪅','🎁','🎹','🧶','🧵','🪡','🧷','🪬']
+  };
+  const categoryByIcon=new Map(Object.entries(groups).flatMap(([name,icons])=>icons.map(icon=>[icon,name])));
+  const items=[...room.querySelectorAll('.furniture')].map(item=>item.dataset.icon).filter(icon=>typeof icon==='string'&&icon);
+  const counts=new Map(Object.keys(groups).map(name=>[name,0]));
+  const iconCounts=new Map();
+  items.forEach(icon=>{
+    const category=categoryByIcon.get(icon)||'小物・その他';
+    counts.set(category,(counts.get(category)||0)+1);
+    iconCounts.set(icon,(iconCounts.get(icon)||0)+1);
+  });
+  root.replaceChildren();
+  root.style.display='block';
+  const heading=document.createElement('strong');
+  heading.textContent='今のお部屋の家具レポート';
+  root.appendChild(heading);
+  const total=document.createElement('p');
+  total.textContent='家具の合計：'+items.length+'個／種類：'+iconCounts.size+'種類';
+  root.appendChild(total);
+  const list=document.createElement('ul');
+  list.style.cssText='padding-left:22px;margin:8px 0';
+  counts.forEach((count,name)=>{
+    const li=document.createElement('li');
+    li.textContent=name+'：'+count+'個';
+    list.appendChild(li);
+  });
+  root.appendChild(list);
+  const hints=[];
+  if(items.length===0)hints.push('まずは好きな家具を1つ置いて、お部屋づくりを始めてみましょう。');
+  else{
+    if((counts.get('家具')||0)===0)hints.push('家具を置くと、お部屋の使い方をイメージしやすくなります。');
+    if((counts.get('植物')||0)===0)hints.push('植物を1つ加えると、色や雰囲気のアクセントを試せます。');
+    if((counts.get('動物・ぬいぐるみ')||0)===0)hints.push('動物やぬいぐるみを加えて、好みの雰囲気を試せます。');
+    if((counts.get('食べ物・飲み物')||0)===0)hints.push('食べ物や飲み物の小物で、テーマを表現できます。');
+    if(!hints.length)hints.push('いろいろな種類がそろっています。家具を動かして配置を調整してみましょう。');
+  }
+  const hintTitle=document.createElement('strong');
+  hintTitle.textContent='配置のヒント';
+  root.appendChild(hintTitle);
+  const hintList=document.createElement('ul');
+  hintList.style.cssText='padding-left:22px;margin:8px 0';
+  hints.forEach(hint=>{const li=document.createElement('li');li.textContent=hint;hintList.appendChild(li);});
+  root.appendChild(hintList);
+  const close=document.createElement('button');
+  close.type='button';
+  close.textContent='レポートを閉じる';
+  close.addEventListener('click',()=>{root.style.display='none';root.replaceChildren();});
+  root.appendChild(close);
 }
 function addFurniture(icon,persist=true){
 if(typeof icon!=='string'||!icon||icon.length>8||!furnitureList.includes(icon)){
