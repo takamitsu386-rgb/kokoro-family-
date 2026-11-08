@@ -267,6 +267,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <input id="customRoomPaletteName" type="text" maxlength="16" placeholder="例：春のリビング">
 <button type="button" onclick="saveCustomRoomPalette()">今の壁・床の色を保存</button>
 <div id="customRoomPalettes" class="items" aria-label="保存したお気に入り配色"></div>
+<div class="button-row">
+<button type="button" onclick="exportCustomRoomPalettes()">配色だけを書き出す</button>
+<label for="customRoomPaletteFile">配色ファイルを選択</label>
+<input id="customRoomPaletteFile" type="file" accept="application/json,.json">
+<button type="button" onclick="importCustomRoomPalettes()">配色を読み込む</button>
+</div>
 <p id="customRoomPaletteStatus" role="status" aria-live="polite"></p>
 <p id="roomColorPaletteStatus" role="status" aria-live="polite"></p>
 <h2>🧱 壁の色</h2>
@@ -815,6 +821,41 @@ remove.setAttribute('aria-label',palette.name+' の配色を削除');
 remove.addEventListener('click',()=>deleteCustomRoomPalette(index));
 group.append(apply,wallOnly,floorOnly,renameInput,rename,moveUp,moveDown,remove);root.appendChild(group);
 });
+}
+function exportCustomRoomPalettes(){
+const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
+if(!Array.isArray(list)||!validCustomRoomPalettes(list)){status.textContent='保存済み配色を読み取れません。';return;}
+try{
+const payload={app:'kokoro-family-palettes',version:1,exportedAt:new Date().toISOString(),palettes:list};
+const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+if(blob.size>16384){status.textContent='配色ファイルのサイズが上限を超えています。';return;}
+const url=URL.createObjectURL(blob),a=document.createElement('a');
+a.href=url;a.download='kokoro-family-palettes-'+new Date().toISOString().slice(0,10)+'.json';
+try{document.body.appendChild(a);a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+status.textContent=list.length+'件の配色を書き出しました。';
+}catch(error){status.textContent='配色を書き出せませんでした。';}
+}
+function importCustomRoomPalettes(){
+const status=document.getElementById('customRoomPaletteStatus'),input=document.getElementById('customRoomPaletteFile'),file=input.files&&input.files[0];
+if(!file){status.textContent='先に配色ファイルを選んでください。';return;}
+if(file.size>16384){status.textContent='配色ファイルは16KB以下にしてください。';input.value='';return;}
+const reader=new FileReader();
+reader.onload=()=>{
+try{
+const data=JSON.parse(reader.result);
+if(!data||data.app!=='kokoro-family-palettes'||data.version!==1||!validCustomRoomPalettes(data.palettes))throw new Error('invalid palette backup');
+if(!confirm('現在のお気に入り配色をファイルの内容に置き換えます。続けますか？'))return;
+const previous=readCustomRoomPalettes();
+if(!Array.isArray(previous)||!validCustomRoomPalettes(previous))throw new Error('current palettes invalid');
+localStorage.setItem('kokoroCustomRoomPalettesBeforePaletteImport',JSON.stringify(previous));
+localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(data.palettes));
+renderCustomRoomPalettes();
+status.textContent=data.palettes.length+'件の配色を読み込みました。読み込み前の配色も端末に退避しました。';
+}catch(error){console.warn('Custom palette import failed',error);status.textContent='読み込めませんでした。配色ファイルの形式と内容を確認してください。';}
+finally{input.value='';}
+};
+reader.onerror=()=>{status.textContent='配色ファイルを読み込めませんでした。';input.value='';};
+try{reader.readAsText(file);}catch(error){status.textContent='配色ファイルを開けませんでした。';input.value='';}
 }
 function saveCustomRoomPalette(){
 const status=document.getElementById('customRoomPaletteStatus');
