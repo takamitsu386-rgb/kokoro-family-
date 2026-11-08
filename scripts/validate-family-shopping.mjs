@@ -24,3 +24,12 @@ assert.match(html,/function resetEditor\(\)/);
 assert.match(html,/editingId\?\{/);
 assert.match(html,/Object\.hasOwn\(categories,categoryInput\.value\)/);
 assert.match(sw,/kokoro-family-v200/);
+
+assert.match(html,/id="familyShoppingExport"/);
+assert.match(html,/id="familyShoppingExportStatus"/);
+assert.match(html,/CSVを書き出す/);
+assert.match(html,/const safe=value=>/);
+assert.match(html,/new Blob\(\[csv\]/);
+assert.match(html,/text\/csv;charset=utf-8/);
+assert.match(html,/購入済み/);
+assert.match(sw,/kokoro-family-v207/);
