@@ -6034,7 +6034,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     const status=document.getElementById("familyMealsShoppingStatus");
     const start=today(),endDate=new Date(start+"T00:00:00");endDate.setDate(endDate.getDate()+6);
     const end=endDate.getFullYear()+"-"+String(endDate.getMonth()+1).padStart(2,"0")+"-"+String(endDate.getDate()).padStart(2,"0");
-    const notes=entries.filter(item=>item.date>=start&&item.date<=end).flatMap(item=>item.note.split(/[、,，;；\\n]+/).map(value=>value.trim().replace(/^[・•*\\-]+\\s*/,"")).filter(value=>value.length>0&&value.length<=60));
+    const notes=entries.filter(item=>item.date>=start&&item.date<=end).flatMap(item=>item.note.split(/[、,，;；\n]+/).map(value=>value.trim().replace(/^[・•*\-]+\s*/,"")).filter(value=>value.length>0&&value.length<=60));
     const unique=[...new Map(notes.map(value=>[value.toLocaleLowerCase(),value])).values()];
     if(!unique.length){status.textContent="今日から7日間の献立に買い物メモはありません。";return;}
     try{
