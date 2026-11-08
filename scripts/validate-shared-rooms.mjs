@@ -42,3 +42,8 @@ assert.match(tests, /allows only the owner and recipient to read their shared sn
 assert.match(tests, /allows an owner to create a bounded snapshot only for an accepted friend/);
 assert.match(tests, /lets recipients remove both copies and owners revoke their own shares/);
 console.log('Shared room UI, owner mirrors, recipient access, snapshot limits, and emulator test coverage passed.');
+
+assert.match(html, /保存済みのお部屋にコピー/);
+assert.match(html, /window\.saveSavedRoomsWithUndo\?\.\(nextRooms\)/);
+assert.match(html, /window\.validSavedRooms\?\.\(nextRooms\)/);
+assert.match(html, /Object\.keys\(savedRooms\)\.length >= 100/);
