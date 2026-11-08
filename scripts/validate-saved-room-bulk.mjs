@@ -407,4 +407,13 @@ assert.match(rotationFunction,/\[-90,-45,-15,15,45,90\]\.includes\(degrees\)/,'R
 assert.match(rotationFunction,/selectedFurniture\.style\.rotate=next\+'deg'/,'Rotation must update the selected furniture angle.');
 assert.match(rotationFunction,/if\(!autoSaveRoom\(\)\)/,'Rotation must save and roll back on failure.');
 assert.match(rotationFunction,/Math\.abs\(degrees\)/,'Rotation status must announce the actual angle.');
+const resetRotationStart=source.indexOf('function resetSelectedFurnitureRotation(){');
+const resetRotationEnd=source.indexOf('function resizeSelected(',resetRotationStart);
+const resetRotationFunction=source.slice(resetRotationStart,resetRotationEnd);
+assert.notEqual(resetRotationStart,-1,'Room editor must provide a rotation reset action.');
+assert.match(source,/resetSelectedFurnitureRotation\(\)/,'Room editor must expose the rotation reset button.');
+assert.match(resetRotationFunction,/selectedFurniture\.style\.rotate='0deg'/,'Rotation reset must return the selected furniture to zero degrees.');
+assert.match(resetRotationFunction,/if\(!autoSaveRoom\(\)\)/,'Rotation reset must persist and roll back on failure.');
+assert.match(resetRotationFunction,/selectedFurniture\.style\.rotate=previous/,'Rotation reset must restore the previous angle if saving fails.');
+assert.match(resetRotationFunction,/room\.contains\(selectedFurniture\)/,'Rotation reset must reject stale furniture selections.');
 console.log('Saved room comparison CSV checks passed.');
