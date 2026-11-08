@@ -217,6 +217,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="familyShoppingResetFilters">絞り込みを解除</button>
 <button type="button" id="familyShoppingClearBought">購入済みを整理</button>
 </div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0"><button type="button" id="familyShoppingModeToggle" aria-pressed="false">🛍️ 買い物中モードを開始</button><span id="familyShoppingModeStatus" role="status" aria-live="polite">通常表示</span></div>
 <p id="familyShoppingSummary" role="status" aria-live="polite">リストを読み込んでいます。</p>
 <ul id="familyShoppingList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
@@ -6187,6 +6188,9 @@ snsRefreshPosts.addEventListener("click", async () => {
   const listEl = document.getElementById("familyShoppingList");
   const summaryEl = document.getElementById("familyShoppingSummary");
   const clearButton = document.getElementById("familyShoppingClearBought");
+  const modeToggle = document.getElementById("familyShoppingModeToggle");
+  const modeStatus = document.getElementById("familyShoppingModeStatus");
+  let shoppingMode = false;
   const submitButton = document.getElementById("familyShoppingSubmit");
   const cancelButton = document.getElementById("familyShoppingCancel");
   const exportButton = document.getElementById("familyShoppingExport");
@@ -6228,12 +6232,13 @@ snsRefreshPosts.addEventListener("click", async () => {
   function render() {
     const filter=filterInput.value, categoryFilter=categoryFilterInput.value;
     const query=searchInput.value.trim().toLocaleLowerCase();
-    const visible=entries.filter(item=>(filter==="all"||(filter==="bought"?item.bought:!item.bought)) &&
+    const visible=entries.filter(item=>(shoppingMode?!item.bought:(filter==="all"||(filter==="bought"?item.bought:!item.bought))) &&
       (categoryFilter==="all"||item.category===categoryFilter) &&
       (!query||item.name.toLocaleLowerCase().includes(query)||item.quantity.toLocaleLowerCase().includes(query)))
       .sort((a,b)=>{
         const statusOrder=Number(a.bought)-Number(b.bought);
         if(statusOrder)return statusOrder;
+        if(shoppingMode)return categories[a.category].localeCompare(categories[b.category],"ja")||a.name.localeCompare(b.name,"ja");
         if(sortInput.value==="name")return a.name.localeCompare(b.name,"ja");
         if(sortInput.value==="category")return categories[a.category].localeCompare(categories[b.category],"ja")||a.name.localeCompare(b.name,"ja");
         if(sortInput.value==="oldest")return a.createdAt-b.createdAt;
@@ -6252,8 +6257,10 @@ snsRefreshPosts.addEventListener("click", async () => {
       li.style.cssText="padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:7px";
       const row=document.createElement("div");
       row.style.cssText="display:flex;gap:8px;align-items:center;flex-wrap:wrap";
+      if(shoppingMode)row.style.fontSize="1.12rem";
       const checkbox=document.createElement("input");
       checkbox.type="checkbox";checkbox.checked=item.bought;
+      if(shoppingMode){checkbox.style.width="24px";checkbox.style.height="24px";checkbox.style.accentColor="#6759d8";}
       checkbox.setAttribute("aria-label",item.name+"を購入済みにする");
       checkbox.addEventListener("change",()=>save(entries.map(entry=>entry.id===item.id?{...entry,bought:checkbox.checked}:entry)));
       const name=document.createElement("strong");name.textContent=item.name;
@@ -6266,9 +6273,15 @@ snsRefreshPosts.addEventListener("click", async () => {
       edit.addEventListener("click",()=>{editingId=item.id;nameInput.value=item.name;quantityInput.value=item.quantity;categoryInput.value=item.category;submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」を削除しますか？"))save(entries.filter(entry=>entry.id!==item.id));});
-      actions.append(edit,remove);li.append(row,meta,actions);listEl.append(li);
+      if(!shoppingMode)actions.append(edit,remove);
+      else {li.style.padding="16px";meta.style.fontSize="1rem";}
+      actions.append();li.append(row,meta,actions);listEl.append(li);
     }
     clearButton.disabled=bought===0;
+    modeToggle.textContent=shoppingMode?"通常表示に戻る":"🛍️ 買い物中モードを開始";
+    modeToggle.setAttribute("aria-pressed",String(shoppingMode));
+    modeStatus.textContent=shoppingMode?"買うものだけを分類・品物名順で表示中。チェックすると一覧から外れます。":"通常表示";
+    filterInput.disabled=shoppingMode;categoryFilterInput.disabled=shoppingMode;searchInput.disabled=shoppingMode;sortInput.disabled=shoppingMode;resetFiltersButton.disabled=shoppingMode;
     const full=entries.length>=LIMIT&&!editingId;
     nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;submitButton.disabled=full;
   }
@@ -6279,6 +6292,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     form.querySelectorAll("input,select,button").forEach(control=>control.disabled=true);
     filterInput.disabled=false;return;
   }
+  modeToggle.addEventListener("click",()=>{shoppingMode=!shoppingMode;render();});
   form.addEventListener("submit",event=>{
     event.preventDefault();
     const name=nameInput.value.trim(),quantity=quantityInput.value.trim();
