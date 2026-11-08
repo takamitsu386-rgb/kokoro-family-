@@ -2575,6 +2575,8 @@ let snsUser = null;
 let snsBusy = false;
 let snsBusyGeneration = 0;
 let snsAuthGeneration = 0;
+let snsAdminLoadGeneration = 0;
+const snsAdminUpdatingReports = new Set();
 
 function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
@@ -2775,18 +2777,22 @@ function snsRenderAdminReports(reports) {
         button.textContent = label;
         button.addEventListener("click", async () => {
           const user = snsUser;
-          if (!user || snsBusy) return;
-          button.disabled = true;
+          const authGeneration = snsAuthGeneration;
+          if (!user || snsBusy || snsAdminUpdatingReports.has(report.id)) return;
+          snsAdminUpdatingReports.add(report.id);
+          actions.querySelectorAll("button").forEach(action => { action.disabled = true; });
           snsAdminStatus.textContent = "更新しています…";
           try {
             await snsAdminRequest("/api/admin/update-report", { reportId: report.id, status }, user);
-            if (!snsUser || snsUser.uid !== user.uid) return;
+            if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
             snsAdminStatus.textContent = "確認状態を更新しました。";
-            await snsLoadAdminReports(user);
+            await snsLoadAdminReports(user, snsAdminFilter.value || "pending", authGeneration);
           } catch (error) {
-            if (!snsUser || snsUser.uid !== user.uid) return;
+            if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
             snsAdminStatus.textContent = error.message || "更新できませんでした。";
-            button.disabled = false;
+            actions.querySelectorAll("button").forEach(action => { action.disabled = false; });
+          } finally {
+            snsAdminUpdatingReports.delete(report.id);
           }
         });
         actions.appendChild(button);
@@ -2800,30 +2806,33 @@ function snsRenderAdminReports(reports) {
     snsAdminReportList.appendChild(article);
   }
 }
-async function snsLoadAdminReports(user, status = snsAdminFilter.value || "pending") {
+async function snsLoadAdminReports(user, status = snsAdminFilter.value || "pending", authGeneration = snsAuthGeneration) {
+  const loadGeneration = ++snsAdminLoadGeneration;
   snsAdminStatus.textContent = "通報一覧を読み込んでいます…";
   const data = await snsAdminRequest("/api/admin/reports", { status }, user);
-  if (!snsUser || snsUser.uid !== user.uid) return;
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration || snsAdminLoadGeneration !== loadGeneration || snsAdminPanel.hidden) return;
   snsRenderAdminReports(Array.isArray(data.reports) ? data.reports : []);
   snsAdminStatus.textContent = "通報一覧を表示しています（最大50件）。";
 }
 snsAdminRefresh.addEventListener("click", async () => {
   const user = snsUser;
-  if (!user) return;
+  const authGeneration = snsAuthGeneration;
+  if (!user || snsAdminPanel.hidden) return;
   try {
-    await snsLoadAdminReports(user);
+    await snsLoadAdminReports(user, snsAdminFilter.value || "pending", authGeneration);
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsAdminStatus.textContent = error.message || "読み込めませんでした。";
   }
 });
 snsAdminFilter.addEventListener("change", async () => {
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
   if (!user || snsAdminPanel.hidden) return;
   try {
-    await snsLoadAdminReports(user);
+    await snsLoadAdminReports(user, snsAdminFilter.value || "pending", authGeneration);
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsAdminStatus.textContent = error.message || "読み込めませんでした。";
   }
 });
@@ -2832,6 +2841,8 @@ if (snsApp) {
   snsDb = getFirestore(snsApp);
   onAuthStateChanged(getAuth(snsApp), async user => {
     const authGeneration = ++snsAuthGeneration;
+    snsAdminLoadGeneration += 1;
+    snsAdminUpdatingReports.clear();
     const accountChanged = snsUser?.uid !== user?.uid;
     if (accountChanged) {
       // Never leave the previous account's private profile, posts, or block list visible.
