@@ -14,7 +14,15 @@ const endpoint = functions.slice(start, end);
 assert.match(endpoint, /verifyIdToken\(match\[1\], true\)/,
   'The timeline must verify the Firebase token and revocation state.');
 assert.match(endpoint, /where\("visibility", "==", "public"\)/,
-  'The timeline query must select public posts only.');
+  'The timeline query must select public posts.');
+assert.match(endpoint, /where\("visibility", "==", "friends"\)/,
+  'The timeline must also query friends-only posts.');
+assert.match(endpoint, /where\("status", "==", "accepted"\)/,
+  'Friends-only posts must require accepted relationships.');
+assert.match(endpoint, /friendUids\.has\(item\.data\(\)\.authorUid\)/,
+  'Only accepted friends may enter the friends-only feed.');
+assert.match(endpoint, /visibility: post\.visibility === "friends"/,
+  'The response must identify friends-only posts.');
 assert.match(endpoint, /where\("status", "==", "active"\)/,
   'Deleted posts must never enter the timeline.');
 assert.match(endpoint, /orderBy\("createdAt", "desc"\)\s*\.limit\(50\)/,
@@ -37,6 +45,11 @@ assert.equal(rewrite?.function?.functionId, 'publicTimeline',
   'Hosting must route the timeline API to the correct function.');
 assert.equal(rewrite?.function?.region, 'asia-northeast1',
   'The timeline rewrite must use the deployed Functions region.');
+const friendRequestIndexes = indexes.indexes.filter(item => item.collectionGroup === 'friendRequests');
+assert.ok(friendRequestIndexes.some(item => item.fields.some(field => field.fieldPath === 'toUid') && item.fields.some(field => field.fieldPath === 'status')),
+  'A composite index must support incoming accepted-friend lookups.');
+assert.ok(friendRequestIndexes.some(item => item.fields.some(field => field.fieldPath === 'fromUid') && item.fields.some(field => field.fieldPath === 'status')),
+  'A composite index must support outgoing accepted-friend lookups.');
 const timelineIndex = indexes.indexes.find(item =>
   item.collectionGroup === 'posts' &&
   item.fields.some(field => field.fieldPath === 'visibility') &&
