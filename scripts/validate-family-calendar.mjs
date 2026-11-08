@@ -33,25 +33,25 @@ assert.match(html, /checkbox\.addEventListener\("change"/);
 assert.match(html, /Family calendar rollback failed/);
 assert.match(html, /上書きせず保護しました/);
 assert.match(html, /クラウド同期・家族間共有には未対応です/);
-assert.match(sw, /kokoro-family-v215/);
+assert.match(sw, /kokoro-family-v240/);
 console.log("Family calendar source checks passed.");
 
 assert.match(html, /id="familyCalendarSearch"/);
 assert.match(html, /id="familyCalendarResetFilters"/);
 assert.match(html, /item\.title\+" "\+item\.place/);
 assert.match(html, /searchInput\.addEventListener\("input",render\)/);
-assert.match(sw, /kokoro-family-v229/);
+assert.match(sw, /kokoro-family-v240/);
 
 assert.match(html, /option value="month">選択した月/);
 assert.match(html, /id="familyCalendarMonth"/);
 assert.match(html, /item\.date\.startsWith\(selectedMonth\)/);
 assert.match(html, /monthInput\.addEventListener\("change"/);
-assert.match(sw, /kokoro-family-v230/);
+assert.match(sw, /kokoro-family-v240/);
 
 assert.match(html, /option value="week">今日から7日間/);
 assert.match(html, /filter==="week"\?!item\.done&&item\.date>=current&&item\.date<=weekEnd/);
 assert.match(html, /const weekEnd=\(\(\)=>\{/);
-assert.match(sw, /kokoro-family-v231/);
+assert.match(sw, /kokoro-family-v240/);
 
 assert.match(html, /id="familyCalendarSort"/);
 assert.match(html, /option value="newest">登録が新しい順/);
@@ -61,4 +61,12 @@ assert.match(html, /sortInput.value==="newest"/);
 assert.match(html, /a.title.localeCompare\(b.title,"ja"\)/);
 assert.match(html, /monthInput.addEventListener\("change",render\)/);
 assert.match(html, /resetFiltersButton.addEventListener\("click"/);
-assert.match(sw, /kokoro-family-v234/);
+assert.match(sw, /kokoro-family-v240/);
+
+assert.match(html, /id="familyCalendarWeekOverview"/);
+assert.match(html, /今週の予定一覧/);
+assert.match(html, /weekOverview\.replaceChildren\(\)/);
+assert.match(html, /offset<7/);
+assert.match(html, /item\.time\.localeCompare\(b\.time\)/);
+assert.match(html, /この日に予定を追加/);
+assert.match(html, /weekOverview\.append\(card\)/);
