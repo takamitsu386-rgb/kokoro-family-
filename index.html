@@ -76,13 +76,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#ai-consultation">AI相談</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
 </section>
 <section class="panel" id="ai-consultation">
 <h2>💬 AI相談</h2>
@@ -186,6 +186,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <p style="font-size:13px;color:#667085">お部屋の変更履歴は最大30段階まで、この端末に保存されます。</p>
 <p id="furnitureMoveHelp" style="font-size:13px;color:#667085;line-height:1.7">💡 使い方：下の家具をタップして追加。家具の✋を指で押さえたまま動かすと、好きな場所に置けるよ。家具をタップすると、大きさ変更やコピーもできるよ。ドラッグ用の✋は矢印キーでも動かせるよ（Shift＋矢印で大きく移動）。</p>
+</section>
+<section class="panel" id="room-presets">
+<h2>🏡 すぐに始められるお部屋セット</h2>
+<p>完成イメージから選んで、家具の配置をまとめて作れます。適用後も家具の移動・追加・削除・模様替えができます。</p>
+<div id="roomTemplateList" class="items" aria-label="お部屋セット一覧"></div>
+<p id="roomTemplateStatus" role="status" aria-live="polite" style="font-size:13px;color:#596579">セットを選ぶと、今のお部屋を履歴に残して新しい配置に切り替えます。</p>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
@@ -305,6 +311,47 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <script>
 const room=document.getElementById('room');
 const furnitureList=[...new Set(['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','🖥️','📚','🛁','🚪','🪟','💡','🎹','🐱','🐶','🧺','🖼️','🕯️','🎀','🐰','🦋','🍓','🪻','🧩','🪑','🛋️','🪴','🛋️','🪑','🛏️','🧸','🪴','🌵','🌻','🌼','🌹','🪷','🪺','🪞','🪟','🪜','🧹','🧴','🧼','🛒','🎨','🖌️','🎻','🎸','📺','⌚','🧦','👒','👜','🎒','🧁','🍰','🍉','🍊','🥛','☕','🫖','🕰️','🪔','🧿','🪅','🎁','🗄️','🗃️','🧶','🪭','🪮','🛎️','🧯','🧵','🪡','🪥','🧷','🪬'])];
+const roomTemplates={
+  bedroom:{label:'🌷 ほっとする寝室',description:'ベッドと小物で落ち着く空間',wall:'#f8dce8',floor:'#e0bd91',wallImage:'radial-gradient(#ffffff99 2px,transparent 2px)',items:[['🛏️','34%','44%','48px'],['🪴','12%','20%','36px'],['💡','72%','28%','32px'],['🧸','63%','64%','30px'],['🖼️','78%','12%','30px']]},
+  living:{label:'🛋️ 家族のリビング',description:'みんなでくつろぐ明るい部屋',wall:'#fff0c9',floor:'#c89b72',wallImage:'none',items:[['🛋️','28%','42%','48px'],['📺','68%','24%','38px'],['🪴','10%','18%','38px'],['🧺','74%','65%','30px'],['🖼️','48%','12%','30px']]},
+  study:{label:'📚 集中できる勉強部屋',description:'机まわりをすっきり整える',wall:'#dceeff',floor:'#c8d7e8',wallImage:'repeating-linear-gradient(90deg,transparent 0 18px,#ffffff55 18px 22px)',items:[['🖥️','30%','42%','42px'],['🪑','43%','65%','34px'],['📚','62%','25%','38px'],['💡','18%','20%','32px'],['🧩','72%','68%','28px']]},
+  nature:{label:'🌿 グリーンのお部屋',description:'植物に囲まれたナチュラル空間',wall:'#e4f2dc',floor:'#b5c99a',wallImage:'none',items:[['🪴','18%','28%','42px'],['🌻','68%','22%','38px'],['🛋️','34%','52%','46px'],['🌵','78%','60%','34px'],['🧺','12%','68%','30px']]},
+  cafe:{label:'☕ おうちカフェ',description:'お茶とスイーツを楽しむ場所',wall:'#fff0c9',floor:'#d3b2b2',wallImage:'radial-gradient(#ffffff88 2px,transparent 2px)',items:[['🪑','24%','54%','38px'],['🪑','48%','54%','38px'],['☕','35%','35%','30px'],['🧁','62%','32%','34px'],['🌷','76%','60%','34px']]}
+};
+function applyRoomTemplate(key){
+  if(!Object.prototype.hasOwnProperty.call(roomTemplates,key))return;
+  const template=roomTemplates[key];
+  const data={
+    wall:template.wall,
+    wallColor:template.wall,
+    wallImage:template.wallImage,
+    wallSize:'auto',
+    wallRepeat:'repeat',
+    floor:template.floor,
+    floorImage:'none',
+    items:template.items.map(([icon,left,top,size])=>({icon,left,top,size}))
+  };
+  if(!validRoomData(data)){
+    document.getElementById('roomTemplateStatus').textContent='このお部屋セットを読み込めませんでした。現在のお部屋は変更していません。';
+    return;
+  }
+  if(!confirm('「'+template.label+'」に切り替えますか？今のお部屋は変更履歴に保存され、あとから「1つ戻す」で復元できます。'))return;
+  if(applyRoom(data)){
+    document.getElementById('roomTemplateStatus').textContent='✅ '+template.label+'を適用しました。家具は自由に動かせます。';
+    document.getElementById('message').textContent='🏡 '+template.label+'を作りました。好きなようにアレンジしてね！';
+  }
+}
+const roomTemplateList=document.getElementById('roomTemplateList');
+Object.entries(roomTemplates).forEach(([key,template])=>{
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='primary';
+  button.style.cssText='flex:1 1 180px;min-height:82px;text-align:left;white-space:normal';
+  button.textContent=template.label+'\n'+template.description;
+  button.setAttribute('aria-label',template.label+'：'+template.description+'を適用');
+  button.addEventListener('click',()=>applyRoomTemplate(key));
+  roomTemplateList.appendChild(button);
+});
 const wallColors=['#f5e9d8','#f8dce8','#dceeff','#e4f2dc','#eee2ff','#fff0c9','#d9f4ef','#eeeeee'];
 const floorColors=['#c89b72','#e0bd91','#a9a9a9','#b5c99a','#d3b2b2'];
 const wallPatterns=[
