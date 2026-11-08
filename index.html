@@ -164,9 +164,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyRecipesSearch">検索</label><input id="familyRecipesSearch" maxlength="60" placeholder="料理名・材料で検索">
+<button type="button" id="familyRecipesExport">CSVを書き出す</button>
 <label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
 </div>
 <p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
+<p id="familyRecipesExportStatus" role="status" aria-live="polite"></p>
 <p id="familyRecipesShoppingStatus" role="status" aria-live="polite"></p>
 <p id="familyRecipesMealStatus" role="status" aria-live="polite"></p>
 <ul id="familyRecipesList" style="list-style:none;padding:0;display:grid;gap:10px"></ul>
@@ -6594,6 +6596,31 @@ snsRefreshPosts.addEventListener("click", async () => {
   const summaryEl=document.getElementById("familyRecipesSummary");
   const submitButton=document.getElementById("familyRecipesSubmit");
   const cancelButton=document.getElementById("familyRecipesCancel");
+  const exportButton=document.getElementById("familyRecipesExport");
+  const exportStatus=document.getElementById("familyRecipesExportStatus");
+  const csvCell=value=>{
+    let text=String(value??"");
+    if(/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text))text="'"+text;
+    return '"'+text.replace(/"/g,'""')+'"';
+  };
+  exportButton.addEventListener("click",()=>{
+    try{
+      const header=["料理名","分類","材料","作り方・コツ","登録日時","更新日時"];
+      const rows=recipes.slice().sort((a,b)=>a.title.localeCompare(b.title,"ja"))
+        .map(item=>[item.title,categories[item.category],item.ingredients,item.steps,new Date(item.createdAt).toISOString(),new Date(item.updatedAt).toISOString()]);
+      const csv="\\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\\r\\n");
+      const now=new Date(),stamp=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0");
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download="kokoro-family-recipes-"+stamp+".csv";
+      document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      exportStatus.textContent=recipes.length+"件のレシピをCSVに書き出しました。";
+    }catch(error){
+      console.error("Family recipes CSV export failed",error);
+      exportStatus.textContent="CSVを書き出せませんでした。";
+    }
+  });
+
   const categories={main:"主食・メイン",side:"副菜",soup:"汁もの",snack:"おやつ・デザート",other:"その他"};
   let recipes=[],ready=false,editingId=null;
   function validRecipe(item){
