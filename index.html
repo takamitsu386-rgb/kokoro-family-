@@ -3295,11 +3295,11 @@ snsSendFriendRequest.addEventListener("click", async () => {
   const operationGeneration = snsSetBusy(true);
   try {
     const [existing, reverse] = await Promise.all([
-      getDoc(doc(snsDb, "friendRequests", requestId)),
-      getDoc(doc(snsDb, "friendRequests", targetUid + "_" + user.uid))
+      getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid), where("toUid", "==", targetUid))),
+      getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", targetUid), where("toUid", "==", user.uid)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid) return;
-    if (existing.exists() || reverse.exists()) throw new Error("申請済み、または相手から申請が届いています。申請一覧を確認してください。");
+    if (!existing.empty || !reverse.empty) throw new Error("申請済み、または相手から申請が届いています。申請一覧を確認してください。");
     await setDoc(doc(snsDb, "friendRequests", requestId), {
       fromUid: user.uid, toUid: targetUid, status: "pending",
       createdAt: serverTimestamp(), updatedAt: serverTimestamp()
