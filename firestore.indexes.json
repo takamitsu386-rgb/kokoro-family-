@@ -59,6 +59,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visibility",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nickname",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
