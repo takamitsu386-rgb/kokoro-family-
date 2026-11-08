@@ -306,6 +306,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="setBulkSavedRoomFavorites(true)">選択したお部屋をお気に入り登録</button>
 <button type="button" onclick="setBulkSavedRoomFavorites(false)">選択したお部屋のお気に入り解除</button>
 <button type="button" onclick="duplicateBulkSavedRooms()">選択したお部屋をまとめて複製</button>
+<button type="button" onclick="exportBulkSavedRooms()">選択したお部屋をまとめて書き出す</button>
 <button type="button" onclick="deleteBulkSavedRooms()">選択したお部屋を一括削除</button>
 </div>
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
@@ -1071,6 +1072,33 @@ created.forEach(name=>bulkSavedRoomSelection.add(name));
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 refreshSavedRooms();
 document.getElementById('message').textContent=created.length+'個のお部屋を複製しました。複製したお部屋を選択中です。元のお部屋はそのまま残しています。';
+}
+function exportBulkSavedRooms(){
+try{
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(rooms===null||prefs===null)throw new Error('保存データを読み取れません。');
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)&&validRoomData(rooms[name]));
+if(!selected.length)throw new Error('書き出すお部屋を選んでください。');
+const selectedRooms=Object.create(null);
+selected.forEach(name=>{selectedRooms[name]=rooms[name];});
+const selectedSet=new Set(selected);
+const selectedPrefs={
+favorites:prefs.favorites.filter(name=>selectedSet.has(name)),
+order:prefs.order.filter(name=>selectedSet.has(name)),
+categories:Object.fromEntries(Object.entries(prefs.categories||{}).filter(([name])=>selectedSet.has(name))),
+notes:Object.fromEntries(Object.entries(prefs.notes||{}).filter(([name])=>selectedSet.has(name)))
+};
+const payload={app:'kokoro-family',version:1,exportedAt:new Date().toISOString(),currentRoom:roomData(),savedRooms:selectedRooms,savedRoomPrefs:selectedPrefs};
+if(!validRoomData(payload.currentRoom)||!validSavedRooms(payload.savedRooms)||!validSavedRoomPrefs(payload.savedRoomPrefs))throw new Error('書き出すデータの形式を確認できません。');
+const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+if(blob.size>MAX_BACKUP_BYTES)throw new Error('選択したお部屋のデータが10MBを超えています。');
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='kokoro-family-selected-rooms-'+new Date().toISOString().slice(0,10)+'.json';
+try{document.body.appendChild(a);a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+document.getElementById('message').textContent=selected.length+'個のお部屋を書き出しました。お気に入り・カテゴリ・メモも含まれています。';
+}catch(error){document.getElementById('message').textContent=error&&error.message?error.message:'書き出しに失敗しました。';}
 }
 function deleteBulkSavedRooms(){
 const rooms=savedRoomData();
