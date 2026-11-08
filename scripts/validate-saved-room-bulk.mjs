@@ -553,3 +553,16 @@ assert.match(source,/shadow:el\.dataset\.shadow\|\|''/,'Furniture shadow preset 
 assert.match(source,/item\.shadow===undefined\|\|\['soft','strong','glow'\]\.includes\(item\.shadow\)/,'Only supported shadow presets may be restored.');
 assert.match(source,/restoredIcon&&v\.shadow/,'Furniture shadow must be restored when a room is loaded.');
 assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}家具の影を元に戻しました/,'Failed shadow saves must roll back the visual change.');
+
+assert.match(source,/id="furnitureBorderColor" type="color"/,'Furniture border color picker must be present.');
+assert.match(source,/function setSelectedFurnitureBorder\(style\)/,'Furniture border styles must be configurable.');
+assert.match(source,/function resetSelectedFurnitureBorder\(\)/,'Furniture border reset must be available.');
+assert.match(source,/setSelectedFurnitureBorder\('solid'\)/,'Solid furniture border control must be present.');
+assert.match(source,/setSelectedFurnitureBorder\('dashed'\)/,'Dashed furniture border control must be present.');
+assert.match(source,/setSelectedFurnitureBorder\('dotted'\)/,'Dotted furniture border control must be present.');
+assert.match(source,/borderStyle:el\.dataset\.borderStyle\|\|''/,'Furniture border style must be saved.');
+assert.match(source,/borderColor:el\.dataset\.borderColor\|\|''/,'Furniture border color must be saved.');
+assert.match(source,/item\.borderStyle===undefined\|\|\['solid','dashed','dotted'\]\.includes\(item\.borderStyle\)/,'Only supported border styles may be restored.');
+assert.match(source,/item\.borderColor===undefined\|\|\(typeof item\.borderColor==='string'&&\/\^#\[0-9a-fA-F\]\{6\}\$\//,'Furniture border color must be restricted to hex.');
+assert.match(source,/restoredIcon&&v\.borderStyle&&v\.borderColor/,'Furniture border must be restored when a room is loaded.');
+assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}家具の枠線を元に戻しました/,'Failed border saves must roll back visual changes.');
