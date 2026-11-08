@@ -78,13 +78,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-meals">献立</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-meals">献立</a><a href="#family-recipes">レシピ</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a class="secondary" href="#family-meals">🍱 献立を考える</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a class="secondary" href="#family-meals">🍱 献立を考える</a><a class="secondary" href="#family-recipes">📖 レシピを保存</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
 </section>
 <section class="panel" id="family-tasks">
 <h2>📝 家族のやることリスト</h2>
@@ -145,6 +145,23 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
 <ul id="familyMealsList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
+</section>
+<section class="panel" id="family-recipes">
+<h2>📖 家族のレシピノート</h2>
+<p>お気に入りの料理と材料・作り方を記録できます。レシピはこの端末のブラウザー内に保存されます（クラウド同期・家族間共有には未対応です）。</p>
+<form id="familyRecipesForm" style="display:grid;gap:8px">
+<label for="familyRecipesTitle">料理名（60文字以内）</label><input id="familyRecipesTitle" maxlength="60" required placeholder="例：野菜たっぷりカレー">
+<label for="familyRecipesCategory">分類</label><select id="familyRecipesCategory"><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
+<label for="familyRecipesIngredients">材料（500文字以内）</label><textarea id="familyRecipesIngredients" maxlength="500" rows="3" required placeholder="材料と分量を入力"></textarea>
+<label for="familyRecipesSteps">作り方・コツ（1000文字以内）</label><textarea id="familyRecipesSteps" maxlength="1000" rows="4" required placeholder="手順や気をつけることを入力"></textarea>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyRecipesSubmit">レシピを保存</button><button type="button" id="familyRecipesCancel" hidden>編集をやめる</button></div>
+</form>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
+<label for="familyRecipesSearch">検索</label><input id="familyRecipesSearch" maxlength="60" placeholder="料理名・材料で検索">
+<label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
+</div>
+<p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
+<ul id="familyRecipesList" style="list-style:none;padding:0;display:grid;gap:10px"></ul>
 </section>
 <section class="panel" id="family-shopping">
 <h2>🛒 家族のお買い物リスト</h2>
@@ -6215,6 +6232,104 @@ snsRefreshPosts.addEventListener("click", async () => {
     const count=entries.filter(x=>x.date<today()).length;
     if(count&&confirm("過去の献立"+count+"件を削除しますか？"))save(entries.filter(x=>x.date>=today()));
   });
+})();
+
+
+(() => {
+  const KEY="kokoroFamilyRecipesV1",LIMIT=100;
+  const form=document.getElementById("familyRecipesForm");
+  if(!form)return;
+  const titleInput=document.getElementById("familyRecipesTitle");
+  const categoryInput=document.getElementById("familyRecipesCategory");
+  const ingredientsInput=document.getElementById("familyRecipesIngredients");
+  const stepsInput=document.getElementById("familyRecipesSteps");
+  const searchInput=document.getElementById("familyRecipesSearch");
+  const filterInput=document.getElementById("familyRecipesFilter");
+  const listEl=document.getElementById("familyRecipesList");
+  const summaryEl=document.getElementById("familyRecipesSummary");
+  const submitButton=document.getElementById("familyRecipesSubmit");
+  const cancelButton=document.getElementById("familyRecipesCancel");
+  const categories={main:"主食・メイン",side:"副菜",soup:"汁もの",snack:"おやつ・デザート",other:"その他"};
+  let recipes=[],ready=false,editingId=null;
+  function validRecipe(item){
+    return !!item&&typeof item==="object"&&typeof item.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(item.id)&&
+      typeof item.title==="string"&&item.title.trim().length>=1&&item.title.length<=60&&
+      Object.hasOwn(categories,item.category)&&typeof item.ingredients==="string"&&item.ingredients.trim().length>=1&&item.ingredients.length<=500&&
+      typeof item.steps==="string"&&item.steps.trim().length>=1&&item.steps.length<=1000&&
+      Number.isSafeInteger(item.createdAt)&&item.createdAt>0&&Number.isSafeInteger(item.updatedAt)&&item.updatedAt>=item.createdAt;
+  }
+  function readRecipes(){
+    const raw=localStorage.getItem(KEY);if(raw===null)return [];
+    const data=JSON.parse(raw);
+    if(!Array.isArray(data)||data.length>LIMIT||!data.every(validRecipe)||new Set(data.map(x=>x.id)).size!==data.length)throw new Error("invalid recipe data");
+    return data;
+  }
+  function save(next){
+    if(!ready||!Array.isArray(next)||next.length>LIMIT||!next.every(validRecipe)||new Set(next.map(x=>x.id)).size!==next.length){
+      summaryEl.textContent="保存データを確認できないため、変更を保留しました。";return false;
+    }
+    const previous=JSON.stringify(recipes);
+    try{localStorage.setItem(KEY,JSON.stringify(next));recipes=next;render();return true;}
+    catch(error){
+      try{if(previous==="[]")localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous);}
+      catch(rollbackError){console.error("Family recipes rollback failed",rollbackError);}
+      summaryEl.textContent="保存できませんでした。端末の空き容量を確認してください。";return false;
+    }
+  }
+  function resetEditor(){
+    editingId=null;form.reset();submitButton.textContent="レシピを保存";cancelButton.hidden=true;
+  }
+  function render(){
+    const query=searchInput.value.trim().toLocaleLowerCase();
+    const visible=recipes.filter(x=>(filterInput.value==="all"||x.category===filterInput.value)&&
+      (!query||(x.title+" "+x.ingredients+" "+x.steps).toLocaleLowerCase().includes(query)))
+      .sort((a,b)=>b.updatedAt-a.updatedAt);
+    summaryEl.textContent="保存 "+recipes.length+"/"+LIMIT+"件・表示 "+visible.length+"件";
+    listEl.replaceChildren();
+    if(!visible.length){const empty=document.createElement("li");empty.textContent=recipes.length?"条件に合うレシピはありません。":"まだレシピがありません。上のフォームから登録できます。";listEl.append(empty);}
+    for(const recipe of visible){
+      const li=document.createElement("li");li.style.cssText="padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:8px";
+      const title=document.createElement("strong");title.textContent=recipe.title+" ・ "+categories[recipe.category];
+      const ingredients=document.createElement("p");ingredients.style.whiteSpace="pre-wrap";ingredients.textContent="材料：\\n"+recipe.ingredients;
+      const steps=document.createElement("p");steps.style.whiteSpace="pre-wrap";steps.textContent="作り方・コツ：\\n"+recipe.steps;
+      const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
+      edit.addEventListener("click",()=>{
+        editingId=recipe.id;titleInput.value=recipe.title;categoryInput.value=recipe.category;
+        ingredientsInput.value=recipe.ingredients;stepsInput.value=recipe.steps;
+        submitButton.textContent="変更を保存";cancelButton.hidden=false;form.scrollIntoView({behavior:"smooth",block:"start"});titleInput.focus();
+      });
+      const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
+      remove.addEventListener("click",()=>{if(confirm("「"+recipe.title+"」を削除しますか？")){if(save(recipes.filter(x=>x.id!==recipe.id))&&editingId===recipe.id)resetEditor();}});
+      actions.append(edit,remove);li.append(title,ingredients,steps,actions);listEl.append(li);
+    }
+    const full=recipes.length>=LIMIT&&!editingId;
+    titleInput.disabled=full;categoryInput.disabled=full;ingredientsInput.disabled=full;stepsInput.disabled=full;submitButton.disabled=full;
+  }
+  try{recipes=readRecipes();ready=true;render();}
+  catch(error){
+    console.error("Family recipes validation failed",error);summaryEl.textContent="保存データに問題があるため、上書きせず保護しました。";
+    form.querySelectorAll("input,textarea,select,button").forEach(control=>control.disabled=true);
+    searchInput.disabled=false;filterInput.disabled=false;return;
+  }
+  form.addEventListener("submit",event=>{
+    event.preventDefault();
+    const title=titleInput.value.trim(),category=categoryInput.value,ingredients=ingredientsInput.value.trim(),steps=stepsInput.value.trim();
+    if(!title||title.length>60||!Object.hasOwn(categories,category)||!ingredients||ingredients.length>500||!steps||steps.length>1000)return;
+    const now=Date.now();
+    if(editingId){
+      const old=recipes.find(x=>x.id===editingId);if(!old)return;
+      const updated=recipes.map(x=>x.id===editingId?{...x,title,category,ingredients,steps,updatedAt:Math.max(now,x.createdAt)}:x);
+      if(save(updated))resetEditor();
+    }else{
+      if(recipes.length>=LIMIT)return;
+      const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"recipe_"+now.toString(36)+"_"+Math.random().toString(36).slice(2,10);
+      if(save([...recipes,{id,title,category,ingredients,steps,createdAt:now,updatedAt:now}]))resetEditor();
+    }
+  });
+  cancelButton.addEventListener("click",resetEditor);
+  searchInput.addEventListener("input",render);
+  filterInput.addEventListener("change",render);
 })();
 
 </script>
