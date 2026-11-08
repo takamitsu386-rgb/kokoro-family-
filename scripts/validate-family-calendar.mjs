@@ -52,3 +52,13 @@ assert.match(html, /option value="week">今日から7日間/);
 assert.match(html, /filter==="week"\?!item\.done&&item\.date>=current&&item\.date<=weekEnd/);
 assert.match(html, /const weekEnd=\(\(\)=>\{/);
 assert.match(sw, /kokoro-family-v231/);
+
+assert.match(html, /id="familyCalendarSort"/);
+assert.match(html, /option value="newest">登録が新しい順/);
+assert.match(html, /option value="oldest">登録が古い順/);
+assert.match(html, /option value="title">予定名順/);
+assert.match(html, /sortInput.value==="newest"/);
+assert.match(html, /a.title.localeCompare\(b.title,"ja"\)/);
+assert.match(html, /monthInput.addEventListener\("change",render\)/);
+assert.match(html, /resetFiltersButton.addEventListener\("click"/);
+assert.match(sw, /kokoro-family-v234/);
