@@ -179,6 +179,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyShoppingSubmit">買い物リストに追加</button><button type="button" id="familyShoppingCancel" hidden>編集をやめる</button></div>
 </form>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" id="familyShoppingExport">CSVを書き出す</button></div>
+<p id="familyShoppingExportStatus" role="status" aria-live="polite"></p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyShoppingFilter">表示</label><select id="familyShoppingFilter"><option value="all">すべて</option><option value="needed">買うもの</option><option value="bought">購入済み</option></select>
 <button type="button" id="familyShoppingClearBought">購入済みを整理</button>
@@ -5999,6 +6001,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const clearButton = document.getElementById("familyShoppingClearBought");
   const submitButton = document.getElementById("familyShoppingSubmit");
   const cancelButton = document.getElementById("familyShoppingCancel");
+  const exportButton = document.getElementById("familyShoppingExport");
+  const exportStatus = document.getElementById("familyShoppingExportStatus");
   const categories = {food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
   let entries = [], ready = false, editingId = null;
   function resetEditor(){editingId=null;form.reset();submitButton.textContent="買い物リストに追加";cancelButton.hidden=true;render();}
@@ -6089,6 +6093,25 @@ snsRefreshPosts.addEventListener("click", async () => {
       const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
       if(save([...entries,{id,name,quantity,category:categoryInput.value,bought:false,createdAt:Date.now()}])){nameInput.value="";quantityInput.value="";nameInput.focus();}
     }
+  });
+  exportButton.addEventListener("click",()=>{
+    if(!ready||!entries.length){exportStatus.textContent="書き出す品物がありません。";return;}
+    const safe=value=>{
+      const text=String(value??"");
+      return /^[\\s]*[=+\\-@]/.test(text)?"'"+text:text;
+    };
+    const quote=value=>'"'+safe(value).replace(/"/g,'""')+'"';
+    const rows=[["品物","数量・メモ","分類","購入状況","登録日時"],...entries
+      .slice().sort((a,b)=>a.createdAt-b.createdAt)
+      .map(item=>[item.name,item.quantity,categories[item.category],item.bought?"購入済み":"未購入",new Date(item.createdAt).toLocaleString("ja-JP")])];
+    const csv="\\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\\r\\n");
+    try{
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download="kokoro-family-shopping-"+new Date().toISOString().slice(0,10)+".csv";
+      link.hidden=true;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      exportStatus.textContent=entries.length+"件の買い物リストをCSVに書き出しました。";
+    }catch(error){console.error("Shopping CSV export failed",error);exportStatus.textContent="CSVを書き出せませんでした。";}
   });
   cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
