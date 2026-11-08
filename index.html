@@ -327,6 +327,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="savedRoomGallery" aria-label="保存したお部屋のビジュアル一覧" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin:12px 0"></div>
 <label for="savedRoomSearch">お部屋を名前・カテゴリ・メモで検索</label>
 <input id="savedRoomSearch" type="search" maxlength="80" placeholder="例：寝室、春、模様替えメモ" oninput="refreshSavedRooms()" autocomplete="off" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit;margin:6px 0">
+<label for="savedRoomSort">お部屋の並び順</label>
+<select id="savedRoomSort" onchange="refreshSavedRooms()" aria-label="保存したお部屋の並び順">
+<option value="custom">お気に入り・登録順</option>
+<option value="count-desc">家具が多い順</option>
+<option value="count-asc">家具が少ない順</option>
+<option value="name">名前順</option>
+</select>
 <label for="savedRoomCategoryFilter">カテゴリで絞り込み</label>
 <select id="savedRoomCategoryFilter" onchange="refreshSavedRooms()"><option value="">すべてのカテゴリ</option></select>
 <label for="savedRoomCategoryName">選んだお部屋のカテゴリ</label>
@@ -1730,9 +1737,13 @@ return searchable.includes(searchQuery);
 });
 const favorites=prefs?prefs.favorites.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
 const order=prefs?prefs.order.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
+const sortMode=document.getElementById('savedRoomSort')?.value||'custom';
 names.sort((a,b)=>{
 const af=favorites.includes(a)?0:1,bf=favorites.includes(b)?0:1;
 if(af!==bf)return af-bf;
+if(sortMode==='count-desc')return rooms[b].items.length-rooms[a].items.length||a.localeCompare(b,'ja');
+if(sortMode==='count-asc')return rooms[a].items.length-rooms[b].items.length||a.localeCompare(b,'ja');
+if(sortMode==='name')return a.localeCompare(b,'ja');
 const ai=order.indexOf(a),bi=order.indexOf(b);
 if(ai<0&&bi<0)return 0;
 if(ai<0)return 1;
