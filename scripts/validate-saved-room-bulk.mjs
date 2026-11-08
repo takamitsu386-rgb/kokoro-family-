@@ -442,3 +442,20 @@ assert.match(exactSizeFunction,/if\(!autoSaveRoom\(\)\)/,'Exact furniture size m
 assert.match(exactSizeFunction,/selectedFurniture\.style\.fontSize=previous/,'Exact furniture size must restore the previous size after save failure.');
 assert.match(exactSizeFunction,/previousLeft/,'Exact furniture size must preserve the original position for rollback.');
 assert.match(exactSizeFunction,/room\.contains\(selectedFurniture\)/,'Exact furniture size must reject stale selections.');
+
+const lockFunctionStart=source.indexOf('function toggleSelectedFurnitureLock(){');
+const lockFunctionEnd=source.indexOf('function layerSelected(',lockFunctionStart);
+const lockFunction=source.slice(lockFunctionStart,lockFunctionEnd);
+assert.notEqual(lockFunctionStart,-1,'Room editor must provide a furniture lock toggle.');
+assert.match(source,/toggleSelectedFurnitureLock\(\)/,'Room editor must expose the furniture lock control.');
+assert.match(lockFunction,/dataset\.locked='true'/,'Lock toggle must mark selected furniture as locked.');
+assert.match(lockFunction,/delete selectedFurniture\.dataset\.locked/,'Lock toggle must allow unlocking.');
+assert.match(lockFunction,/if\(!autoSaveRoom\(\)\)/,'Lock state must persist and roll back on failure.');
+assert.match(lockFunction,/家具の固定状態を元に戻しました/,'Lock failure must restore the previous state.');
+const dragFunctionStart=source.indexOf('function drag(el){');
+const dragFunctionEnd=source.indexOf('function keepFurnitureInsideRoom()',dragFunctionStart);
+const dragFunction=source.slice(dragFunctionStart,dragFunctionEnd);
+assert.match(dragFunction,/el\.dataset\.locked==='true'/,'Locked furniture must reject keyboard and pointer movement.');
+assert.match(source,/locked:el\.dataset\.locked==='true'/,'Room snapshots must preserve furniture lock state.');
+assert.match(source,/(item\.locked===undefined\|\|typeof item\.locked==='boolean')/,'Room validation must allow only boolean lock state.');
+assert.match(source,/if\(v\.locked===true\)\{el\.dataset\.locked='true'/,'Room restoration must restore locked furniture.');
