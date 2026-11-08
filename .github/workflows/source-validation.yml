@@ -176,7 +176,7 @@ jobs:
         run: node scripts/validate-sync-safety.mjs
       - name: Validate ready-made room templates
         run: node scripts/validate-room-templates.mjs
-      - name: Validate saved room bulk management
+      - name: Validate saved room bulk management and furniture search
         run: node scripts/validate-saved-room-bulk.mjs
       - name: Validate public SNS timeline privacy and access
         run: node scripts/validate-public-timeline.mjs
