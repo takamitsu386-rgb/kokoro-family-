@@ -31,8 +31,14 @@ assert.match(rules, /function\s+validProfile\(/,
   'Profile field allowlist validation is required.');
 assert.match(rules, /function\s+validPost\(/,
   'Post field allowlist validation is required.');
+assert.match(rules, /function\s+acceptedFriend\(uidA, uidB\)/,
+  'Friends-only access must depend on an accepted request in either direction.');
 assert.match(rules, /function\s+canInteractWithPost\(postId\)/,
   'Interactions must validate parent post visibility and block status.');
+assert.match(rules, /resource\.data\.visibility == 'friends'[\s\S]*?acceptedFriend\(request\.auth\.uid, resource\.data\.authorUid\)/,
+  'Friends-only posts must require an accepted friend relationship.');
+assert.match(rules, /resource\.data\.visibility == 'friends'[\s\S]*?acceptedFriend\(request\.auth\.uid, uid\)/,
+  'Friends-only profiles must be visible only to accepted friends.');
 assert.match(rules, /function\s+validComment\(data\)/,
   'Comment field and length validation is required.');
 assert.match(rules, /match\s+\/friendRequests\/\{requestId\}/,
