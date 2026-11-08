@@ -130,6 +130,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="week">今日から7日間</option><option value="month">選択した月</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
 <label for="familyCalendarMonth">対象月</label><input id="familyCalendarMonth" type="month" aria-label="表示する年月">
 <label for="familyCalendarSearch">予定検索</label><input id="familyCalendarSearch" type="search" maxlength="80" placeholder="予定名・場所・メモを検索">
+<label for="familyCalendarSort">並び順</label><select id="familyCalendarSort"><option value="date">日付・時刻順</option><option value="newest">登録が新しい順</option><option value="oldest">登録が古い順</option><option value="title">予定名順</option></select>
 <button type="button" id="familyCalendarResetFilters">検索を解除</button>
 <button type="button" id="familyCalendarClearDone">完了した予定を整理</button><button type="button" id="familyCalendarExport">CSVを書き出す</button><label for="familyCalendarImportFile" class="button">CSVを読み込む</label><input id="familyCalendarImportFile" type="file" accept=".csv,text/csv" hidden>
 </div>
@@ -6383,6 +6384,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const placeInput = document.getElementById("familyCalendarPlace");
   const filterInput = document.getElementById("familyCalendarFilter");
   const searchInput=document.getElementById("familyCalendarSearch");
+  const sortInput=document.getElementById("familyCalendarSort");
   const monthInput=document.getElementById("familyCalendarMonth");
   const resetFiltersButton=document.getElementById("familyCalendarResetFilters");
   const listEl = document.getElementById("familyCalendarList");
@@ -6517,7 +6519,12 @@ snsRefreshPosts.addEventListener("click", async () => {
     const selectedMonth=monthInput.value;
     const weekEnd=(()=>{const [y,m,d]=current.split("-").map(Number);const end=new Date(y,m-1,d+6);return end.getFullYear()+"-"+String(end.getMonth()+1).padStart(2,"0")+"-"+String(end.getDate()).padStart(2,"0");})();
     const visible=entries.filter(item=>(filter==="all"||(filter==="done"?item.done:filter==="month"?(!!selectedMonth&&item.date.startsWith(selectedMonth)):filter==="week"?!item.done&&item.date>=current&&item.date<=weekEnd:!item.done&&item.date>=current))&&(!query||(item.title+" "+item.place).toLocaleLowerCase().includes(query)))
-      .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)||a.createdAt-b.createdAt);
+      .sort((a,b)=>{
+        if(sortInput.value==="newest")return b.createdAt-a.createdAt;
+        if(sortInput.value==="oldest")return a.createdAt-b.createdAt;
+        if(sortInput.value==="title")return a.title.localeCompare(b.title,"ja")||a.date.localeCompare(b.date);
+        return a.date.localeCompare(b.date)||a.time.localeCompare(b.time)||a.createdAt-b.createdAt;
+      });
     const done=entries.filter(item=>item.done).length;
     summaryEl.textContent="全"+entries.length+"件・これからの予定"+entries.filter(item=>!item.done&&item.date>=current).length+"件・完了"+done+"件・表示"+visible.length+"件";
     listEl.replaceChildren();
@@ -6604,6 +6611,10 @@ snsRefreshPosts.addEventListener("click", async () => {
   });
   cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
+  searchInput.addEventListener("input",render);
+  sortInput.addEventListener("change",render);
+  monthInput.addEventListener("change",render);
+  resetFiltersButton.addEventListener("click",()=>{filterInput.value="upcoming";searchInput.value="";monthInput.value="";sortInput.value="date";render();});
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.done).length;
     if(count&&confirm("完了した"+count+"件の予定を削除しますか？"))save(entries.filter(item=>!item.done));
