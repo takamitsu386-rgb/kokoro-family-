@@ -99,6 +99,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyTaskSubmit">リストに追加</button><button type="button" id="familyTaskCancel" hidden>編集をキャンセル</button></div>
 </form>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" id="familyTaskExport">CSVを書き出す</button><label for="familyTaskImportFile">CSVから追加</label><input id="familyTaskImportFile" type="file" accept=".csv,text/csv"></div>
+<p id="familyTaskCsvStatus" role="status" aria-live="polite"></p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyTaskFilter">表示</label><select id="familyTaskFilter"><option value="all">すべて</option><option value="open">未完了</option><option value="done">完了</option></select>
 <button type="button" id="familyTaskClearDone">完了した項目を整理</button>
@@ -5837,6 +5839,9 @@ snsRefreshPosts.addEventListener("click", async () => {
   const clearButton = document.getElementById("familyTaskClearDone");
   const submitButton = document.getElementById("familyTaskSubmit");
   const cancelButton = document.getElementById("familyTaskCancel");
+  const exportButton=document.getElementById("familyTaskExport");
+  const importFile=document.getElementById("familyTaskImportFile");
+  const csvStatus=document.getElementById("familyTaskCsvStatus");
   const categories = { household: "家のこと", cleaning: "掃除", study: "勉強・仕事", other: "その他" };
   const priorities = { low: "低", normal: "ふつう", high: "高" };
   let tasks = [];
@@ -5975,6 +5980,67 @@ snsRefreshPosts.addEventListener("click", async () => {
     const next = [...tasks, {id, title, category: categoryInput.value, priority: priorityInput.value, dueDate: dueInput.value, completed: false, createdAt: Date.now()}];
     if (persist(next)) { form.reset(); titleInput.focus(); }
   });
+
+  exportButton.addEventListener("click",()=>{
+    if(!storageReady||!tasks.length){csvStatus.textContent="書き出す項目がありません。";return;}
+    const safe=value=>{const text=String(value??"");return /^[\s]*[=+\-@]/.test(text)?"'"+text:text;};
+    const quote=value=>'"'+safe(value).replace(/"/g,'""')+'"';
+    const rows=[["やること","分類","優先度","期限","状態"],...tasks.slice().sort((a,b)=>a.createdAt-b.createdAt).map(task=>[
+      task.title,categories[task.category],priorities[task.priority],task.dueDate,task.completed?"完了":"未完了"
+    ])];
+    const csv="\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\r\n");
+    try{
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download="kokoro-family-tasks-"+new Date().toISOString().slice(0,10)+".csv";
+      link.hidden=true;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      csvStatus.textContent=tasks.length+"件のやることをCSVに書き出しました。";
+    }catch(error){console.error("Task CSV export failed",error);csvStatus.textContent="CSVを書き出せませんでした。";}
+  });
+  importFile.addEventListener("change",async()=>{
+    const file=importFile.files&&importFile.files[0];if(!file)return;
+    try{
+      if(file.size>1024*1024)throw new Error("CSV file too large");
+      const source=(await file.text()).replace(/^\uFEFF/,"");
+      const parseCSV=text=>{
+        const rows=[];let row=[],field="",quoted=false;
+        for(let i=0;i<text.length;i++){
+          const ch=text[i];
+          if(quoted){if(ch==='"'&&text[i+1]==='"'){field+='"';i++;}else if(ch==='"')quoted=false;else field+=ch;}
+          else if(ch==='"'){if(field.length)throw new Error("invalid quote");quoted=true;}
+          else if(ch===","){row.push(field);field="";}
+          else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(field);field="";if(row.some(value=>value!==""))rows.push(row);row=[];}
+          else field+=ch;
+        }
+        if(quoted)throw new Error("unclosed quote");
+        row.push(field);if(row.some(value=>value!==""))rows.push(row);return rows;
+      };
+      const rows=parseCSV(source),header=["やること","分類","優先度","期限","状態"];
+      if(!rows.length||rows[0].length!==5||!header.every((value,index)=>rows[0][index]===value))throw new Error("unexpected CSV header");
+      if(rows.length>101)throw new Error("too many rows");
+      const categoryMap={"家のこと":"household","掃除":"cleaning","勉強・仕事":"study","その他":"other"};
+      const priorityMap={"低":"low","ふつう":"normal","高":"high"};
+      const imported=rows.slice(1).map(row=>{
+        if(row.length!==5)throw new Error("invalid CSV columns");
+        const [title,category,priority,dueDate,state]=row;
+        if(!title.trim()||title.trim().length>80||!Object.hasOwn(categoryMap,category)||!Object.hasOwn(priorityMap,priority)||
+          (dueDate!==""&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||Number.isNaN(Date.parse(dueDate))))||
+          !["完了","未完了"].includes(state))throw new Error("invalid task row");
+        return {title:title.trim(),category:categoryMap[category],priority:priorityMap[priority],dueDate,completed:state==="完了"};
+      });
+      if(!imported.length){csvStatus.textContent="CSVに取り込める項目がありません。";return;}
+      const existing=new Set(tasks.map(task=>task.title.trim().toLocaleLowerCase()+"|"+task.dueDate));
+      const unique=[];
+      for(const item of imported){const key=item.title.toLocaleLowerCase()+"|"+item.dueDate;if(!existing.has(key)){existing.add(key);unique.push(item);}}
+      const added=unique.slice(0,LIMIT-tasks.length),skipped=imported.length-added.length;
+      if(!added.length){csvStatus.textContent=tasks.length>=LIMIT?"やることリストが上限の100件です。":"CSVの項目はすべて登録済みです。";return;}
+      if(!confirm("CSVから"+added.length+"件を追加しますか？"+(skipped?"\n重複または上限のため"+skipped+"件は追加しません。":"")))return;
+      const now=Date.now();
+      const next=[...tasks,...added.map((item,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"taskcsv_"+now.toString(36)+"_"+index+"_"+Math.random().toString(36).slice(2,7),...item,createdAt:now+index}))];
+      if(persist(next))csvStatus.textContent=added.length+"件をCSVから追加しました。"+(skipped?"（"+skipped+"件は重複または上限のため除外）":"");
+    }catch(error){console.error("Task CSV import failed",error);csvStatus.textContent="CSVを読み込めませんでした。形式・内容を確認してください。リストは変更していません。";}
+    finally{importFile.value="";}
+  });
+
   cancelButton.addEventListener("click", resetEditor);
   filterInput.addEventListener("change", render);
   clearButton.addEventListener("click", () => {
