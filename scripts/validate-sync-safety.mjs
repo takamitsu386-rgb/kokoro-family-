@@ -55,6 +55,8 @@ assert.match(sync, /if \(syncInProgress\) \{\s*syncPending = true;/,
   'Automatic sync requests must be deferred while another sync is active.');
 assert.match(sync, /logoutInProgress = true;[\s\S]*?await uploadQueue\.catch[\s\S]*?await signOut\(auth\)/,
   'Logout must stop new syncs and wait for queued uploads before signing out.');
+assert.match(sync, /logoutInProgress = true;[\s\S]*?clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;\s*syncPending = false;[\s\S]*?await uploadQueue\.catch/,
+  'Starting logout must cancel pending automatic retries and clear pending sync work before waiting for uploads.');
 assert.match(sync, /const logoutUser = currentUser;[\s\S]*?const logoutUid = logoutUser\.uid;[\s\S]*?const logoutGeneration = authStateGeneration;[\s\S]*?await uploadQueue\.catch[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== logoutUid \|\| authStateGeneration !== logoutGeneration\) return;[\s\S]*?await signOut\(auth\)/,
   'Logout must confirm the original account identity and generation after waiting for queued uploads.');
 assert.match(sync, /const logoutGeneration = authStateGeneration;[\s\S]*?if \(!currentUser \|\| currentUser\.uid !== logoutUid \|\| authStateGeneration !== logoutGeneration\) return;[\s\S]*?await signOut\(auth\)/,
