@@ -2615,7 +2615,7 @@ if("serviceWorker" in navigator && location.protocol==="https"){
 <script type="module">
 import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, writeBatch, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const snsStatus = document.getElementById("snsStatus");
 const snsSignedOut = document.getElementById("snsSignedOut");
@@ -3392,8 +3392,8 @@ if (snsApp) {
 }
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
   const [owned, received] = await Promise.all([
-    getDocs(query(collection(snsDb, "sharedRooms"), where("ownerUid", "==", user.uid), where("recipientUid", "!=", ""), limit(50))),
-    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "!=", ""), limit(50)))
+    getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
+    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(50)))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   snsSharedRoomList.replaceChildren();
@@ -3422,7 +3422,7 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
         if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
         if (!confirm("このお部屋の共有を取り消しますか？相手は以後読み込めなくなります。")) return;
         try {
-          await deleteDoc(doc(snsDb, "sharedRooms", item.id));
+          const batch = writeBatch(snsDb);\n          batch.delete(doc(snsDb, "sharedRooms", item.id));\n          batch.delete(doc(snsDb, "users", user.uid, "sharedRooms", item.id));\n          await batch.commit();
           if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) await snsLoadSharedRooms(user, authGeneration);
         } catch (error) {
           console.error("Shared room revoke failed", error);
@@ -3452,7 +3452,7 @@ snsShareCurrentRoom.addEventListener("click", async () => {
     const requests = await Promise.all(requestIds.map(id => getDoc(doc(snsDb, "friendRequests", id))));
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     if (!requests.some(snap => snap.exists() && snap.data().status === "accepted")) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
-    await addDoc(collection(snsDb, "sharedRooms"), { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() });
+    const shareRef = doc(collection(snsDb, "sharedRooms"));\n    const snapshot = { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() };\n    const batch = writeBatch(snsDb);\n    batch.set(shareRef, snapshot);\n    batch.set(doc(snsDb, "users", user.uid, "sharedRooms", shareRef.id), snapshot);\n    await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsRoomShareStatus.textContent = "お部屋を共有しました。相手は共有一覧から読み込めます。";
     await snsLoadSharedRooms(user, authGeneration);
