@@ -2615,7 +2615,7 @@ if("serviceWorker" in navigator && location.protocol==="https"){
 <script type="module">
 import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const snsStatus = document.getElementById("snsStatus");
 const snsSignedOut = document.getElementById("snsSignedOut");
@@ -3336,6 +3336,9 @@ if (snsApp) {
       snsReportCategory.value = "";
       snsFriendUid.value = "";
       snsFriendList.replaceChildren();
+      snsShareRoomFriend.replaceChildren();
+      snsSharedRoomList.replaceChildren();
+      snsRoomShareStatus.textContent = user ? "共有一覧を読み込んでいます…" : "ログインすると共有機能を利用できます。";
       snsIncomingFriends.replaceChildren();
       snsOutgoingFriends.replaceChildren();
     }
@@ -3389,8 +3392,8 @@ if (snsApp) {
 }
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
   const [owned, received] = await Promise.all([
-    getDocs(query(collection(snsDb, "sharedRooms"), where("ownerUid", "==", user.uid))),
-    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid)))
+    getDocs(query(collection(snsDb, "sharedRooms"), where("ownerUid", "==", user.uid), limit(50))),
+    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(50)))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   snsSharedRoomList.replaceChildren();
