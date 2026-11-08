@@ -149,6 +149,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h4>友達一覧</h4>
 <button type="button" id="snsRefreshFriends" style="margin:6px 0">友達・申請を更新</button>
 <div id="snsFriendList" aria-live="polite"><p>ログインすると表示されます。</p></div>
+<h4>🏡 友達とお部屋を共有</h4>
+<p style="font-size:13px;color:#667085">承認済みの友達に、今のお部屋のコピーを共有できます。相手は自分の端末に読み込めます。共有後も元のお部屋は別々で、相手の編集は元データに反映されません。共有には部屋のデザインと家具配置だけが含まれます。</p>
+<label for="snsShareRoomFriend">共有する友達</label>
+<select id="snsShareRoomFriend" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="">友達一覧から選択</option></select>
+<label for="snsShareRoomTitle">お部屋の名前（40文字以内）</label>
+<input id="snsShareRoomTitle" maxlength="40" value="お気に入りのお部屋" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" id="snsShareCurrentRoom" class="primary">今のお部屋を友達に共有</button>
+<p id="snsRoomShareStatus" role="status" aria-live="polite">共有先の友達を選んでください。</p>
+<h4>共有された・共有中のお部屋</h4>
+<button type="button" id="snsRefreshSharedRooms">共有一覧を更新</button>
+<div id="snsSharedRoomList" aria-live="polite"><p>ログインすると表示されます。</p></div>
 <h4>届いた申請</h4>
 <div id="snsIncomingFriends" aria-live="polite"><p>ログインすると表示されます。</p></div>
 <h4>送った申請</h4>
@@ -2604,7 +2615,7 @@ if("serviceWorker" in navigator && location.protocol==="https"){
 <script type="module">
 import { getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const snsStatus = document.getElementById("snsStatus");
 const snsSignedOut = document.getElementById("snsSignedOut");
@@ -2649,6 +2660,12 @@ const snsSendFriendRequest = document.getElementById("snsSendFriendRequest");
 const snsFriendNotice = document.getElementById("snsFriendNotice");
 const snsFriendList = document.getElementById("snsFriendList");
 const snsRefreshFriends = document.getElementById("snsRefreshFriends");
+const snsShareRoomFriend = document.getElementById("snsShareRoomFriend");
+const snsShareRoomTitle = document.getElementById("snsShareRoomTitle");
+const snsShareCurrentRoom = document.getElementById("snsShareCurrentRoom");
+const snsRoomShareStatus = document.getElementById("snsRoomShareStatus");
+const snsRefreshSharedRooms = document.getElementById("snsRefreshSharedRooms");
+const snsSharedRoomList = document.getElementById("snsSharedRoomList");
 const snsIncomingFriends = document.getElementById("snsIncomingFriends");
 const snsOutgoingFriends = document.getElementById("snsOutgoingFriends");
 const snsAdminPanel = document.getElementById("snsAdminPanel");
@@ -2670,7 +2687,7 @@ function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusyGeneration += 1;
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, snsProfileSearchButton, snsSendFriendRequest, snsRefreshFriends, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, snsProfileSearchButton, snsSendFriendRequest, snsRefreshFriends, snsShareCurrentRoom, snsRefreshSharedRooms, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
   return snsBusyGeneration;
 }
 function snsReleaseBusyFor(user, operationGeneration) {
@@ -2954,6 +2971,8 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   snsFriendList.replaceChildren();
+  snsShareRoomFriend.replaceChildren();
+  const friendPlaceholder = document.createElement("option"); friendPlaceholder.value = ""; friendPlaceholder.textContent = "友達一覧から選択"; snsShareRoomFriend.appendChild(friendPlaceholder);
   snsIncomingFriends.replaceChildren();
   snsOutgoingFriends.replaceChildren();
   const addEmpty = (container, message) => {
@@ -3000,6 +3019,7 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     const profile = peerProfiles.get(peerUid);
     label.textContent = (friendAvatarEmojis[profile?.avatarId] || "👤") + " " + (peerNames.get(peerUid) || "ユーザー");
     row.appendChild(label);
+    const friendOption = document.createElement("option"); friendOption.value = peerUid; friendOption.textContent = peerNames.get(peerUid) || "ユーザー"; snsShareRoomFriend.appendChild(friendOption);
     const removeFriend = document.createElement("button");
     removeFriend.type = "button";
     removeFriend.textContent = "友達解除";
@@ -3355,6 +3375,8 @@ if (snsApp) {
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadFriendRequests(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsLoadSharedRooms(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadPublicTimeline(user, authGeneration);
     } catch (error) {
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
@@ -3365,6 +3387,92 @@ if (snsApp) {
 } else {
   snsMessage("Firebaseが初期化されていません。ログイン設定を確認してください。");
 }
+async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
+  const [owned, received] = await Promise.all([
+    getDocs(query(collection(snsDb, "sharedRooms"), where("ownerUid", "==", user.uid))),
+    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid)))
+  ]);
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  snsSharedRoomList.replaceChildren();
+  const entries = new Map();
+  [...owned.docs, ...received.docs].forEach(snap => entries.set(snap.id, { id: snap.id, ...snap.data() }));
+  if (!entries.size) {
+    const empty = document.createElement("p"); empty.textContent = "共有されたお部屋はまだありません。"; snsSharedRoomList.appendChild(empty); return;
+  }
+  for (const item of entries.values()) {
+    if (!item || typeof item.title !== "string" || !item.currentRoom || !window.validRoomData?.(item.currentRoom)) continue;
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #eef0f4";
+    const label = document.createElement("span");
+    label.textContent = (item.ownerUid === user.uid ? "共有中：" : "受け取ったお部屋：") + item.title.slice(0, 40);
+    row.appendChild(label);
+    const open = document.createElement("button"); open.type = "button"; open.textContent = "自分のお部屋に読み込む";
+    open.addEventListener("click", () => {
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      if (!confirm("「" + item.title.slice(0, 40) + "」を今のお部屋に読み込みますか？現在のお部屋は変更履歴から戻せます。")) return;
+      if (window.applyRoom?.(item.currentRoom) === true) snsRoomShareStatus.textContent = "共有されたお部屋を読み込みました。自分のお部屋として編集できます。";
+    });
+    row.appendChild(open);
+    if (item.ownerUid === user.uid) {
+      const revoke = document.createElement("button"); revoke.type = "button"; revoke.textContent = "共有を取り消す";
+      revoke.addEventListener("click", async () => {
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+        if (!confirm("このお部屋の共有を取り消しますか？相手は以後読み込めなくなります。")) return;
+        try {
+          await deleteDoc(doc(snsDb, "sharedRooms", item.id));
+          if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) await snsLoadSharedRooms(user, authGeneration);
+        } catch (error) {
+          console.error("Shared room revoke failed", error);
+          snsRoomShareStatus.textContent = "共有を取り消せませんでした。通信状態を確認してください。";
+        }
+      });
+      row.appendChild(revoke);
+    }
+    snsSharedRoomList.appendChild(row);
+  }
+}
+snsShareCurrentRoom.addEventListener("click", async () => {
+  const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  const recipientUid = snsShareRoomFriend.value;
+  const title = snsShareRoomTitle.value.trim();
+  if (!user || snsBusy) return;
+  if (!recipientUid || recipientUid === user.uid) { snsRoomShareStatus.textContent = "共有する友達を選んでください。"; return; }
+  if (!title || title.length > 40) { snsRoomShareStatus.textContent = "お部屋の名前を1〜40文字で入力してください。"; return; }
+  if (typeof window.roomData !== "function" || typeof window.validRoomData !== "function") { snsRoomShareStatus.textContent = "お部屋データを読み取れません。"; return; }
+  const currentRoom = window.roomData();
+  if (!window.validRoomData(currentRoom) || new TextEncoder().encode(JSON.stringify(currentRoom)).length > 700000) { snsRoomShareStatus.textContent = "お部屋データが正しくないか大きすぎます。家具を整理してください。"; return; }
+  const operationGeneration = snsSetBusy(true);
+  snsRoomShareStatus.textContent = "友達との関係と共有内容を確認しています…";
+  try {
+    const requestIds = [user.uid + "_" + recipientUid, recipientUid + "_" + user.uid];
+    const requests = await Promise.all(requestIds.map(id => getDoc(doc(snsDb, "friendRequests", id))));
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    if (!requests.some(snap => snap.exists() && snap.data().status === "accepted")) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
+    await addDoc(collection(snsDb, "sharedRooms"), { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() });
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    snsRoomShareStatus.textContent = "お部屋を共有しました。相手は共有一覧から読み込めます。";
+    await snsLoadSharedRooms(user, authGeneration);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    console.error("Shared room creation failed", error);
+    snsRoomShareStatus.textContent = error.message || "共有できませんでした。ブロック状態や通信を確認してください。";
+  } finally {
+    snsReleaseBusyFor(user, operationGeneration);
+  }
+});
+snsRefreshSharedRooms.addEventListener("click", async () => {
+  const user = snsUser, authGeneration = snsAuthGeneration;
+  if (!user || snsBusy) return;
+  const operationGeneration = snsSetBusy(true);
+  snsRoomShareStatus.textContent = "共有一覧を更新しています…";
+  try {
+    await snsLoadSharedRooms(user, authGeneration);
+    if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) snsRoomShareStatus.textContent = "共有一覧を更新しました。";
+  } catch (error) {
+    if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) snsRoomShareStatus.textContent = "共有一覧を読み込めませんでした。";
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
+});
 snsRefreshFriends.addEventListener("click", async () => {
   const user = snsUser;
   const authGeneration = snsAuthGeneration;
