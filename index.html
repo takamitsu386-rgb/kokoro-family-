@@ -150,7 +150,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyMealsFilter">表示</label><select id="familyMealsFilter"><option value="week">今日から7日間</option><option value="all">すべて</option></select>
-<button type="button" id="familyMealsClearPast">過去の献立を整理</button><button type="button" id="familyMealsExport">CSVを書き出す</button><label for="familyMealsImportFile" class="button">CSVを読み込む</label><input id="familyMealsImportFile" type="file" accept=".csv,text/csv" hidden>
+<button type="button" id="familyMealsClearPast">過去の献立を整理</button><button type="button" id="familyMealsExport">CSVを書き出す</button><button type="button" id="familyMealsWeeklyShopping">7日分の買い物メモをまとめて追加</button><label for="familyMealsImportFile" class="button">CSVを読み込む</label><input id="familyMealsImportFile" type="file" accept=".csv,text/csv" hidden>
 </div>
 <p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
 <p id="familyMealsExportStatus" role="status" aria-live="polite"></p>
@@ -6030,6 +6030,27 @@ snsRefreshPosts.addEventListener("click", async () => {
     if (persist(next)) { form.reset(); titleInput.focus(); }
   });
 
+  weeklyShoppingButton.addEventListener("click",()=>{
+    const status=document.getElementById("familyMealsShoppingStatus");
+    const start=today(),endDate=new Date(start+"T00:00:00");endDate.setDate(endDate.getDate()+6);
+    const end=endDate.getFullYear()+"-"+String(endDate.getMonth()+1).padStart(2,"0")+"-"+String(endDate.getDate()).padStart(2,"0");
+    const notes=entries.filter(item=>item.date>=start&&item.date<=end).flatMap(item=>item.note.split(/[、,，;；\\n]+/).map(value=>value.trim().replace(/^[・•*\\-]+\\s*/,"")).filter(value=>value.length>0&&value.length<=60));
+    const unique=[...new Map(notes.map(value=>[value.toLocaleLowerCase(),value])).values()];
+    if(!unique.length){status.textContent="今日から7日間の献立に買い物メモはありません。";return;}
+    try{
+      const key="kokoroFamilyShoppingV1",raw=localStorage.getItem(key),current=raw===null?[]:JSON.parse(raw);
+      const categories={food:true,daily:true,stationery:true,other:true};
+      const validEntry=entry=>!!entry&&typeof entry==="object"&&typeof entry.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(entry.id)&&typeof entry.name==="string"&&entry.name.trim().length>=1&&entry.name.length<=60&&typeof entry.quantity==="string"&&entry.quantity.length<=20&&Object.hasOwn(categories,entry.category)&&typeof entry.bought==="boolean"&&Number.isSafeInteger(entry.createdAt)&&entry.createdAt>0;
+      if(!Array.isArray(current)||current.length>100||!current.every(validEntry)||new Set(current.map(entry=>entry.id)).size!==current.length)throw new Error("invalid shopping list");
+      const existing=new Set(current.map(entry=>entry.name.trim().toLocaleLowerCase()));
+      const added=unique.filter(value=>!existing.has(value.toLocaleLowerCase())).slice(0,100-current.length);
+      if(!added.length){status.textContent=current.length>=100?"買い物リストが上限の100件に達しています。":"7日分の買い物メモはすべて登録済みです。";return;}
+      if(!confirm("今日から7日間の献立メモから"+added.length+"件を買い物リストに追加しますか？"+(unique.length>added.length?"\\n重複または上限のため"+(unique.length-added.length)+"件は追加しません。":"")))return;
+      const now=Date.now(),next=[...current,...added.map((name,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealweek_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,8),name,quantity:"",category:"food",bought:false,createdAt:now+index}))];
+      try{localStorage.setItem(key,JSON.stringify(next));status.textContent=added.length+"件を7日分の献立から買い物リストに追加しました。";}
+      catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Weekly meal shopping rollback failed",rollbackError);}throw error;}
+    }catch(error){console.error("Weekly meal shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
+  });
   exportButton.addEventListener("click",()=>{
     if(!storageReady||!tasks.length){csvStatus.textContent="書き出す項目がありません。";return;}
     const safe=value=>{const text=String(value??"");return /^[\s]*[=+\-@]/.test(text)?"'"+text:text;};
@@ -6579,6 +6600,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const noteInput=document.getElementById("familyMealsNote");
   const exportButton=document.getElementById("familyMealsExport");
   const exportStatus=document.getElementById("familyMealsExportStatus");
+  const weeklyShoppingButton=document.getElementById("familyMealsWeeklyShopping");
   const csvCell=value=>{
     let text=String(value??"");
     if(/^[\s\u0000-\u001f]*[=+@-]/.test(text))text="'"+text;
