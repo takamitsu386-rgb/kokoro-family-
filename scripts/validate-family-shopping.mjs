@@ -49,3 +49,11 @@ assert.match(html,/replace\(\/\^\\uFEFF\/,""\)/);
 assert.match(html,/ch==="\\n"\|\|ch==="\\r"/);
 assert.match(html,/ch==="\\r"&&text\[i\+1\]==="\\n"/);
 assert.match(html,/finally\{importFile\.value="";\}/);
+
+assert.match(html, /id="familyShoppingCategoryFilter"/, "shopping category filter exists");
+assert.match(html, /id="familyShoppingSearch"/, "shopping keyword search exists");
+assert.match(html, /id="familyShoppingResetFilters"/, "shopping filter reset exists");
+assert.match(html, /categoryFilter===\"all\"\|\|item\.category===categoryFilter/, "shopping category filter is applied");
+assert.match(html, /item\.quantity\.toLocaleLowerCase\(\)\.includes\(query\)/, "shopping search includes quantity memo");
+assert.match(html, /resetFiltersButton\.addEventListener\("click"/, "shopping filter reset is wired");
+assert.match(sw, /kokoro-family-v223/, "service worker cache is refreshed");
