@@ -65,3 +65,11 @@ assert.match(html, /updateChecklistProgress/);
 assert.match(html, /checklistProgress\.textContent/);
 assert.match(html, /checklist\.append\(checklistTitle,checklistProgress,checklistItems,resetChecklist\)/);
 assert.match(sw, /kokoro-family-v236/);
+
+assert.match(html, /調理ステップチェック/);
+assert.match(html, /recipe\.steps\.split\(\/\\\\r\?\\\\n\//);
+assert.match(html, /updateCookingProgress/);
+assert.match(html, /完了 \+boxes\.filter\(input=>input\.checked\)\.length/);
+assert.match(html, /ステップをすべて解除/);
+assert.match(html, /cookingChecklist,actions/);
+assert.match(sw, /kokoro-family-v237/);
