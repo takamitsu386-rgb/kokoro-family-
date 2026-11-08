@@ -59,3 +59,9 @@ assert.match(html, /チェックをすべて解除/);
 assert.match(html, /checkbox\.addEventListener\("change"/);
 assert.match(html, /li\.append\(title,ingredients,checklist,steps,actions\)/);
 assert.match(sw, /kokoro-family-v235/);
+
+assert.match(html, /準備済み \+checked\+\//);
+assert.match(html, /updateChecklistProgress/);
+assert.match(html, /checklistProgress\.textContent/);
+assert.match(html, /checklist\.append\(checklistTitle,checklistProgress,checklistItems,resetChecklist\)/);
+assert.match(sw, /kokoro-family-v236/);
