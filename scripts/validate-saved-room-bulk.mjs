@@ -284,3 +284,15 @@ assert.match(libraryStats,/categoryCounts/,'Statistics must count saved room cat
 assert.match(libraryStats,/toFixed\(1\)/,'Statistics must show average furniture count.');
 assert.match(libraryStats,/textContent=/,'Statistics must render text safely.');
 console.log('Saved room library statistics checks passed.');
+
+const inventory=source.slice(source.indexOf('function exportSavedRoomInventoryCsv()'),source.indexOf('function showSavedRoomLibraryStats()'));
+assert.match(source,/onclick="exportSavedRoomInventoryCsv\(\)"/,'Saved room inventory CSV action must exist.');
+assert.match(inventory,/validRoomData\(data\)/,'Inventory export must exclude invalid room records.');
+assert.match(inventory,/prefs\.categories\[name\]/,'Inventory export must include categories.');
+assert.match(inventory,/prefs\.notes\[name\]/,'Inventory export must include notes.');
+assert.match(inventory,/favorites\.has\(name\)/,'Inventory export must include favorite state.');
+assert.match(inventory,/replace\(/,'Inventory export must escape CSV cell quotes.');
+assert.match(inventory,/\^\[\\s\]\*\[=+@-\]/,'Inventory export must neutralize spreadsheet formula-leading values.');
+assert.match(inventory,/1000000/,'Inventory export must enforce a file size limit.');
+assert.match(inventory,/URL\.revokeObjectURL/,'Inventory export must release its object URL.');
+console.log('Saved room inventory CSV checks passed.');
