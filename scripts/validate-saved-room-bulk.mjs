@@ -643,3 +643,9 @@ assert.match(html,/item\.labelBackground===undefined/,'Label background must be 
 assert.match(html,/labelNode\.style\.color=v\.labelColor/,'Label text color must be restored.');
 assert.match(html,/labelNode\.style\.backgroundColor=v\.labelBackground/,'Label background must be restored.');
 console.log('Furniture label color checks passed.');
+
+assert.match(html,/function applySelectedFurnitureLabelStyleToAll\(/,'Bulk label style application must exist.');
+assert.match(html,/この色を全家具のメモに適用/,'Bulk label style control must exist.');
+assert.match(html,/const previous=targets\.map/,'Bulk label style must preserve previous values for rollback.');
+assert.match(html,/全家具の色を元に戻しました/,'Bulk label style must roll back after save failure.');
+console.log('Bulk furniture label style checks passed.');
