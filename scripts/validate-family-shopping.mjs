@@ -16,3 +16,11 @@ assert.match(html, /購入済みの/);
 assert.match(html, /クラウド同期・家族間共有には未対応です/);
 assert.match(sw, /kokoro-family-v195/);
 console.log("Family shopping list source checks passed.");
+
+assert.match(html,/id="familyShoppingSubmit"/);
+assert.match(html,/id="familyShoppingCancel"/);
+assert.match(html,/textContent="編集"/);
+assert.match(html,/function resetEditor\(\)/);
+assert.match(html,/editingId\?\{/);
+assert.match(html,/Object\.hasOwn\(categories,categoryInput\.value\)/);
+assert.match(sw,/kokoro-family-v200/);
