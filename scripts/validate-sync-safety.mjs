@@ -326,7 +326,7 @@ for (const [guard, failure] of [
   ['if (!snsUser || snsUser.uid !== activeUser.uid) return;', 'console.error("SNS unblock failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post edit failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post delete failed", error);'],
-  ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS block failed", error);'],
+  ['if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;', 'console.error("SNS block failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS profile save failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post create failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post refresh failed", error);']
