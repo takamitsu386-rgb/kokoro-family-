@@ -13,8 +13,8 @@ assert.match(html, /friendOption\.value = peerUid/, 'Only accepted friends from 
 assert.match(html, /window\.validRoomData\(currentRoom\)/, 'Room data must be validated before sharing.');
 assert.match(html, /new TextEncoder\(\)\.encode\(JSON\.stringify\(currentRoom\)\)\.length > 700000/, 'Room snapshots must be bounded before upload.');
 assert.match(html, /await addDoc\(collection\(snsDb, "sharedRooms"\)/, 'The share action must persist a snapshot.');
-assert.match(html, /where\("ownerUid", "==", user\.uid\), limit\(50\)/, 'Owners must load their own shared snapshots.');
-assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(50\)/, 'Recipients must load snapshots shared with them.');
+assert.match(html, /where\("ownerUid", "==", user\.uid\), where\("recipientUid", "!=", ""\), limit\(50\)/, 'Owners must load their own shared snapshots.');
+assert.match(html, /where\("recipientUid", "==", user\.uid\), where\("ownerUid", "!=", ""\), limit\(50\)/, 'Recipients must load snapshots shared with them.');
 assert.match(html, /window\.applyRoom\?\.\(item\.currentRoom\)/, 'Importing a shared snapshot must use the existing validated room apply path.');
 assert.match(html, /await deleteDoc\(doc\(snsDb, "sharedRooms", item\.id\)\)/, 'Owners must be able to revoke a shared snapshot.');
 assert.match(html, /snsLoadSharedRooms\(user, authGeneration\)/, 'Shared-room loading must be tied to the current auth generation.');
