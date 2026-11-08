@@ -130,7 +130,7 @@ assert.match(adminRenderer, /detail\.textContent = .*report\.reporterUid.*report
 assert.doesNotMatch(adminRenderer, /innerHTML|insertAdjacentHTML/,
   'Report metadata must never be interpreted as markup.');
 
-const blockRendererStart = html.indexOf('async function snsLoadBlocks(user)');
+const blockRendererStart = html.indexOf('async function snsLoadBlocks(user, authGeneration = snsAuthGeneration)');
 const blockRendererEnd = html.indexOf('\nasync function snsEditPost', blockRendererStart);
 assert.ok(blockRendererStart >= 0 && blockRendererEnd > blockRendererStart,
   'The block-list renderer must exist.');
@@ -139,5 +139,21 @@ assert.match(blockRenderer, /label\.textContent = snapshot\.id/,
   'Blocked user identifiers must be rendered as plain text.');
 assert.doesNotMatch(blockRenderer, /innerHTML|insertAdjacentHTML/,
   'Blocked user identifiers must never be interpreted as markup.');
+
+
+assert.match(html, /let snsAdminLoadGeneration = 0/,
+  'Admin report queue loads must have an independent latest-request generation.');
+assert.match(html, /snsAdminLoadGeneration !== loadGeneration/,
+  'Older admin report queue responses must not overwrite a newer filter or refresh result.');
+assert.match(html, /snsAuthGeneration !== authGeneration \\|\\| snsAdminLoadGeneration !== loadGeneration/,
+  'Admin report queue responses must be discarded after same-UID auth transitions.');
+assert.match(html, /snsAdminUpdatingReports\\.has\\(report\\.id\\)/,
+  'Repeated review clicks for the same report must be blocked while its update is pending.');
+assert.match(html, /snsAdminUpdatingReports\\.add\\(report\\.id\\)/,
+  'A report must be locked before sending its review update.');
+assert.match(html, /snsAdminUpdatingReports\\.delete\\(report\\.id\\)/,
+  'A report review lock must always be released after the request.');
+assert.match(html, /snsAdminUpdatingReports\\.clear\\(\\)/,
+  'Report review locks must be cleared when auth state changes.');
 
 console.log('Report submission, admin authorization, and SNS text-rendering safety checks passed.');
