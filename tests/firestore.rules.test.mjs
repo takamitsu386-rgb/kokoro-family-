@@ -872,6 +872,7 @@ describe('shared room snapshots', () => {
     const stranger = testEnv.authenticatedContext('room-stranger').firestore();
     await assertSucceeds(getDoc(doc(owner, 'sharedRooms/room-share-1')));
     await assertSucceeds(getDocs(query(collection(owner, 'users', 'room-owner', 'sharedRooms'))));
+    await assertFails(getDocs(query(collection(stranger, 'users', 'room-owner', 'sharedRooms'))));
     await assertSucceeds(setDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-2'), {
       ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'My room',
       currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
