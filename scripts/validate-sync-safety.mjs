@@ -307,15 +307,19 @@ assert.ok(adminFilterStart >= 0 && adminFilterEnd > adminFilterStart,
   'Admin report filter handler must exist.');
 const adminFilterHandler = sns.slice(adminFilterStart, adminFilterEnd);
 assert.ok(adminFilterHandler.includes('const user = snsUser;') &&
-  adminFilterHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;'),
-  'Admin report filter failures must be scoped to the account that started the request.');
+  adminFilterHandler.includes('const authGeneration = snsAuthGeneration;') &&
+  adminFilterHandler.includes('if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;') &&
+  adminFilterHandler.includes('snsLoadAdminReports(user, snsAdminFilter.value || "pending", authGeneration)'),
+  'Admin report filter failures and results must be scoped to the exact auth generation that started the request.');
 const adminActionStart = sns.indexOf('snsAdminRequest("/api/admin/update-report"');
 const adminActionEnd = sns.indexOf('actions.appendChild(button)', adminActionStart);
 assert.ok(adminActionStart >= 0 && adminActionEnd > adminActionStart,
   'Admin report action handler must exist.');
 const adminActionHandler = sns.slice(adminActionStart, adminActionEnd);
-assert.ok(adminActionHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
-  adminActionHandler.includes('button.disabled = false;'),
+assert.ok(adminActionHandler.includes('const authGeneration = snsAuthGeneration;') &&
+  adminActionHandler.includes('if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;') &&
+  adminActionHandler.includes('snsAdminUpdatingReports.has(report.id)') &&
+  adminActionHandler.includes('snsAdminUpdatingReports.delete(report.id)'),
   'Admin report action failures must not alter controls after an account switch.');
 
 for (const [guard, failure] of [
