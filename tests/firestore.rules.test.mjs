@@ -696,6 +696,16 @@ describe('comments and likes', () => {
     await assertFails(setDoc(doc(stranger, 'posts/interaction-friends-only/comments/stranger-comment'), {
       authorUid: 'interaction-stranger', text: '閲覧不可', status: 'active', createdAt: serverTimestamp()
     }));
+    await seed('friendRequests/interaction-author_interaction-viewer-blocked', {
+      fromUid: 'interaction-author', toUid: 'interaction-viewer-blocked', status: 'accepted',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/interaction-author/blocks/interaction-viewer-blocked', { createdAt: new Date() });
+    const blockedFriend = testEnv.authenticatedContext('interaction-viewer-blocked').firestore();
+    await assertFails(getDoc(doc(blockedFriend, 'posts/interaction-friends-only')));
+    await assertFails(setDoc(doc(blockedFriend, 'posts/interaction-friends-only/likes/interaction-viewer-blocked'), {
+      createdAt: serverTimestamp()
+    }));
   });
 
   it('denies comments and likes for private, deleted, hidden-profile, or blocked posts', async () => {
