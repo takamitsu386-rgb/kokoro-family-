@@ -7008,6 +7008,26 @@ snsRefreshPosts.addEventListener("click", async () => {
       resetChecklist.addEventListener("click",()=>checklistItems.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.checked=false;input.dispatchEvent(new Event("change"));}));
       checklist.append(checklistTitle,checklistProgress,checklistItems,resetChecklist);
       const steps=document.createElement("p");steps.style.whiteSpace="pre-wrap";steps.textContent="作り方・コツ：\\n"+recipe.steps;
+      const cookingChecklist=document.createElement("details");cookingChecklist.style.cssText="border:1px solid #e4e7ef;border-radius:8px;padding:8px";
+      const cookingTitle=document.createElement("summary");cookingTitle.textContent="調理ステップチェック";
+      const cookingProgress=document.createElement("p");cookingProgress.setAttribute("aria-live","polite");cookingProgress.style.cssText="margin:6px 0;font-size:0.9em;color:#667085";
+      const cookingItems=document.createElement("div");cookingItems.style.cssText="display:grid;gap:8px;margin-top:8px";
+      const cookingLines=recipe.steps.split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean);
+      const updateCookingProgress=()=>{
+        const boxes=[...cookingItems.querySelectorAll('input[type="checkbox"]')];
+        cookingProgress.textContent="完了 "+boxes.filter(input=>input.checked).length+"/"+boxes.length+" ステップ";
+      };
+      cookingLines.forEach((line,index)=>{
+        const label=document.createElement("label");label.style.cssText="display:flex;gap:8px;align-items:flex-start";
+        const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.setAttribute("aria-label",(index+1)+"番目の調理ステップを完了");
+        const text=document.createElement("span");text.textContent=line;
+        checkbox.addEventListener("change",()=>{text.style.textDecoration=checkbox.checked?"line-through":"none";updateCookingProgress();});
+        label.append(checkbox,text);cookingItems.append(label);
+      });
+      updateCookingProgress();
+      const resetCooking=document.createElement("button");resetCooking.type="button";resetCooking.textContent="ステップをすべて解除";
+      resetCooking.addEventListener("click",()=>cookingItems.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.checked=false;input.dispatchEvent(new Event("change"));}));
+      cookingChecklist.append(cookingTitle,cookingProgress,cookingItems,resetCooking);
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
       const favoriteButton=document.createElement("button");favoriteButton.type="button";
       const updateFavoriteLabel=()=>{favoriteButton.textContent=favorites.has(recipe.id)?"★ お気に入り解除":"☆ お気に入り";favoriteButton.setAttribute("aria-pressed",String(favorites.has(recipe.id)));};
@@ -7063,7 +7083,7 @@ snsRefreshPosts.addEventListener("click", async () => {
           catch(error){try{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);}catch(rollbackError){console.error("Recipe shopping import rollback failed",rollbackError);}throw error;}
         }catch(error){console.error("Recipe shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
       });
-      actions.append(edit,addToMeal,addIngredients,remove);li.append(title,ingredients,checklist,steps,actions);listEl.append(li);
+      actions.append(edit,addToMeal,addIngredients,remove);li.append(title,ingredients,checklist,steps,cookingChecklist,actions);listEl.append(li);
     }
     const full=recipes.length>=LIMIT&&!editingId;
     titleInput.disabled=full;categoryInput.disabled=full;ingredientsInput.disabled=full;stepsInput.disabled=full;submitButton.disabled=full;
