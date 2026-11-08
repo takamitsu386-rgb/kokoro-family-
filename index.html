@@ -3551,10 +3551,15 @@ snsShareCurrentRoom.addEventListener("click", async () => {
   const operationGeneration = snsSetBusy(true);
   snsRoomShareStatus.textContent = "友達との関係と共有内容を確認しています…";
   try {
-    const requestIds = [user.uid + "_" + recipientUid, recipientUid + "_" + user.uid];
-    const requests = await Promise.all(requestIds.map(id => getDoc(doc(snsDb, "friendRequests", id))));
+    const [requestSnaps, ownerShares, recipientShares] = await Promise.all([
+      Promise.all([user.uid + "_" + recipientUid, recipientUid + "_" + user.uid].map(id => getDoc(doc(snsDb, "friendRequests", id)))),
+      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", recipientUid), limit(50)))
+    ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-    if (!requests.some(snap => snap.exists() && snap.data().status === "accepted")) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
+    if (!requestSnaps.some(snap => snap.exists() && snap.data().status === "accepted")) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
+    if (ownerShares.size >= 50) throw new Error("共有できるお部屋は50件までです。不要な共有を解除してください。");
+    if (recipientShares.size >= 50) throw new Error("相手の受け取り可能な共有数が上限に達しています。");
     const shareRef = doc(collection(snsDb, "sharedRooms"));
     const snapshot = { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() };
     const batch = writeBatch(snsDb);
