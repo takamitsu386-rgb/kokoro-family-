@@ -260,16 +260,22 @@ exports.publicTimeline = onRequest({
     const decoded = await getAuth().verifyIdToken(match[1], true);
     const db = getFirestore();
 
-    const [postsSnapshot, viewerBlocksSnapshot] = await Promise.all([
-      db.collection("posts")
-        .where("visibility", "==", "public")
-        .where("status", "==", "active")
-        .orderBy("createdAt", "desc")
-        .limit(50)
-        .get(),
+    const [publicPosts, friendPosts, incomingFriends, outgoingFriends, viewerBlocksSnapshot] = await Promise.all([
+      db.collection("posts").where("visibility", "==", "public").where("status", "==", "active").orderBy("createdAt", "desc").limit(50).get(),
+      db.collection("posts").where("visibility", "==", "friends").where("status", "==", "active").orderBy("createdAt", "desc").limit(100).get(),
+      db.collection("friendRequests").where("toUid", "==", decoded.uid).where("status", "==", "accepted").limit(100).get(),
+      db.collection("friendRequests").where("fromUid", "==", decoded.uid).where("status", "==", "accepted").limit(100).get(),
       db.collection("users").doc(decoded.uid).collection("blocks").get()
     ]);
-
+    const friendUids = new Set([
+      ...incomingFriends.docs.map(item => item.data().fromUid),
+      ...outgoingFriends.docs.map(item => item.data().toUid)
+    ].filter(uid => typeof uid === "string" && uid !== decoded.uid));
+    const postsSnapshot = {
+      docs: [...publicPosts.docs, ...friendPosts.docs.filter(item => friendUids.has(item.data().authorUid))]
+        .sort((a, b) => (b.data().createdAt?.toMillis?.() ?? 0) - (a.data().createdAt?.toMillis?.() ?? 0))
+        .slice(0, 50)
+    };
     const viewerBlocks = new Set(viewerBlocksSnapshot.docs.map(item => item.id));
     const authorUids = [...new Set(postsSnapshot.docs
       .map(item => item.data().authorUid)
@@ -297,7 +303,8 @@ exports.publicTimeline = onRequest({
       const isSelf = authorUid === decoded.uid;
       if (!isSelf && (viewerBlocks.has(authorUid) || author.blocksViewer.exists)) continue;
       const profile = author.profile.exists ? author.profile.data() : null;
-      if (!isSelf && (!profile || profile.visibility !== "public")) continue;
+      const isFriendsPost = post.visibility === "friends" && friendUids.has(authorUid);
+      if (!isSelf && (!profile || (post.visibility === "public" && profile.visibility !== "public") || (post.visibility === "friends" && !isFriendsPost))) continue;
       const avatarId = ["avatar-01", "avatar-02", "avatar-03", "avatar-04", "avatar-05"].includes(profile?.avatarId)
         ? profile.avatarId : "avatar-01";
       items.push({
@@ -306,6 +313,7 @@ exports.publicTimeline = onRequest({
         nickname: typeof profile?.nickname === "string" && profile.nickname.trim()
           ? profile.nickname.trim().slice(0, 24) : (isSelf ? "あなた" : "ユーザー"),
         avatarId,
+        visibility: post.visibility === "friends" ? "friends" : "public",
         text: post.text,
         createdAtMs: post.createdAt?.toMillis?.() ?? null
       });
