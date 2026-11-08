@@ -232,6 +232,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="roomTemplateList" class="items" aria-label="お部屋セット一覧"></div>
 <p id="roomTemplateStatus" role="status" aria-live="polite" style="font-size:13px;color:#596579">セットを選ぶと、今のお部屋を履歴に残して新しい配置に切り替えます。</p>
 </section>
+<section class="panel" id="room-goal-planner">
+<h2>🎯 お部屋づくりの目標</h2>
+<p>作りたいお部屋のテーマを選ぶと、今ある家具を確認して、次に置くとよいものを提案します。</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button type="button" onclick="checkRoomGoal('family')">👨‍👩‍👧 家族団らん</button>
+<button type="button" onclick="checkRoomGoal('study')">📚 集中できる部屋</button>
+<button type="button" onclick="checkRoomGoal('green')">🌿 緑いっぱいの部屋</button>
+<button type="button" onclick="checkRoomGoal('cafe')">☕ おうちカフェ</button>
+</div>
+<div id="roomGoalResult" role="status" aria-live="polite" style="margin-top:10px;padding:12px;background:#f7f8fc;border-radius:10px">テーマを選ぶと、お部屋の達成度を表示します。</div>
+</section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
 <p>ここを押すと、お部屋の壁に模様がつくよ！</p>
@@ -817,6 +828,41 @@ function arrangeFurnitureByUse(){
   }
   selectedFurniture=null;
   document.getElementById('selectedMessage').textContent='会話・学習・くつろぎの3つのスペースに分けて配置しました。分類できない家具は右端にまとめています。「1つ戻す」で元に戻せます。';
+}
+function checkRoomGoal(goalKey){
+  const goals={
+    family:{title:'家族団らん',requirements:[['座って話せる場所',['🛋️','🪑','🛏️']],['テーブルや飲み物',['🪑','☕','🫖','🥛']],['くつろげる飾り',['🪴','🖼️','🧸','🌷']]]},
+    study:{title:'集中できる部屋',requirements:[['机・作業場所',['🖥️','🪑','📚']],['本や学習用品',['📚','📖','✏️','🎒']],['明かり・時計',['💡','🕰️','🪔']]]},
+    green:{title:'緑いっぱいの部屋',requirements:[['植物を2つ以上',['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷']],['自然を感じる飾り',['🦋','🪺','🖼️']],['くつろげる家具',['🛋️','🪑','🧸']]]},
+    cafe:{title:'おうちカフェ',requirements:[['座れる場所',['🪑','🛋️']],['飲み物',['☕','🫖','🥛']],['おやつ',['🍓','🧁','🍰','🍉','🍊']],['雰囲気づくり',['💡','🪴','🕯️','🌷']]]}
+  };
+  const goal=goals[goalKey];
+  const result=document.getElementById('roomGoalResult');
+  if(!goal||!result)return;
+  const icons=[...room.querySelectorAll('.furniture')].map(item=>item.dataset.icon);
+  const fragment=document.createDocumentFragment();
+  const heading=document.createElement('strong');
+  heading.textContent='「'+goal.title+'」の達成度';
+  fragment.appendChild(heading);
+  let completed=0;
+  goal.requirements.forEach(([label,accepted])=>{
+    const count=icons.filter(icon=>accepted.includes(icon)).length;
+    const needed=goalKey==='green'&&label==='植物を2つ以上'?2:1;
+    const done=count>=needed;
+    if(done)completed++;
+    const line=document.createElement('p');
+    line.style.margin='8px 0';
+    line.textContent=(done?'✅ ':'⬜ ')+label+'：'+count+'個'+(done?'':'（あと'+(needed-count)+'個）');
+    fragment.appendChild(line);
+  });
+  const summary=document.createElement('p');
+  summary.style.fontWeight='bold';
+  summary.textContent='達成 '+completed+' / '+goal.requirements.length+' 項目';
+  fragment.appendChild(summary);
+  const advice=document.createElement('p');
+  advice.textContent=completed===goal.requirements.length?'すてきなお部屋になっています！家具の位置や色も自由に整えてみよう。':'足りない項目の家具を下の一覧から追加して、もう一度確認してみよう。';
+  fragment.appendChild(advice);
+  result.replaceChildren(fragment);
 }
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
