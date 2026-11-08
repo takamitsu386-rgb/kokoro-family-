@@ -31,5 +31,11 @@ assert.match(html, /Meal plan rollback failed/);
 assert.match(html, /過去の献立/);
 assert.match(html, /上書きせず保護しました/);
 assert.match(html, /クラウド同期・家族間共有には未対応です/);
-assert.match(sw, /kokoro-family-v213/);
+assert.match(sw, /kokoro-family-v225/);
 console.log("Family meal planner source checks passed.");
+
+assert.match(html, /id="familyMealsWeeklyShopping"/, "weekly meal shopping import button exists");
+assert.match(html, /entries\.filter\(item=>item\.date>=start&&item\.date<=end\)/, "weekly import includes only next seven days");
+assert.match(html, /Weekly meal shopping rollback failed/, "weekly shopping import rolls back failed writes");
+assert.match(html, /7日分の献立から買い物リストに追加しました/, "weekly shopping import reports success");
+assert.match(sw, /kokoro-family-v225/, "service worker cache is refreshed");
