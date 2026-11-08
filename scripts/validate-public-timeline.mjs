@@ -21,6 +21,10 @@ assert.match(endpoint, /where\("status", "==", "accepted"\)/,
   'Friends-only posts must require accepted relationships.');
 assert.match(endpoint, /friendUids\.has\(item\.data\(\)\.authorUid\)/,
   'Only accepted friends may enter the friends-only feed.');
+assert.match(endpoint, /post\.visibility === "public" && profile\.visibility !== "public"/,
+  'Public posts must not expose non-public profiles.');
+assert.match(endpoint, /post\.visibility === "friends" && !isFriendsPost/,
+  'Friends-only posts must be excluded without an accepted friendship.');
 assert.match(endpoint, /visibility: post\.visibility === "friends"/,
   'The response must identify friends-only posts.');
 assert.match(endpoint, /where\("status", "==", "active"\)/,
@@ -34,7 +38,7 @@ assert.match(endpoint, /users\/\$\{uid\}\/blocks\/\$\{decoded\.uid\}/,
 assert.match(endpoint, /viewerBlocks\.has\(authorUid\) \|\| author\.blocksViewer\.exists/,
   'Either direction of a block must hide the post.');
 assert.match(endpoint, /profile\.visibility !== "public"/,
-  'Other users must have a public profile to appear in the feed.');
+  'Public posts require public profiles; friends-only posts require accepted friendship.');
 assert.match(endpoint, /nickname:[\s\S]*?avatarId,[\s\S]*?text: post\.text,[\s\S]*?createdAtMs:/,
   'The endpoint must return only the intended display fields.');
 assert.doesNotMatch(endpoint, /email|phone|address/,
