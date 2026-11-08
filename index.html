@@ -256,6 +256,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h2>🎨 お部屋の配色セット</h2>
 <p>壁と床の色を組み合わせて、一度に変更できます。</p>
 <div class="items" id="roomColorPalettes" aria-label="お部屋の配色セット"></div>
+<button type="button" onclick="applyRandomRoomColorPalette()">🎲 おまかせ配色</button>
 <p id="roomColorPaletteStatus" role="status" aria-live="polite"></p>
 <h2>🧱 壁の色</h2>
 <div class="items" id="walls"></div>
@@ -447,6 +448,15 @@ const roomColorPalettes=[
 {key:'lavender',label:'💜 ラベンダー',wall:'#eee2ff',floor:'#c8b8d8'},
 {key:'simple',label:'🐼 シンプル',wall:'#eeeeee',floor:'#a9a9a9'}
 ];
+function applyRandomRoomColorPalette(){
+const currentWall=room.style.backgroundColor;
+const currentFloor=document.getElementById('floor').style.backgroundColor;
+const candidates=roomColorPalettes.filter(item=>item.wall!==currentWall||item.floor!==currentFloor);
+const pool=candidates.length?candidates:roomColorPalettes;
+const palette=pool[Math.floor(Math.random()*pool.length)];
+if(!palette){document.getElementById('roomColorPaletteStatus').textContent='配色セットを選べませんでした。';return;}
+applyRoomColorPalette(palette.key);
+}
 function applyRoomColorPalette(key){
 const palette=roomColorPalettes.find(item=>item.key===key);
 const status=document.getElementById('roomColorPaletteStatus');
