@@ -145,6 +145,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="familyMealsClearPast">過去の献立を整理</button>
 </div>
 <p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
+<p id="familyMealsShoppingStatus" role="status" aria-live="polite"></p>
 <ul id="familyMealsList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="family-recipes">
@@ -6309,11 +6310,37 @@ snsRefreshPosts.addEventListener("click", async () => {
       const li=document.createElement("li");li.style.cssText="padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:7px";
       const title=document.createElement("strong");title.textContent=item.date.replaceAll("-","/")+"・"+types[item.type]+"： "+item.name;
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const addShopping=document.createElement("button");addShopping.type="button";addShopping.textContent="買い物メモをリストへ";
+      addShopping.addEventListener("click",()=>{
+        const status=document.getElementById("familyMealsShoppingStatus");
+        const key="kokoroFamilyShoppingV1";
+        try{
+          const raw=localStorage.getItem(key),current=raw===null?[]:JSON.parse(raw);
+          const categories={food:true,daily:true,stationery:true,other:true};
+          const validEntry=entry=>!!entry&&typeof entry==="object"&&typeof entry.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(entry.id)&&
+            typeof entry.name==="string"&&entry.name.trim().length>=1&&entry.name.length<=60&&
+            typeof entry.quantity==="string"&&entry.quantity.length<=20&&Object.hasOwn(categories,entry.category)&&
+            typeof entry.bought==="boolean"&&Number.isSafeInteger(entry.createdAt)&&entry.createdAt>0;
+          if(!Array.isArray(current)||current.length>100||!current.every(validEntry)||new Set(current.map(entry=>entry.id)).size!==current.length)
+            throw new Error("invalid shopping list");
+          const candidates=item.note.split(/[、,，;；\n]+/).map(value=>value.trim().replace(/^[・•*\-]+\s*/,"")).filter(value=>value.length>0&&value.length<=60);
+          if(!candidates.length){status.textContent="この献立には買い物メモがありません。編集からメモを入力してください。";return;}
+          const existing=new Set(current.map(entry=>entry.name.trim().toLocaleLowerCase()));
+          const unique=[...new Map(candidates.map(value=>[value.toLocaleLowerCase(),value])).values()];
+          const added=unique.filter(value=>!existing.has(value.toLocaleLowerCase())).slice(0,100-current.length);
+          if(!added.length){status.textContent=current.length>=100?"買い物リストが上限の100件に達しています。":"メモの品物はすべて登録済みです。";return;}
+          if(!confirm("「"+item.name+"」の買い物メモから"+added.length+"件を追加しますか？"))return;
+          const now=Date.now();
+          const next=[...current,...added.map((name,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealshop_"+now.toString(36)+"_"+index+"_"+Math.random().toString(36).slice(2,7),name,quantity:"",category:"food",bought:false,createdAt:now+index}))];
+          try{localStorage.setItem(key,JSON.stringify(next));status.textContent=added.length+"件を買い物リストに追加しました。";}
+          catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Meal shopping import rollback failed",rollbackError);}throw error;}
+        }catch(error){console.error("Meal shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
+      });
       const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
       edit.addEventListener("click",()=>{editingId=item.id;dateInput.value=item.date;typeInput.value=item.type;nameInput.value=item.name;noteInput.value=item.note;submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」の献立を削除しますか？")){if(editingId===item.id)resetEditor();save(entries.filter(x=>x.id!==item.id));}});
-      actions.append(edit,remove);li.append(title);
+      actions.append(edit,addShopping,remove);li.append(title);
       if(item.note){const note=document.createElement("small");note.style.color="#667085";note.textContent=item.note;li.append(note);}
       li.append(actions);listEl.append(li);
     }
