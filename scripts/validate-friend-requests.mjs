@@ -20,7 +20,7 @@ assert.match(html, /コメント本文は送信されません/, 'Comment report
 assert.match(rules, /match \/friendRequests\/\{requestId\}/, 'Friend request collection rules are required.');
 assert.match(rules, /request\.resource\.data\.fromUid == request\.auth\.uid/, 'Request sender must match the authenticated UID.');
 assert.match(rules, /resource\.data\.toUid == request\.auth\.uid/, 'Only the recipient may accept or decline.');
-assert.match(rules, /!blockedBetween\(resource\.data\.fromUid, resource\.data\.toUid\)/, 'Block state must be checked for existing requests.');
+assert.match(rules, /!blockedBetween\(resource\.data\.fromUid, resource\.data\.toUid\)/, 'Block state must be checked before changing existing requests.');
 assert.match(tests, /friend requests/, 'Firestore Emulator tests for friend requests are required.');
 assert.match(tests, /rejects requests to private profiles/, 'Private-profile requests must be rejected in tests.');
 assert.match(tests, /blocks requests in either direction/, 'Blocked requests must be rejected in tests.');
