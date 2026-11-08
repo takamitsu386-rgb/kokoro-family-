@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const sw = await readFile(new URL("../sw.js", import.meta.url), "utf8");
+assert.match(html, /id="family-shopping"/);
+assert.match(html, /href="#family-shopping"/);
+assert.match(html, /id="familyShoppingForm"/);
+assert.match(html, /maxlength="60"/);
+assert.match(html, /const KEY = "kokoroFamilyShoppingV1", LIMIT = 100/);
+assert.match(html, /function validEntry\(item\)/);
+assert.match(html, /Object\.hasOwn\(categories,item\.category\)/);
+assert.match(html, /checkbox\.addEventListener\("change"/);
+assert.match(html, /name\.textContent=item\.name/);
+assert.match(html, /Shopping list rollback failed/);
+assert.match(html, /購入済みの/);
+assert.match(html, /クラウド同期・家族間共有には未対応です/);
+assert.match(sw, /kokoro-family-v195/);
+console.log("Family shopping list source checks passed.");
