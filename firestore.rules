@@ -196,11 +196,51 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Friend requests remain closed until their workflow is implemented.
+    // A request is addressed to one user; only its two participants can read it.
+    // The recipient alone may accept or decline. Blocking either direction closes access.
     match /friendRequests/{requestId} {
-      allow read, write: if false;
+      allow get: if signedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+        && !blockedBetween(resource.data.fromUid, resource.data.toUid);
+      allow list: if signedIn()
+        && (
+          (resource.data.toUid == request.auth.uid && resource.data.status == 'pending')
+          || resource.data.fromUid == request.auth.uid
+        )
+        && !blockedBetween(resource.data.fromUid, resource.data.toUid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['fromUid', 'toUid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['fromUid', 'toUid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid.size() >= 1
+        && request.resource.data.toUid.size() <= 128
+        && request.resource.data.toUid != request.auth.uid
+        && requestId == request.auth.uid + '_' + request.resource.data.toUid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.toUid))
+        && get(/databases/$(database)/documents/profiles/$(request.resource.data.toUid)).data.visibility == 'public'
+        && !blockedBetween(request.auth.uid, request.resource.data.toUid)
+        && !exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.toUid + '_' + request.auth.uid));
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if signedIn()
+        && resource.data.fromUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && !blockedBetween(resource.data.fromUid, resource.data.toUid);
     }
 
+    // Friend lists are derived from accepted requests; no client-managed duplicate graph.
     match /users/{userId}/following/{targetUid} {
       allow read, write: if false;
     }
