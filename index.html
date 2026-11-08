@@ -165,11 +165,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyRecipesSearch">検索</label><input id="familyRecipesSearch" maxlength="60" placeholder="料理名・材料で検索">
-<button type="button" id="familyRecipesExport">CSVを書き出す</button>
+<button type="button" id="familyRecipesExport">CSVを書き出す</button><label for="familyRecipesImportFile" class="button">CSVを読み込む</label><input id="familyRecipesImportFile" type="file" accept=".csv,text/csv" hidden>
 <label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
 </div>
 <p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
 <p id="familyRecipesExportStatus" role="status" aria-live="polite"></p>
+<p id="familyRecipesImportStatus" role="status" aria-live="polite"></p>
 <p id="familyRecipesShoppingStatus" role="status" aria-live="polite"></p>
 <p id="familyRecipesMealStatus" role="status" aria-live="polite"></p>
 <ul id="familyRecipesList" style="list-style:none;padding:0;display:grid;gap:10px"></ul>
@@ -6673,6 +6674,63 @@ snsRefreshPosts.addEventListener("click", async () => {
       console.error("Family recipes CSV export failed",error);
       exportStatus.textContent="CSVを書き出せませんでした。";
     }
+  });
+
+
+  const importFile=document.getElementById("familyRecipesImportFile");
+  const importStatus=document.getElementById("familyRecipesImportStatus");
+  const parseRecipeCsv=source=>{
+    const rows=[];let row=[],cell="",quoted=false;
+    for(let i=0;i<source.length;i++){
+      const ch=source[i];
+      if(quoted){
+        if(ch==='"'&&source[i+1]==='"'){cell+='"';i++;}
+        else if(ch==='"')quoted=false;
+        else cell+=ch;
+      }else if(ch==='"'){if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");quoted=true;}
+      else if(ch===","){row.push(cell);cell="";}
+      else if(ch==="\\n"){row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\\r"){if(source[i+1]==="\\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
+      else cell+=ch;
+    }
+    if(quoted)throw new Error("CSVの引用符が閉じられていません。");
+    if(cell.length||row.length){row.push(cell);rows.push(row);}
+    return rows.filter((line,index)=>index===0||line.some(value=>value!==""));
+  };
+  importFile.addEventListener("change",async()=>{
+    const file=importFile.files?.[0];if(!file)return;
+    try{
+      if(file.size>2*1024*1024)throw new Error("CSVファイルは2MB以内にしてください。");
+      const rows=parseRecipeCsv((await file.text()).replace(/^\\uFEFF/,""));
+      const header=["料理名","分類","材料","作り方・コツ","登録日時","更新日時"];
+      if(!rows.length||rows[0].length!==header.length||header.some((value,index)=>rows[0][index]!==value))
+        throw new Error("CSVの見出しが一致しません。レシピCSVを書き出したファイルを選んでください。");
+      if(rows.length===1)throw new Error("読み込むレシピがありません。");
+      const categoryKeys=Object.keys(categories),categoryByLabel=Object.fromEntries(Object.entries(categories).map(([key,label])=>[label,key]));
+      const parsed=rows.slice(1).map((line,index)=>{
+        if(line.length!==6)throw new Error((index+2)+"行目の列数が正しくありません。");
+        const [title,label,ingredients,steps,created,updated]=line;
+        const category=categoryByLabel[label];
+        if(!title.trim()||title.length>60||!Object.hasOwn(categories,category)||!ingredients.trim()||ingredients.length>500||!steps.trim()||steps.length>1000)
+          throw new Error((index+2)+"行目の料理名・分類・材料・作り方を確認してください。");
+        const now=Date.now()+index,createdParsed=Date.parse(created),updatedParsed=Date.parse(updated);
+        const createdAt=Number.isSafeInteger(createdParsed)&&createdParsed>0?createdParsed:now;
+        const updatedAt=Number.isSafeInteger(updatedParsed)&&updatedParsed>=createdAt?updatedParsed:createdAt;
+        return {title:title.trim(),category,ingredients,steps,createdAt,updatedAt};
+      });
+      const known=new Set(recipes.map(x=>x.category+"|"+x.title.trim().toLocaleLowerCase()));
+      const unique=parsed.filter(x=>{const key=x.category+"|"+x.title.trim().toLocaleLowerCase();if(known.has(key))return false;known.add(key);return true;});
+      const added=unique.slice(0,Math.max(0,LIMIT-recipes.length));
+      if(!added.length)throw new Error("追加できるレシピがありません（登録済み、または上限100件）。");
+      if(!confirm("CSVから"+added.length+"件のレシピを追加しますか？"+(parsed.length>added.length?"\\n"+(parsed.length-added.length)+"件は重複または上限のため追加されません。":"")))return;
+      const now=Date.now();
+      const next=[...recipes,...added.map((item,index)=>({...item,id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"recipeimport_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,10)}))];
+      if(!save(next))throw new Error("保存できませんでした。既存のレシピは変更していません。");
+      importStatus.textContent=added.length+"件のレシピを読み込みました。";
+    }catch(error){
+      console.error("Family recipes CSV import failed",error);
+      importStatus.textContent=error.message||"CSVを読み込めませんでした。既存のレシピは変更していません。";
+    }finally{importFile.value="";}
   });
 
   const categories={main:"主食・メイン",side:"副菜",soup:"汁もの",snack:"おやつ・デザート",other:"その他"};
