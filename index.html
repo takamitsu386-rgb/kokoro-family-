@@ -242,6 +242,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="checkRoomGoal('cafe')">☕ おうちカフェ</button>
 </div>
 <div id="roomGoalResult" role="status" aria-live="polite" style="margin-top:10px;padding:12px;background:#f7f8fc;border-radius:10px">テーマを選ぶと、お部屋の達成度を表示します。</div>
+<div style="margin-top:8px"><button type="button" onclick="arrangeFurnitureForGoal(activeRoomGoal)">🎨 選んだテーマに合わせて家具を配置</button><p style="font-size:13px;color:#667085;margin:4px 0">家具をテーマ別のエリアにまとめます。配置変更は「1つ戻す」で取り消せます。</p></div>
 </section>
 <section class="panel" id="design-options" style="border:3px solid #6759d8;background:#fff8fc">
 <h2>🌸 壁紙の模様を選ぶ</h2>
@@ -828,6 +829,55 @@ function arrangeFurnitureByUse(){
   }
   selectedFurniture=null;
   document.getElementById('selectedMessage').textContent='会話・学習・くつろぎの3つのスペースに分けて配置しました。分類できない家具は右端にまとめています。「1つ戻す」で元に戻せます。';
+}
+function arrangeFurnitureForGoal(goalKey){
+  const status=document.getElementById('selectedMessage');
+  const items=[...room.querySelectorAll('.furniture')];
+  if(!['family','study','green','cafe'].includes(goalKey)){
+    status.textContent='先にお部屋づくりのテーマを選んでください。';
+    return;
+  }
+  if(!items.length){status.textContent='配置する家具がまだありません。';return;}
+  const sets={
+    family:{primary:['🛋️','🪑','🛏️'],secondary:['☕','🫖','🥛','🍰','🧁'],tertiary:['🪴','🖼️','🧸','🌷']},
+    study:{primary:['🖥️','🗄️','🗃️'],secondary:['📚','🎒','🧩','✏️','📖'],tertiary:['💡','🕰️','🪔']},
+    green:{primary:['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷','🪺'],secondary:['🦋','🖼️'],tertiary:['🛋️','🪑','🧸']},
+    cafe:{primary:['🪑','🛋️'],secondary:['☕','🫖','🥛','🍓','🧁','🍰','🍉','🍊'],tertiary:['💡','🪴','🕯️','🌷']}
+  };
+  const config=sets[goalKey],rank=icon=>config.primary.includes(icon)?0:config.secondary.includes(icon)?1:config.tertiary.includes(icon)?2:3;
+  const buckets=[[],[],[],[]];
+  items.forEach(item=>buckets[rank(item.dataset.icon)].push(item));
+  const width=room.clientWidth,height=room.clientHeight;
+  if(width<1||height<1){status.textContent='お部屋の大きさを確認できません。';return;}
+  const previous=items.map(item=>({item,left:item.style.left,top:item.style.top}));
+  const zones={
+    family:[[.25,.25,.5,.5],[.25,.65,.5,.25],[.05,.05,.9,.2]],
+    study:[[.05,.08,.5,.55],[.58,.08,.35,.55],[.58,.68,.35,.22]],
+    green:[[.05,.05,.9,.22],[.05,.38,.9,.2],[.2,.68,.6,.22]],
+    cafe:[[.45,.35,.5,.4],[.05,.08,.9,.22],[.05,.68,.9,.22]]
+  }[goalKey];
+  buckets.forEach((bucket,zone)=>{
+    if(!bucket.length)return;
+    const [x,y,w,h]=zones[zone]||[.05,.05,.9,.9];
+    const columns=Math.max(1,Math.ceil(Math.sqrt(bucket.length*(w*width)/(h*height))));
+    const rows=Math.ceil(bucket.length/columns),cellW=w*width/columns,cellH=h*height/rows;
+    bucket.forEach((item,index)=>{
+      const col=index%columns,row=Math.floor(index/columns);
+      const maxLeft=Math.max(0,width-item.offsetWidth),maxTop=Math.max(0,height-item.offsetHeight);
+      const left=x*width+(col+.5)*cellW-item.offsetWidth/2;
+      const top=y*height+(row+.5)*cellH-item.offsetHeight/2;
+      item.style.left=Math.max(0,Math.min(maxLeft,left))+'px';
+      item.style.top=Math.max(0,Math.min(maxTop,top))+'px';
+    });
+  });
+  if(!autoSaveRoom()){
+    previous.forEach(({item,left,top})=>{item.style.left=left;item.style.top=top;});
+    status.textContent='保存できなかったため、家具を元の配置に戻しました。';
+    return;
+  }
+  selectedFurniture=null;
+  const names={family:'家族団らん',study:'集中できる部屋',green:'緑いっぱいの部屋',cafe:'おうちカフェ'};
+  status.textContent='「'+names[goalKey]+'」向けに家具をエリア分けしました。「1つ戻す」で元に戻せます。';
 }
 let activeRoomGoal=null;
 function checkRoomGoal(goalKey){
