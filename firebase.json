@@ -29,6 +29,13 @@
         }
       },
       {
+        "source": "/api/sns-search-profiles",
+        "function": {
+          "functionId": "searchPublicProfiles",
+          "region": "asia-northeast1"
+        }
+      },
+      {
         "source": "/api/submit-report",
         "function": {
           "functionId": "submitReport",
