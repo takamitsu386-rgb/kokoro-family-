@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const html = readFileSync('index.html', 'utf8');
 const rules = readFileSync('firestore.rules', 'utf8');
 const tests = readFileSync('tests/firestore.rules.test.mjs', 'utf8');
+const f = readFileSync('functions/index.js', 'utf8');
 
 for (const id of ['snsFriendUid', 'snsSendFriendRequest', 'snsFriendNotice', 'snsIncomingFriends', 'snsOutgoingFriends']) {
   assert.match(html, new RegExp('id="' + id + '"'), 'Friend request UI element is required: ' + id);
@@ -17,6 +18,10 @@ assert.match(html, /snsDecideFriendRequest\(snap\.id, "declined"\)/, 'Incoming r
 assert.match(html, /deleteDoc\(doc\(snsDb, "friendRequests", snap\.id\)\)/, 'Senders must be able to cancel pending requests.');
 assert.match(html, /コメント投稿者を通報/, 'Comments must link to the existing report flow.');
 assert.match(html, /コメント本文は送信されません/, 'Comment reporting must not silently transmit comment text.');
+assert.match(html, /targetCommentId: reportContext\.targetCommentId/, 'Comment reports must carry a comment reference.');
+assert.match(html, /snsReportContext = \{ reportType: "comment"/, 'Comment report context must be explicitly selected.');
+assert.match(f, /comment\?\.authorUid !== targetUid/, 'The server must verify the reported comment author.');
+assert.match(f, /targetCommentId: data\.targetCommentId/, 'Admin review must receive the comment reference.');
 assert.match(rules, /match \/friendRequests\/\{requestId\}/, 'Friend request collection rules are required.');
 assert.match(rules, /request\.resource\.data\.fromUid == request\.auth\.uid/, 'Request sender must match the authenticated UID.');
 assert.match(rules, /resource\.data\.toUid == request\.auth\.uid/, 'Only the recipient may accept or decline.');
