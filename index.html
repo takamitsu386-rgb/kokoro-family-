@@ -6689,8 +6689,8 @@ snsRefreshPosts.addEventListener("click", async () => {
         else cell+=ch;
       }else if(ch==='"'){if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");quoted=true;}
       else if(ch===","){row.push(cell);cell="";}
-      else if(ch==="\\n"){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(ch==="\\r"){if(source[i+1]==="\\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\r"){if(source[i+1]==="\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
       else cell+=ch;
     }
     if(quoted)throw new Error("CSVの引用符が閉じられていません。");
