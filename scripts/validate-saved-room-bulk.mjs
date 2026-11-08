@@ -582,3 +582,8 @@ assert.match(html,/saveCustomRoomPalette\(\)/,'Users must be able to save a cust
 assert.match(html,/loadCustomRoomPalette\(index\)/,'Users must be able to apply a saved custom palette.');
 assert.match(html,/deleteCustomRoomPalette\(index\)/,'Users must be able to delete a saved custom palette.');
 assert.match(html,/replaceChildren\(\)/,'Custom palette labels must be rendered without HTML injection.');
+assert.match(html,/loadCustomRoomPalettePart\(index,'wall'\)/,'Saved palettes must support applying only the wall color.');
+assert.match(html,/loadCustomRoomPalettePart\(index,'floor'\)/,'Saved palettes must support applying only the floor color.');
+assert.match(html,/function loadCustomRoomPalettePart\(index,target\)/,'Partial palette application handler must exist.');
+assert.match(html,/target==='wall'\)room\.style\.backgroundColor=palette\.wall/,'Wall-only application must leave the floor unchanged.');
+assert.match(html,/else document\.getElementById\('floor'\)\.style\.backgroundColor=palette\.floor/,'Floor-only application must leave the wall unchanged.');
