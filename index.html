@@ -3101,8 +3101,6 @@ async function snsRemoveFriend(requestId) {
     const requestData = requestSnap.data();
     const peerUid = requestData.fromUid === user.uid ? requestData.toUid : requestData.toUid === user.uid ? requestData.fromUid : null;
     if (!peerUid || peerUid === user.uid) throw new Error("友達情報を確認できません。");
-    await deleteDoc(doc(snsDb, "friendRequests", requestId));
-    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const [ownedShares, receivedShares] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(200))),
       getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(200)))
@@ -3111,14 +3109,13 @@ async function snsRemoveFriend(requestId) {
     const revokedShares = new Map();
     ownedShares.docs.filter(snap => snap.data().recipientUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     receivedShares.docs.filter(snap => snap.data().ownerUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
-    if (revokedShares.size) {
-      const batch = writeBatch(snsDb);
-      for (const [shareId, share] of revokedShares) {
-        batch.delete(doc(snsDb, "sharedRooms", shareId));
-        batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
-      }
-      await batch.commit();
+    const batch = writeBatch(snsDb);
+    batch.delete(doc(snsDb, "friendRequests", requestId));
+    for (const [shareId, share] of revokedShares) {
+      batch.delete(doc(snsDb, "sharedRooms", shareId));
+      batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
     }
+    await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsFriendNotice.textContent = "友達関係を解除し、この相手とのお部屋共有も削除しました。";
     await Promise.all([snsLoadFriendRequests(user, authGeneration), snsLoadSharedRooms(user, authGeneration)]);
