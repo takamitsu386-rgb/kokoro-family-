@@ -2056,6 +2056,7 @@ async function downloadCloud() {
   }
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
   if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+  if (!navigator.onLine) throw new Error("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
   applyCloudDataSafely(data);
   initializedSyncForUid = uid;
   markCloudSync(uid);
@@ -2103,6 +2104,7 @@ async function syncNow() {
           throw new Error("クラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
         }
         if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+        if (!navigator.onLine) throw new Error("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
         applyCloudDataSafely(data);
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
