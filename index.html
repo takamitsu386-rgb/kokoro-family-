@@ -6270,7 +6270,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const exportStatus=document.getElementById("familyCalendarExportStatus");
   const csvCell=value=>{
     let text=String(value??"");
-    if(/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text))text="'"+text;
+    if(/^[\s\u0000-\u001f]*[=+@-]/.test(text))text="'"+text;
     return '"'+text.replace(/"/g,'""')+'"';
   };
   exportButton.addEventListener("click",()=>{
@@ -6278,7 +6278,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const header=["予定","日付","時刻","場所・メモ","完了状態","登録日時"];
       const rows=entries.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))
         .map(item=>[item.title,item.date,item.time,item.place,item.done?"完了":"未完了",new Date(item.createdAt).toISOString()]);
-      const csv="\\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\\r\\n");
+      const csv="\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\r\n");
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       const stamp=today().replaceAll("-","");
