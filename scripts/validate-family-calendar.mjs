@@ -47,3 +47,8 @@ assert.match(html, /id="familyCalendarMonth"/);
 assert.match(html, /item\.date\.startsWith\(selectedMonth\)/);
 assert.match(html, /monthInput\.addEventListener\("change"/);
 assert.match(sw, /kokoro-family-v230/);
+
+assert.match(html, /option value="week">今日から7日間/);
+assert.match(html, /filter==="week"\?!item\.done&&item\.date>=current&&item\.date<=weekEnd/);
+assert.match(html, /const weekEnd=\(\(\)=>\{/);
+assert.match(sw, /kokoro-family-v231/);
