@@ -128,6 +128,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
+<label for="familyCalendarSearch">予定検索</label><input id="familyCalendarSearch" type="search" maxlength="80" placeholder="予定名・場所・メモを検索">
+<button type="button" id="familyCalendarResetFilters">検索を解除</button>
 <button type="button" id="familyCalendarClearDone">完了した予定を整理</button><button type="button" id="familyCalendarExport">CSVを書き出す</button><label for="familyCalendarImportFile" class="button">CSVを読み込む</label><input id="familyCalendarImportFile" type="file" accept=".csv,text/csv" hidden>
 </div>
 <p id="familyCalendarSummary" role="status" aria-live="polite">予定を読み込んでいます。</p>
@@ -6351,6 +6353,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   });
   cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
+  searchInput.addEventListener("input",render);
+  resetFiltersButton.addEventListener("click",()=>{filterInput.value="upcoming";searchInput.value="";render();});
   typeFilterInput.addEventListener("change",render);
   searchInput.addEventListener("input",render);
   resetFiltersButton.addEventListener("click",()=>{filterInput.value="week";typeFilterInput.value="all";searchInput.value="";render();});
@@ -6373,6 +6377,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const timeInput = document.getElementById("familyCalendarTime");
   const placeInput = document.getElementById("familyCalendarPlace");
   const filterInput = document.getElementById("familyCalendarFilter");
+  const searchInput=document.getElementById("familyCalendarSearch");
+  const resetFiltersButton=document.getElementById("familyCalendarResetFilters");
   const listEl = document.getElementById("familyCalendarList");
   const summaryEl = document.getElementById("familyCalendarSummary");
   const clearButton = document.getElementById("familyCalendarClearDone");
@@ -6501,10 +6507,11 @@ snsRefreshPosts.addEventListener("click", async () => {
   function resetEditor() { editingId=null; form.reset(); dateInput.value=today(); submitButton.textContent="予定を追加"; cancelButton.hidden=true; render(); }
   function render() {
     const filter=filterInput.value, current=today();
-    const visible=entries.filter(item=>filter==="all"||(filter==="done"?item.done:!item.done&&item.date>=current))
+    const query=searchInput.value.trim().toLocaleLowerCase();
+    const visible=entries.filter(item=>(filter==="all"||(filter==="done"?item.done:!item.done&&item.date>=current))&&(!query||(item.title+" "+item.place).toLocaleLowerCase().includes(query)))
       .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)||a.createdAt-b.createdAt);
     const done=entries.filter(item=>item.done).length;
-    summaryEl.textContent="全"+entries.length+"件・これからの予定"+entries.filter(item=>!item.done&&item.date>=current).length+"件・完了"+done+"件";
+    summaryEl.textContent="全"+entries.length+"件・これからの予定"+entries.filter(item=>!item.done&&item.date>=current).length+"件・完了"+done+"件・表示"+visible.length+"件";
     listEl.replaceChildren();
     if(!visible.length) {
       const empty=document.createElement("li");
