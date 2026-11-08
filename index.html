@@ -327,6 +327,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="savedRoomGallery" aria-label="保存したお部屋のビジュアル一覧" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin:12px 0"></div>
 <label for="savedRoomSearch">お部屋を名前・カテゴリ・メモで検索</label>
 <input id="savedRoomSearch" type="search" maxlength="80" placeholder="例：寝室、春、模様替えメモ" oninput="refreshSavedRooms()" autocomplete="off" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit;margin:6px 0">
+<button type="button" onclick="showSavedRoomLibraryStats()">📊 保存したお部屋の全体統計</button>
+<div id="savedRoomLibraryStats" role="status" aria-live="polite" style="display:none;padding:10px;margin:8px 0;border:1px solid #d8d2eb;border-radius:10px;background:#faf9ff"></div>
 <label for="savedRoomSort">お部屋の並び順</label>
 <select id="savedRoomSort" onchange="refreshSavedRooms()" aria-label="保存したお部屋の並び順">
 <option value="custom">お気に入り・登録順</option>
@@ -2084,6 +2086,28 @@ const name=document.getElementById('savedRooms').value,rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
 if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='画像にするお部屋を選んでね。';return;}
 exportRoomImage(rooms[name],name);
+}
+function showSavedRoomLibraryStats(){
+const root=document.getElementById('savedRoomLibraryStats');
+const rooms=savedRoomData();
+root.replaceChildren();root.style.display='block';
+const heading=document.createElement('strong');heading.textContent='📊 保存したお部屋の全体統計';root.appendChild(heading);
+if(rooms===null){const p=document.createElement('p');p.textContent='保存データを読み取れません。元データは変更していません。';root.appendChild(p);return;}
+const entries=Object.entries(rooms).filter(([,data])=>validRoomData(data));
+const total=entries.reduce((sum,[,data])=>sum+data.items.length,0);
+const prefs=readSavedRoomPrefs();
+const categories=prefs?prefs.categories:{};
+const categoryCounts=new Map();
+entries.forEach(([name])=>{const category=categories[name];if(typeof category==='string'&&category.trim())categoryCounts.set(category,(categoryCounts.get(category)||0)+1);});
+const most=entries.slice().sort((a,b)=>b[1].items.length-a[1].items.length)[0];
+const add=(label,value)=>{const p=document.createElement('p');p.textContent=label+'：'+value;p.style.margin='6px 0';root.appendChild(p);};
+add('保存したお部屋',entries.length+'部屋');
+add('家具の合計',total+'個');
+add('家具の平均',entries.length?(total/entries.length).toFixed(1)+'個／部屋':'0個');
+add('最多の部屋',most?most[0]+'（'+most[1].items.length+'個）':'なし');
+add('カテゴリ数',categoryCounts.size+'種類');
+if(categoryCounts.size){const details=[...categoryCounts.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ja')).map(([name,count])=>name+' '+count+'部屋').join('、');add('カテゴリ内訳',details);}
+const footer=document.createElement('small');footer.textContent='有効な保存データのみを集計しています。保存内容は変更しません。';root.appendChild(footer);
 }
 function downloadSavedRoomSummary(){
 const name=document.getElementById('savedRooms').value;
