@@ -199,6 +199,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyShoppingFilter">表示</label><select id="familyShoppingFilter"><option value="all">すべて</option><option value="needed">買うもの</option><option value="bought">購入済み</option></select>
 <label for="familyShoppingCategoryFilter">分類</label><select id="familyShoppingCategoryFilter"><option value="all">すべての分類</option><option value="food">食べもの</option><option value="daily">日用品</option><option value="stationery">文房具</option><option value="other">その他</option></select>
 <label for="familyShoppingSearch">キーワード</label><input id="familyShoppingSearch" type="search" maxlength="80" placeholder="品物を検索" autocomplete="off">
+<label for="familyShoppingSort">並び順</label><select id="familyShoppingSort"><option value="newest">新しく追加した順</option><option value="name">品物名順</option><option value="category">分類順</option><option value="oldest">古い順</option></select>
 <button type="button" id="familyShoppingResetFilters">絞り込みを解除</button>
 <button type="button" id="familyShoppingClearBought">購入済みを整理</button>
 </div>
@@ -6132,6 +6133,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const filterInput = document.getElementById("familyShoppingFilter");
   const categoryFilterInput = document.getElementById("familyShoppingCategoryFilter");
   const searchInput = document.getElementById("familyShoppingSearch");
+  const sortInput = document.getElementById("familyShoppingSort");
   const resetFiltersButton = document.getElementById("familyShoppingResetFilters");
   const listEl = document.getElementById("familyShoppingList");
   const summaryEl = document.getElementById("familyShoppingSummary");
@@ -6180,7 +6182,14 @@ snsRefreshPosts.addEventListener("click", async () => {
     const visible=entries.filter(item=>(filter==="all"||(filter==="bought"?item.bought:!item.bought)) &&
       (categoryFilter==="all"||item.category===categoryFilter) &&
       (!query||item.name.toLocaleLowerCase().includes(query)||item.quantity.toLocaleLowerCase().includes(query)))
-      .sort((a,b)=>Number(a.bought)-Number(b.bought)||b.createdAt-a.createdAt);
+      .sort((a,b)=>{
+        const statusOrder=Number(a.bought)-Number(b.bought);
+        if(statusOrder)return statusOrder;
+        if(sortInput.value==="name")return a.name.localeCompare(b.name,"ja");
+        if(sortInput.value==="category")return categories[a.category].localeCompare(categories[b.category],"ja")||a.name.localeCompare(b.name,"ja");
+        if(sortInput.value==="oldest")return a.createdAt-b.createdAt;
+        return b.createdAt-a.createdAt;
+      });
     const bought=entries.filter(item=>item.bought).length;
     summaryEl.textContent="全"+entries.length+"件・買うもの"+(entries.length-bought)+"件・購入済み"+bought+"件";
     listEl.replaceChildren();
@@ -6320,7 +6329,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   filterInput.addEventListener("change",render);
   categoryFilterInput.addEventListener("change",render);
   searchInput.addEventListener("input",render);
-  resetFiltersButton.addEventListener("click",()=>{filterInput.value="all";categoryFilterInput.value="all";searchInput.value="";render();searchInput.focus();});
+  sortInput.addEventListener("change",render);
+  resetFiltersButton.addEventListener("click",()=>{filterInput.value="all";categoryFilterInput.value="all";searchInput.value="";sortInput.value="newest";render();searchInput.focus();});
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.bought).length;
     if(count&&confirm("購入済みの"+count+"件を削除しますか？"))save(entries.filter(item=>!item.bought));
