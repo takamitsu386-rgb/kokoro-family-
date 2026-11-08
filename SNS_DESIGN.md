@@ -182,7 +182,7 @@ Firestore Emulator と Rules Unit Testing を使ったテストをCIに追加し
 
 ## 2026-11-08: friend room snapshot sharing
 
-- Accepted friends can receive a snapshot of the current room from the SNS friends panel.
+- Accepted friends can receive a snapshot of the current room or a saved room from the SNS friends panel, without replacing the room currently open.
 - Shared content is limited to validated room design data and furniture placement; profile details and SNS content are not copied.
 - Recipients can import a snapshot as their own editable room. The original remains unchanged; this is not live collaborative editing.
 - Recipient snapshots are stored in `sharedRooms`; the owner's private mirror is stored in `users/{ownerUid}/sharedRooms` so Firestore queries remain scoped and rule-compatible.
