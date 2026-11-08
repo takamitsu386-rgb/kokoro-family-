@@ -118,7 +118,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <label for="familyCalendarPlace">場所・メモ（60文字以内）</label>
 <input id="familyCalendarPlace" maxlength="60" placeholder="例：自宅・持ち物を確認">
-<button class="primary" type="submit">予定を追加</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyCalendarSubmit">予定を追加</button><button type="button" id="familyCalendarCancel" hidden>編集をキャンセル</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
@@ -6065,6 +6065,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const listEl = document.getElementById("familyCalendarList");
   const summaryEl = document.getElementById("familyCalendarSummary");
   const clearButton = document.getElementById("familyCalendarClearDone");
+  const submitButton = document.getElementById("familyCalendarSubmit");
+  const cancelButton = document.getElementById("familyCalendarCancel");
   const today = () => {
     const now = new Date();
     return now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
@@ -6075,7 +6077,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     return !Number.isNaN(parsed.getTime()) && parsed.getFullYear()+"-"+String(parsed.getMonth()+1).padStart(2,"0")+"-"+String(parsed.getDate()).padStart(2,"0") === value;
   };
   dateInput.value = today();
-  let entries = [], ready = false;
+  let entries = [], ready = false, editingId = null;
   function validEvent(item) {
     return !!item && typeof item === "object" &&
       typeof item.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(item.id) &&
@@ -6107,6 +6109,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       return false;
     }
   }
+  function resetEditor() { editingId=null; form.reset(); dateInput.value=today(); submitButton.textContent="予定を追加"; cancelButton.hidden=true; render(); }
   function render() {
     const filter=filterInput.value, current=today();
     const visible=entries.filter(item=>filter==="all"||(filter==="done"?item.done:!item.done&&item.date>=current))
@@ -6133,13 +6136,16 @@ snsRefreshPosts.addEventListener("click", async () => {
       row.append(checkbox,title);
       const meta=document.createElement("small");meta.style.color="#667085";
       meta.textContent=item.date.replaceAll("-","/")+(item.time?"・"+item.time:"")+(item.place?"・"+item.place:"");
+      const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
+      edit.addEventListener("click",()=>{editingId=item.id;titleInput.value=item.title;dateInput.value=item.date;timeInput.value=item.time;placeInput.value=item.place;submitButton.textContent="変更を保存";cancelButton.hidden=false;titleInput.focus();});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
-      remove.addEventListener("click",()=>{if(confirm("「"+item.title+"」を削除しますか？"))save(entries.filter(entry=>entry.id!==item.id));});
-      li.append(row,meta,remove);listEl.append(li);
+      remove.addEventListener("click",()=>{if(confirm("「"+item.title+"」を削除しますか？")){if(editingId===item.id)resetEditor();save(entries.filter(entry=>entry.id!==item.id));}});
+      actions.append(edit,remove);li.append(row,meta,actions);listEl.append(li);
     }
     clearButton.disabled=done===0;
-    titleInput.disabled=entries.length>=LIMIT;
-    form.querySelector('button[type="submit"]').disabled=entries.length>=LIMIT;
+    titleInput.disabled=entries.length>=LIMIT&&!editingId;
+    submitButton.disabled=entries.length>=LIMIT&&!editingId;
   }
   try { entries=readEntries();ready=true;render(); }
   catch(error) {
@@ -6151,12 +6157,20 @@ snsRefreshPosts.addEventListener("click", async () => {
   form.addEventListener("submit",event=>{
     event.preventDefault();
     const title=titleInput.value.trim(),date=dateInput.value,time=timeInput.value,place=placeInput.value.trim();
-    if(!title||title.length>80||!validDate(date)||(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))||place.length>60||entries.length>=LIMIT)return;
-    const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"event_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
-    if(save([...entries,{id,title,date,time,place,done:false,createdAt:Date.now()}])) {
-      titleInput.value="";timeInput.value="";placeInput.value="";titleInput.focus();
+    if(!title||title.length>80||!validDate(date)||(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))||place.length>60)return;
+    if(editingId){
+      const current=entries.find(item=>item.id===editingId);if(!current)return;
+      const next=entries.map(item=>item.id===editingId?{...item,title,date,time,place}:item);
+      if(save(next))resetEditor();
+    }else{
+      if(entries.length>=LIMIT)return;
+      const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"event_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+      if(save([...entries,{id,title,date,time,place,done:false,createdAt:Date.now()}])) {
+        titleInput.value="";timeInput.value="";placeInput.value="";titleInput.focus();
+      }
     }
   });
+  cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.done).length;
