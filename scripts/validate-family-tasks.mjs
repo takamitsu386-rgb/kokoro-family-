@@ -46,7 +46,7 @@ assert.match(html, /（期限切れ）/, "overdue tasks are visibly labeled");
 assert.match(html, /Task storage rollback failed/, "failed writes attempt rollback");
 assert.match(html, /保存データに問題があるため、上書きせず保護しました/, "invalid stored data fails closed");
 assert.match(html, /クラウド同期・家族間共有にはまだ対応していません/, "local-only scope is disclosed");
-assert.match(sw, /kokoro-family-v222/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v241/, "service worker cache is refreshed");
 
 console.log("Family task list source checks passed.");
 
@@ -58,7 +58,7 @@ assert.match(html,/categoryMap/);
 assert.match(html,/priorityMap/);
 assert.match(html,/Task CSV import failed/);
 assert.match(html,/Task CSV export failed/);
-assert.match(sw,/kokoro-family-v222/);
+assert.match(sw,/kokoro-family-v241/);
 
 assert.match(html, /id="familyTaskSearch"/, "task keyword search input exists");
 assert.match(html, /task\.title\.toLocaleLowerCase\(\)\.includes\(query\)/, "task keyword search filters titles");
@@ -71,3 +71,11 @@ assert.match(html, /searchInput\.value = ""/, "task filter reset clears keyword 
 assert.match(html, /id="familyTaskCompleteAll"/, "complete all tasks button exists");
 assert.match(html, /未完了の.*件をすべて完了にしますか/, "bulk completion requires confirmation");
 assert.match(html, /tasks\.map\(task => task\.completed \? task : \{\.\.\.task, completed: true\}\)/, "bulk completion preserves task data and marks open tasks complete");
+
+assert.match(html, /id="familyTaskWeekOverview"/);
+assert.match(html, /今後7日間のやること/);
+assert.match(html, /weekOverview\.replaceChildren\(\)/);
+assert.match(html, /offset<7/);
+assert.match(html, /task\.dueDate===date/);
+assert.match(html, /この日を期限に設定/);
+assert.match(html, /weekOverview\.append\(card\)/);
