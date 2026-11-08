@@ -241,8 +241,8 @@ assert.match(queueSyncHandler, /await uploadLocal\(queuedUid\);[\s\S]*?clearTime
   'A successful automatic upload must clear any pending retry and reset the retry budget.');
 assert.match(queueSyncHandler, /if \(logoutInProgress\) return;\s*status\("クラウド同期に失敗しました[\s\S]*?if \(!navigator\.onLine\) \{[\s\S]*?通信が切れました[\s\S]*?\} else if \(syncRetryCount < 3\) \{\s*const delay = \[3000, 10000, 30000\]\[syncRetryCount\+\+\];[\s\S]*?syncRetryTimer = setTimeout/,
   'A failed automatic upload must not overwrite logout status or schedule retries during logout; offline failures must not consume retry slots.');
-assert.match(queueSyncHandler, /else if \(syncRetryCount >= 3\) \{[\s\S]*?自動再試行を3回行いました/,
-  'The exhausted retry message must remain limited to the three-retry case.');
+assert.match(queueSyncHandler, /else \{\s*status\("自動再試行を3回行いました/,
+  'The exhausted retry message must remain limited to the three-retry case after offline and logout paths are excluded.');
 
 const downloadCloudStart = html.indexOf('async function downloadCloud()');
 const downloadCloudEnd = html.indexOf('\nasync function syncNow()', downloadCloudStart);
