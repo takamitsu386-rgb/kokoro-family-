@@ -346,4 +346,17 @@ assert.match(overlapCheck,/width>2&&height>2/,'Overlap checking must ignore negl
 assert.match(overlapCheck,/overlaps\.sort/,'Overlap results must prioritize larger overlaps.');
 assert.match(overlapCheck,/root\.appendChild/,'Overlap results must be rendered as text nodes.');
 assert.match(overlapCheck,/保存データは変更しません/,'Overlap checking must not mutate saved room data.');
+
+const alignFunction=source.slice(source.indexOf('function alignSelectedFurniture('),source.indexOf('function checkFurnitureOverlaps()'));
+assert.match(source,/alignSelectedFurniture\('centerX'\)/,'Room editor must expose horizontal center alignment.');
+assert.match(source,/alignSelectedFurniture\('centerY'\)/,'Room editor must expose vertical center alignment.');
+assert.match(source,/alignSelectedFurniture\('left'\)/,'Room editor must expose left edge alignment.');
+assert.match(source,/alignSelectedFurniture\('right'\)/,'Room editor must expose right edge alignment.');
+assert.match(source,/alignSelectedFurniture\('top'\)/,'Room editor must expose top edge alignment.');
+assert.match(source,/alignSelectedFurniture\('bottom'\)/,'Room editor must expose bottom edge alignment.');
+assert.match(alignFunction,/selectedFurniture\.offsetWidth/,'Alignment must account for furniture width.');
+assert.match(alignFunction,/selectedFurniture\.offsetHeight/,'Alignment must account for furniture height.');
+assert.match(alignFunction,/Math\.max\(0,Math\.min\(roomSize-itemSize,next\)\)/,'Alignment must keep furniture within room bounds.');
+assert.match(alignFunction,/autoSaveRoom\(\)/,'Alignment must persist through the existing save path.');
+assert.match(alignFunction,/selectedFurniture\.style\[property\]=previous/,'Alignment must roll back if saving fails.');
 console.log('Saved room comparison CSV checks passed.');
