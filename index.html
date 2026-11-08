@@ -303,6 +303,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
+<button type="button" onclick="clearSelectedFurniture()">選択を解除</button>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
 <button onclick="duplicateSelected()">📑 選んだ家具をコピー</button>
@@ -705,6 +706,24 @@ document.getElementById('selectedMessage').textContent='家具を追加して選
 }
 return item;
 }
+function clearSelectedFurniture(){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='家具は選択されていません。';return;}
+const previous=selectedFurniture;
+selectedFurniture=null;
+previous.style.outline='none';
+const button=previous.querySelector('.item-icon');
+if(button)button.setAttribute('aria-pressed','false');
+document.getElementById('selectedMessage').textContent='家具の選択を解除しました。';
+}
+document.addEventListener('keydown',event=>{
+if(event.key==='Escape'&&selectedFurniture){
+event.preventDefault();
+clearSelectedFurniture();
+}
+});
+room.addEventListener('click',event=>{
+if(event.target===room||event.target.id==='floor')clearSelectedFurniture();
+});
 function selectFurniture(el){
 selectedFurniture=el;
 document.getElementById('selectedMessage').textContent='選択中：'+el.dataset.icon;
