@@ -208,11 +208,9 @@ service cloud.firestore {
           )
         );
       allow list: if signedIn()
-        && resource.data.keys().hasAll(['fromUid', 'toUid', 'status'])
         && resource.data.toUid == request.auth.uid
         && !blockedBetween(resource.data.fromUid, resource.data.toUid);
       allow list: if signedIn()
-        && resource.data.keys().hasAll(['fromUid', 'toUid', 'status'])
         && resource.data.fromUid == request.auth.uid
         && !blockedBetween(resource.data.fromUid, resource.data.toUid);
       allow create: if signedIn()
