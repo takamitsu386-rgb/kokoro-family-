@@ -171,7 +171,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyRecipesSearch">検索</label><input id="familyRecipesSearch" maxlength="60" placeholder="料理名・材料で検索">
 <button type="button" id="familyRecipesExport">CSVを書き出す</button><label for="familyRecipesImportFile" class="button">CSVを読み込む</label><input id="familyRecipesImportFile" type="file" accept=".csv,text/csv" hidden>
-<label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
+<label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="favorites">お気に入り</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
 </div>
 <p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
 <p id="familyRecipesExportStatus" role="status" aria-live="polite"></p>
@@ -6802,6 +6802,15 @@ snsRefreshPosts.addEventListener("click", async () => {
   const stepsInput=document.getElementById("familyRecipesSteps");
   const searchInput=document.getElementById("familyRecipesSearch");
   const filterInput=document.getElementById("familyRecipesFilter");
+  const FAVORITES_KEY="kokoroFamilyRecipeFavoritesV1";
+  let favorites=new Set();
+  try{
+    const rawFavorites=localStorage.getItem(FAVORITES_KEY);
+    const stored=rawFavorites===null?[]:JSON.parse(rawFavorites);
+    if(!Array.isArray(stored)||stored.length>LIMIT||!stored.every(id=>typeof id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(id))||new Set(stored).size!==stored.length)throw new Error("invalid recipe favorites");
+    favorites=new Set(stored);
+  }catch(error){console.error("Recipe favorites load failed",error);}
+
   const listEl=document.getElementById("familyRecipesList");
   const summaryEl=document.getElementById("familyRecipesSummary");
   const submitButton=document.getElementById("familyRecipesSubmit");
@@ -6920,7 +6929,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   }
   function render(){
     const query=searchInput.value.trim().toLocaleLowerCase();
-    const visible=recipes.filter(x=>(filterInput.value==="all"||x.category===filterInput.value)&&
+    const visible=recipes.filter(x=>(filterInput.value==="all"||(filterInput.value==="favorites"?favorites.has(x.id):x.category===filterInput.value))&&
       (!query||(x.title+" "+x.ingredients+" "+x.steps).toLocaleLowerCase().includes(query)))
       .sort((a,b)=>b.updatedAt-a.updatedAt);
     summaryEl.textContent="保存 "+recipes.length+"/"+LIMIT+"件・表示 "+visible.length+"件";
@@ -6932,6 +6941,16 @@ snsRefreshPosts.addEventListener("click", async () => {
       const ingredients=document.createElement("p");ingredients.style.whiteSpace="pre-wrap";ingredients.textContent="材料：\\n"+recipe.ingredients;
       const steps=document.createElement("p");steps.style.whiteSpace="pre-wrap";steps.textContent="作り方・コツ：\\n"+recipe.steps;
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const favoriteButton=document.createElement("button");favoriteButton.type="button";
+      const updateFavoriteLabel=()=>{favoriteButton.textContent=favorites.has(recipe.id)?"★ お気に入り解除":"☆ お気に入り";favoriteButton.setAttribute("aria-pressed",String(favorites.has(recipe.id)));};
+      updateFavoriteLabel();
+      favoriteButton.addEventListener("click",()=>{
+        const wasFavorite=favorites.has(recipe.id);
+        if(wasFavorite)favorites.delete(recipe.id);else favorites.add(recipe.id);
+        try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]));updateFavoriteLabel();render();}
+        catch(error){if(wasFavorite)favorites.add(recipe.id);else favorites.delete(recipe.id);updateFavoriteLabel();summaryEl.textContent="お気に入りを保存できませんでした。端末の空き容量を確認してください。";console.error("Recipe favorite save failed",error);}
+      });
+      actions.append(favoriteButton);
       const addToMeal=document.createElement("button");addToMeal.type="button";addToMeal.textContent="献立に追加";
       addToMeal.addEventListener("click",()=>{
         const mealForm=document.getElementById("familyMealsForm");
