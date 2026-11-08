@@ -2810,6 +2810,7 @@ function snsRenderPublicTimeline(items) {
           text.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 4px";
           text.textContent = snap.data().text;
           const remove = document.createElement("button");
+          row.appendChild(text);
           if (snap.data().authorUid === user.uid || item.authorUid === user.uid) {
             remove.type = "button";
             remove.textContent = "削除";
@@ -2819,8 +2820,9 @@ function snsRenderPublicTimeline(items) {
                 await renderComments();
               } catch (error) { note.textContent = "コメントを削除できませんでした。"; }
             });
-            row.append(text, remove);
-          } else {
+            row.appendChild(remove);
+          }
+          if (snap.data().authorUid !== user.uid) {
             const reportComment = document.createElement("button");
             reportComment.type = "button";
             reportComment.textContent = "コメント投稿者を通報";
@@ -2831,7 +2833,7 @@ function snsRenderPublicTimeline(items) {
               snsReportNotice.textContent = "通報理由を選んで送信してください。コメント本文は送信されません。";
               snsReportUid.scrollIntoView({ behavior: "smooth", block: "center" });
             });
-            row.append(text, reportComment);
+            row.appendChild(reportComment);
           }
           list.appendChild(row);
         }
