@@ -791,11 +791,18 @@ const floorOnly=document.createElement('button');
 floorOnly.type='button';floorOnly.textContent='床だけ';
 floorOnly.setAttribute('aria-label',palette.name+' の床色だけを適用');
 floorOnly.addEventListener('click',()=>loadCustomRoomPalettePart(index,'floor'));
+const renameInput=document.createElement('input');
+renameInput.type='text';renameInput.maxLength=16;renameInput.value=palette.name;
+renameInput.setAttribute('aria-label',palette.name+' の新しい名前');
+renameInput.placeholder='新しい名前';
+const rename=document.createElement('button');
+rename.type='button';rename.textContent='名前変更';
+rename.addEventListener('click',()=>renameCustomRoomPalette(index,renameInput.value));
 const remove=document.createElement('button');
 remove.type='button';remove.textContent='削除';
 remove.setAttribute('aria-label',palette.name+' の配色を削除');
 remove.addEventListener('click',()=>deleteCustomRoomPalette(index));
-group.append(apply,wallOnly,floorOnly,remove);root.appendChild(group);
+group.append(apply,wallOnly,floorOnly,renameInput,rename,remove);root.appendChild(group);
 });
 }
 function saveCustomRoomPalette(){
@@ -835,6 +842,20 @@ if(target==='wall')room.style.backgroundColor=palette.wall;
 else document.getElementById('floor').style.backgroundColor=palette.floor;
 })){status.textContent='保存できなかったため、色を変更しませんでした。';return;}
 status.textContent='「'+palette.name+'」の'+(target==='wall'?'壁':'床')+'の色だけを適用しました。';
+}
+function renameCustomRoomPalette(index,newName){
+const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
+const name=typeof newName==='string'?newName.trim():'';
+if(!Array.isArray(list)){status.textContent='保存済み配色を読み込めません。';return;}
+if(!Number.isInteger(index)||index<0||index>=list.length){status.textContent='名前を変更する配色が見つかりません。';return;}
+if(!name||name.length>16){status.textContent='新しい名前を1〜16文字で入力してください。';return;}
+if(list.some((item,i)=>i!==index&&item.name===name)){status.textContent='同じ名前の配色がすでにあります。';return;}
+const previous=list[index].name;
+if(previous===name){status.textContent='名前は変更されていません。';return;}
+list[index].name=name;
+try{localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(list));}
+catch(error){status.textContent='保存できなかったため、名前を変更しませんでした。';return;}
+renderCustomRoomPalettes();status.textContent='「'+previous+'」を「'+name+'」に変更しました。';
 }
 function deleteCustomRoomPalette(index){
 const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
