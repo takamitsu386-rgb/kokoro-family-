@@ -47,6 +47,10 @@ assert.match(sync, /このアカウントにはクラウドデータがありま
   'First sync must ask before choosing which existing dataset to keep.');
 assert.match(sync, /if \(!navigator\.onLine\)[\s\S]*?端末内データはそのままです/,
   'Offline cloud operations must stop without discarding local data.');
+assert.match(sync, /if \(!confirm\("クラウドのデータをこの端末に読み込みます。[\s\S]*?if \(!isCurrentAccount\(\)\)[\s\S]*?if \(!navigator\.onLine\) throw new Error\("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。"\);\s*applyCloudDataSafely\(data\);/,
+  'Cloud download must recheck connectivity after the confirmation prompt before replacing local data.');
+assert.match(sync, /if \(useCloud\) \{[\s\S]*?if \(!isCurrentAccount\(\)\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*if \(!navigator\.onLine\) throw new Error\("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。"\);\s*applyCloudDataSafely\(data\);/,
+  'First-sync cloud import must recheck connectivity after the confirmation prompt before replacing local data.');
 assert.match(sync, /window\.addEventListener\("online"/,
   'Cloud sync must be reconsidered after connectivity returns.');
 assert.match(sync, /document\.addEventListener\("visibilitychange"/,
