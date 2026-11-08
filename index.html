@@ -78,13 +78,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-meals">献立</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a class="secondary" href="#family-meals">🍱 献立を考える</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
 </section>
 <section class="panel" id="family-tasks">
 <h2>📝 家族のやることリスト</h2>
@@ -126,6 +126,25 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <p id="familyCalendarSummary" role="status" aria-live="polite">予定を読み込んでいます。</p>
 <ul id="familyCalendarList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
+</section>
+<section class="panel" id="family-meals">
+<h2>🍱 家族の献立メモ</h2>
+<p>朝・昼・夜・おやつのメニューを日付ごとに記録できます。献立はこの端末のブラウザー内に保存されます（クラウド同期・家族間共有には未対応です）。</p>
+<form id="familyMealsForm" style="display:grid;gap:8px">
+<label for="familyMealsDate">日付</label><input id="familyMealsDate" type="date" required>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<label for="familyMealsType">食事<select id="familyMealsType"><option value="breakfast">朝ごはん</option><option value="lunch">昼ごはん</option><option value="dinner">夜ごはん</option><option value="snack">おやつ</option></select></label>
+<label for="familyMealsName">メニュー（80文字以内）<input id="familyMealsName" maxlength="80" required placeholder="例：野菜たっぷりスープ"></label>
+</div>
+<label for="familyMealsNote">メモ（60文字以内・任意）</label><input id="familyMealsNote" maxlength="60" placeholder="例：材料を買っておく">
+<button class="primary" type="submit">献立を追加</button>
+</form>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
+<label for="familyMealsFilter">表示</label><select id="familyMealsFilter"><option value="week">今日から7日間</option><option value="all">すべて</option></select>
+<button type="button" id="familyMealsClearPast">過去の献立を整理</button>
+</div>
+<p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
+<ul id="familyMealsList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="family-shopping">
 <h2>🛒 家族のお買い物リスト</h2>
@@ -6112,6 +6131,89 @@ snsRefreshPosts.addEventListener("click", async () => {
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.done).length;
     if(count&&confirm("完了した"+count+"件の予定を削除しますか？"))save(entries.filter(item=>!item.done));
+  });
+})();
+
+
+(() => {
+  const KEY = "kokoroFamilyMealsV1", LIMIT = 200;
+  const form = document.getElementById("familyMealsForm");
+  if (!form) return;
+  const dateInput=document.getElementById("familyMealsDate");
+  const typeInput=document.getElementById("familyMealsType");
+  const nameInput=document.getElementById("familyMealsName");
+  const noteInput=document.getElementById("familyMealsNote");
+  const filterInput=document.getElementById("familyMealsFilter");
+  const listEl=document.getElementById("familyMealsList");
+  const summaryEl=document.getElementById("familyMealsSummary");
+  const clearButton=document.getElementById("familyMealsClearPast");
+  const types={breakfast:"朝ごはん",lunch:"昼ごはん",dinner:"夜ごはん",snack:"おやつ"};
+  const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const validDate=value=>{
+    if(typeof value!=="string"||! /^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+    const d=new Date(value+"T00:00:00");
+    return !Number.isNaN(d.getTime())&&d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")===value;
+  };
+  dateInput.value=today();
+  let entries=[],ready=false;
+  function validMeal(item){
+    return !!item&&typeof item==="object"&&typeof item.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(item.id)&&
+      validDate(item.date)&&Object.hasOwn(types,item.type)&&typeof item.name==="string"&&item.name.trim().length>=1&&item.name.length<=80&&
+      typeof item.note==="string"&&item.note.length<=60&&Number.isSafeInteger(item.createdAt)&&item.createdAt>0;
+  }
+  function readEntries(){
+    const raw=localStorage.getItem(KEY);if(raw===null)return [];
+    const data=JSON.parse(raw);
+    if(!Array.isArray(data)||data.length>LIMIT||!data.every(validMeal)||new Set(data.map(x=>x.id)).size!==data.length)throw new Error("invalid meal plan");
+    return data;
+  }
+  function save(next){
+    if(!ready||!Array.isArray(next)||next.length>LIMIT||!next.every(validMeal)||new Set(next.map(x=>x.id)).size!==next.length){
+      summaryEl.textContent="保存データを確認できないため、変更を保留しました。";return false;
+    }
+    const previous=JSON.stringify(entries);
+    try{localStorage.setItem(KEY,JSON.stringify(next));entries=next;render();return true;}
+    catch(error){
+      try{if(previous==="[]")localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous);}
+      catch(rollbackError){console.error("Meal plan rollback failed",rollbackError);}
+      summaryEl.textContent="保存できませんでした。端末の空き容量を確認してください。";return false;
+    }
+  }
+  function render(){
+    const current=today(),end=new Date(current+"T00:00:00");end.setDate(end.getDate()+6);
+    const last=end.getFullYear()+"-"+String(end.getMonth()+1).padStart(2,"0")+"-"+String(end.getDate()).padStart(2,"0");
+    const visible=entries.filter(x=>filterInput.value==="all"||(x.date>=current&&x.date<=last))
+      .sort((a,b)=>a.date.localeCompare(b.date)||["breakfast","lunch","dinner","snack"].indexOf(a.type)-["breakfast","lunch","dinner","snack"].indexOf(b.type)||a.createdAt-b.createdAt);
+    summaryEl.textContent="登録 "+entries.length+"件・今日から7日間 "+entries.filter(x=>x.date>=current&&x.date<=last).length+"件";
+    listEl.replaceChildren();
+    if(!visible.length){const empty=document.createElement("li");empty.textContent=entries.length?"この期間の献立はありません。":"まだ献立がありません。日付とメニューを入力して追加できます。";listEl.append(empty);}
+    for(const item of visible){
+      const li=document.createElement("li");li.style.cssText="padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:7px";
+      const title=document.createElement("strong");title.textContent=item.date.replaceAll("-","/")+"・"+types[item.type]+"： "+item.name;
+      const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
+      remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」の献立を削除しますか？"))save(entries.filter(x=>x.id!==item.id));});
+      li.append(title);
+      if(item.note){const note=document.createElement("small");note.style.color="#667085";note.textContent=item.note;li.append(note);}
+      li.append(remove);listEl.append(li);
+    }
+    clearButton.disabled=!entries.some(x=>x.date<current);
+    nameInput.disabled=entries.length>=LIMIT;form.querySelector('button[type="submit"]').disabled=entries.length>=LIMIT;
+  }
+  try{entries=readEntries();ready=true;render();}
+  catch(error){
+    console.error("Meal plan validation failed",error);summaryEl.textContent="保存データに問題があるため、上書きせず保護しました。";
+    form.querySelectorAll("input,select,button").forEach(control=>control.disabled=true);filterInput.disabled=false;return;
+  }
+  form.addEventListener("submit",event=>{
+    event.preventDefault();const date=dateInput.value,name=nameInput.value.trim(),note=noteInput.value.trim();
+    if(!validDate(date)||!name||name.length>80||note.length>60||!Object.hasOwn(types,typeInput.value)||entries.length>=LIMIT)return;
+    const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"meal_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+    if(save([...entries,{id,date,type:typeInput.value,name,note,createdAt:Date.now()}])){nameInput.value="";noteInput.value="";nameInput.focus();}
+  });
+  filterInput.addEventListener("change",render);
+  clearButton.addEventListener("click",()=>{
+    const count=entries.filter(x=>x.date<today()).length;
+    if(count&&confirm("過去の献立"+count+"件を削除しますか？"))save(entries.filter(x=>x.date>=today()));
   });
 })();
 
