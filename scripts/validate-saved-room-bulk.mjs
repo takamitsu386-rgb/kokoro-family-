@@ -113,3 +113,18 @@ assert.match(html, /placeSelectedAtCorner\('top-right'\)/, 'The top-right placem
 assert.match(html, /placeSelectedAtCorner\('bottom-left'\)/, 'The bottom-left placement control must be available.');
 assert.match(html, /placeSelectedAtCorner\('bottom-right'\)/, 'The bottom-right placement control must be available.');
 console.log('Selected furniture corner placement checks passed.');
+
+const furnitureExportStart = html.indexOf('function exportRoomFurnitureReport(){');
+assert.notEqual(furnitureExportStart, -1, 'Room furniture breakdown must be exportable.');
+const furnitureExportEnd = html.indexOf('function analyzeRoomFurniture()', furnitureExportStart);
+assert.notEqual(furnitureExportEnd, -1, 'Furniture export handler must end before the on-screen analysis.');
+const furnitureExport = html.slice(furnitureExportStart, furnitureExportEnd);
+assert.match(furnitureExport, /categoryByIcon/, 'CSV export must classify furniture categories.');
+assert.match(furnitureExport, /counts\.set\(key/, 'CSV export must aggregate repeated furniture icons.');
+assert.match(furnitureExport, /\['種類','家具アイコン','個数'\]/, 'CSV export must include clear column headings.');
+assert.match(furnitureExport, /replace\(\/"\/g,'""'\)/, 'CSV export must escape embedded quotation marks.');
+assert.match(furnitureExport, /text\/csv;charset=utf-8/, 'CSV export must use UTF-8 CSV content.');
+assert.match(furnitureExport, /URL\.createObjectURL/, 'CSV export must create a downloadable file.');
+assert.match(furnitureExport, /URL\.revokeObjectURL/, 'CSV export must release its temporary object URL.');
+assert.match(html, /exportRoomFurnitureReport\(\)/, 'The room editor must expose the CSV export action.');
+console.log('Room furniture CSV export checks passed.');
