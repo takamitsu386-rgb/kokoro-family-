@@ -288,6 +288,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
+<div class="items" aria-label="選んだ家具の配置場所">
+<button type="button" onclick="placeSelectedAtCorner('top-left')">↖️ 左上</button>
+<button type="button" onclick="placeSelectedAtCorner('top-right')">↗️ 右上</button>
+<button type="button" onclick="placeSelectedAtCorner('bottom-left')">↙️ 左下</button>
+<button type="button" onclick="placeSelectedAtCorner('bottom-right')">↘️ 右下</button>
+</div>
 <button type="button" onclick="autoArrangeFurniture()">🧩 家具を自動で整列</button>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
@@ -936,6 +942,25 @@ function checkRoomGoal(goalKey){
     if(suggestions.childElementCount)fragment.appendChild(suggestions);
   }
   result.replaceChildren(fragment);
+}
+function placeSelectedAtCorner(corner){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に配置したい家具をタップしてね。';return;}
+if(room.clientWidth<1||room.clientHeight<1){document.getElementById('selectedMessage').textContent='お部屋の大きさを確認できません。';return;}
+const maxLeft=Math.max(0,room.clientWidth-selectedFurniture.offsetWidth);
+const maxTop=Math.max(0,room.clientHeight-selectedFurniture.offsetHeight);
+const positions={'top-left':[0,0],'top-right':[maxLeft,0],'bottom-left':[0,maxTop],'bottom-right':[maxLeft,maxTop]};
+const next=positions[corner];
+if(!next){document.getElementById('selectedMessage').textContent='配置場所を確認できません。';return;}
+const previousLeft=selectedFurniture.style.left,previousTop=selectedFurniture.style.top;
+const nextLeft=next[0]+'px',nextTop=next[1]+'px';
+if(nextLeft===previousLeft&&nextTop===previousTop){document.getElementById('selectedMessage').textContent='家具はすでにその位置にあります。';return;}
+selectedFurniture.style.left=nextLeft;selectedFurniture.style.top=nextTop;
+if(!autoSaveRoom()){
+selectedFurniture.style.left=previousLeft;selectedFurniture.style.top=previousTop;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元の位置に戻しました。';return;
+}
+const labels={'top-left':'左上','top-right':'右上','bottom-left':'左下','bottom-right':'右下'};
+document.getElementById('selectedMessage').textContent='家具を'+labels[corner]+'に移動して保存しました。';
 }
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
