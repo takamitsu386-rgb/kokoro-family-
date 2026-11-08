@@ -3428,7 +3428,7 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
       try {
         const batch = writeBatch(snsDb);
         batch.delete(doc(snsDb, "sharedRooms", item.id));
-        if (item.ownerUid === user.uid) batch.delete(doc(snsDb, "users", user.uid, "sharedRooms", item.id));
+        batch.delete(doc(snsDb, "users", item.ownerUid, "sharedRooms", item.id));
         await batch.commit();
         if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) await snsLoadSharedRooms(user, authGeneration);
       } catch (error) {
