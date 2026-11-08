@@ -208,6 +208,7 @@ service cloud.firestore {
           )
         );
       allow list: if signedIn()
+        && resource.data.keys().hasAll(['fromUid', 'toUid', 'status'])
         && (
           resource.data.toUid == request.auth.uid
           || resource.data.fromUid == request.auth.uid
