@@ -459,3 +459,16 @@ assert.match(dragFunction,/el\.dataset\.locked==='true'/,'Locked furniture must 
 assert.match(source,/locked:el\.dataset\.locked==='true'/,'Room snapshots must preserve furniture lock state.');
 assert.match(source,/(item\.locked===undefined\|\|typeof item\.locked==='boolean')/,'Room validation must allow only boolean lock state.');
 assert.match(source,/if\(v\.locked===true\)\{el\.dataset\.locked='true'/,'Room restoration must restore locked furniture.');
+
+const bulkLockStart=source.indexOf('function setAllFurnitureLocked(locked){');
+const bulkLockEnd=source.indexOf('function toggleSelectedFurnitureLock(){',bulkLockStart);
+const bulkLockFunction=source.slice(bulkLockStart,bulkLockEnd);
+assert.notEqual(bulkLockStart,-1,'Room editor must provide bulk furniture locking.');
+assert.match(source,/setAllFurnitureLocked\(true\)/,'Room editor must expose lock-all action.');
+assert.match(source,/setAllFurnitureLocked\(false\)/,'Room editor must expose unlock-all action.');
+assert.match(bulkLockFunction,/querySelectorAll\('\.furniture'\)/,'Bulk locking must cover all furniture in the room.');
+assert.match(bulkLockFunction,/previous=items\.map/,'Bulk locking must retain prior states for rollback.');
+assert.match(bulkLockFunction,/changed\.forEach/,'Bulk locking must update only furniture whose state changes.');
+assert.match(bulkLockFunction,/if\(!autoSaveRoom\(\)\)/,'Bulk locking must persist as one operation.');
+assert.match(bulkLockFunction,/previous\.forEach/,'Bulk locking must restore all prior states if saving fails.');
+assert.match(bulkLockFunction,/updateHandle\(el,wasLocked\)/,'Bulk rollback must restore accessible drag-handle state.');
