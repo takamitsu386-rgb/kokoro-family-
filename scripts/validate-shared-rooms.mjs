@@ -56,3 +56,5 @@ assert.match(html, /const batch = writeBatch\(snsDb\);\s*batch\.delete\(doc\(sns
 
 assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\), limit\(124\)/);
 assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(124\)/);
+
+assert.match(html, /snsAddBlock\.addEventListener\("click",[\s\S]*?const batch = writeBatch\(snsDb\);\s*batch\.set\(doc\(snsDb, "users", user\.uid, "blocks", targetUid\)/, "Blocking and share revocation must be atomic.");
