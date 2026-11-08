@@ -125,6 +125,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="familyCalendarClearDone">完了した予定を整理</button>
 </div>
 <p id="familyCalendarSummary" role="status" aria-live="polite">予定を読み込んでいます。</p>
+<p id="familyCalendarTaskStatus" role="status" aria-live="polite"></p>
 <ul id="familyCalendarList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="family-meals">
@@ -6179,11 +6180,39 @@ snsRefreshPosts.addEventListener("click", async () => {
       const meta=document.createElement("small");meta.style.color="#667085";
       meta.textContent=item.date.replaceAll("-","/")+(item.time?"・"+item.time:"")+(item.place?"・"+item.place:"");
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const makeTask=document.createElement("button");makeTask.type="button";makeTask.textContent="やることに追加";
+      makeTask.addEventListener("click",()=>{
+        const status=document.getElementById("familyCalendarTaskStatus");
+        const taskKey="kokoroFamilyTasksV1";
+        try{
+          const raw=localStorage.getItem(taskKey);
+          const current=raw===null?[]:JSON.parse(raw);
+          const categories={household:true,cleaning:true,study:true,other:true};
+          const priorities={low:true,normal:true,high:true};
+          const validTask=task=>!!task&&typeof task==="object"&&typeof task.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(task.id)&&
+            typeof task.title==="string"&&task.title.trim().length>=1&&task.title.length<=80&&
+            Object.hasOwn(categories,task.category)&&Object.hasOwn(priorities,task.priority)&&
+            (task.dueDate===""||(typeof task.dueDate==="string"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(task.dueDate)&&!Number.isNaN(Date.parse(task.dueDate))))&&
+            typeof task.completed==="boolean"&&Number.isSafeInteger(task.createdAt)&&task.createdAt>0;
+          if(!Array.isArray(current)||current.length>100||!current.every(validTask)||new Set(current.map(task=>task.id)).size!==current.length)
+            throw new Error("invalid task list");
+          if(current.some(task=>task.title.trim()===item.title&&task.dueDate===item.date)){
+            status.textContent="同じ名前・期限のやることは、すでに登録されています。";return;
+          }
+          if(current.length>=100){status.textContent="やることリストが上限の100件に達しています。";return;}
+          if(!confirm("「"+item.title+"」を期限 "+item.date+" のやることとして追加しますか？"))return;
+          const now=Date.now();
+          const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"task_"+now.toString(36)+"_"+Math.random().toString(36).slice(2,10);
+          const next=[...current,{id,title:item.title,category:"household",priority:"normal",dueDate:item.date,completed:false,createdAt:now}];
+          try{localStorage.setItem(taskKey,JSON.stringify(next));status.textContent="やることリストに追加しました。";}
+          catch(error){try{if(raw===null)localStorage.removeItem(taskKey);else localStorage.setItem(taskKey,raw);}catch(rollbackError){console.error("Calendar task import rollback failed",rollbackError);}throw error;}
+        }catch(error){console.error("Calendar task import failed",error);status.textContent="やることリストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
+      });
       const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
       edit.addEventListener("click",()=>{editingId=item.id;titleInput.value=item.title;dateInput.value=item.date;timeInput.value=item.time;placeInput.value=item.place;submitButton.textContent="変更を保存";cancelButton.hidden=false;titleInput.focus();});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+item.title+"」を削除しますか？")){if(editingId===item.id)resetEditor();save(entries.filter(entry=>entry.id!==item.id));}});
-      actions.append(edit,remove);li.append(row,meta,actions);listEl.append(li);
+      actions.append(edit,makeTask,remove);li.append(row,meta,actions);listEl.append(li);
     }
     clearButton.disabled=done===0;
     titleInput.disabled=entries.length>=LIMIT&&!editingId;
