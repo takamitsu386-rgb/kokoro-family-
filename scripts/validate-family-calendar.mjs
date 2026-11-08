@@ -35,3 +35,9 @@ assert.match(html, /上書きせず保護しました/);
 assert.match(html, /クラウド同期・家族間共有には未対応です/);
 assert.match(sw, /kokoro-family-v215/);
 console.log("Family calendar source checks passed.");
+
+assert.match(html, /id="familyCalendarSearch"/);
+assert.match(html, /id="familyCalendarResetFilters"/);
+assert.match(html, /item\.title\+" "\+item\.place/);
+assert.match(html, /searchInput\.addEventListener\("input",render\)/);
+assert.match(sw, /kokoro-family-v229/);
