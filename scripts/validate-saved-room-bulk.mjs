@@ -223,3 +223,17 @@ assert.match(rotate,/style\.rotate=next\+'deg'/,'Rotation must use the independe
 assert.match(rotate,/if\(!autoSaveRoom\(\)\)/,'Rotation must persist the room.');
 assert.match(rotate,/style\.rotate=previous/,'Rotation must roll back if saving fails.');
 console.log('Selected furniture rotation checks passed.');
+
+const paletteBlock=source.slice(source.indexOf('const roomColorPalettes=['),source.indexOf("const wallColors=['));
+assert.match(source,/id="roomColorPalettes"/,'Room color palette UI must exist.');
+assert.match(source,/id="roomColorPaletteStatus"/,'Room color palette status must exist.');
+assert.match(paletteBlock,/key:'sakura'/,'Sakura palette must exist.');
+assert.match(paletteBlock,/key:'forest'/,'Forest palette must exist.');
+assert.match(paletteBlock,/key:'ocean'/,'Ocean palette must exist.');
+assert.match(paletteBlock,/key:'cafe'/,'Cafe palette must exist.');
+assert.match(paletteBlock,/key:'lavender'/,'Lavender palette must exist.');
+assert.match(paletteBlock,/key:'simple'/,'Simple palette must exist.');
+assert.match(paletteBlock,/commitStyleChange\(\(\)=>/,'Palette application must use shared save and undo flow.');
+assert.match(paletteBlock,/backgroundImage='none'/,'Palette application must clear old wall and floor patterns.');
+assert.match(paletteBlock,/addEventListener\('click'/,'Palette buttons must apply their palette.');
+console.log('Room color palette checks passed.');
