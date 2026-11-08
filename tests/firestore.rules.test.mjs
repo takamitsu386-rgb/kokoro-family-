@@ -665,6 +665,10 @@ describe('comments and likes', () => {
   });
 
   it('allows comments and likes only for accepted friends on friends-only posts', async () => {
+    await seed('profiles/interaction-author', {
+      nickname: 'Friend Author', avatarId: 'avatar-01', visibility: 'friends',
+      createdAt: new Date(), updatedAt: new Date()
+    });
     await seed('friendRequests/interaction-author_interaction-viewer-friend', {
       fromUid: 'interaction-author', toUid: 'interaction-viewer-friend', status: 'accepted',
       createdAt: new Date(), updatedAt: new Date()
@@ -675,6 +679,7 @@ describe('comments and likes', () => {
     });
     const friend = testEnv.authenticatedContext('interaction-viewer-friend').firestore();
     await assertSucceeds(getDoc(doc(friend, 'posts/interaction-friends-only')));
+    await assertSucceeds(getDoc(doc(friend, 'profiles/interaction-author')));
     await assertSucceeds(setDoc(doc(friend, 'posts/interaction-friends-only/likes/interaction-viewer-friend'), {
       createdAt: serverTimestamp()
     }));
@@ -684,6 +689,7 @@ describe('comments and likes', () => {
     }));
     const stranger = testEnv.authenticatedContext('interaction-stranger').firestore();
     await assertFails(getDoc(doc(stranger, 'posts/interaction-friends-only')));
+    await assertFails(getDoc(doc(stranger, 'profiles/interaction-author')));
     await assertFails(setDoc(doc(stranger, 'posts/interaction-friends-only/likes/interaction-stranger'), {
       createdAt: serverTimestamp()
     }));
