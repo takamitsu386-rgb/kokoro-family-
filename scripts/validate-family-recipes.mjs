@@ -23,3 +23,10 @@ assert.match(html,/new Set\(current\.map\(x=>x\.id\)\)/);
 assert.match(html,/上限100件に達しています/);
 assert.match(html,/Recipe shopping import rollback failed/);
 assert.match(sw,/kokoro-family-v199/);
+
+assert.match(html,/id="familyRecipesMealStatus"/);
+assert.match(html,/addToMeal\.textContent="献立に追加"/);
+assert.match(html,/familyMealsForm/);
+assert.match(html,/レシピノートから追加/);
+assert.match(html,/actions\.append\(edit,addToMeal,addIngredients,remove\)/);
+assert.match(sw,/kokoro-family-v206/);
