@@ -899,11 +899,28 @@ describe('shared room snapshots', () => {
     await assertFails(updateDoc(doc(owner, 'sharedRooms/room-share-1'), { title: 'Changed' }));
   });
 
-  it('lets the recipient remove their copy and the owner revoke both copies', async () => {
+  it('lets recipients remove both copies and owners revoke their own shares', async () => {
+    await seed('sharedRooms/recipient-remove', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Remove me',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
+    await seed('users/room-owner/sharedRooms/recipient-remove', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Remove me',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
+    await seed('sharedRooms/owner-revoke', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Owner revoke',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
+    await seed('users/room-owner/sharedRooms/owner-revoke', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Owner revoke',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
     const recipient = testEnv.authenticatedContext('room-recipient').firestore();
     const owner = testEnv.authenticatedContext('room-owner').firestore();
-    await assertSucceeds(deleteDoc(doc(recipient, 'sharedRooms/room-share-1')));
-    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));
-    await assertSucceeds(deleteDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-1')));
+    await assertSucceeds(deleteDoc(doc(recipient, 'sharedRooms/recipient-remove')));
+    await assertSucceeds(deleteDoc(doc(recipient, 'users', 'room-owner', 'sharedRooms', 'recipient-remove')));
+    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/owner-revoke')));
+    await assertSucceeds(deleteDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'owner-revoke')));
   });
 });
