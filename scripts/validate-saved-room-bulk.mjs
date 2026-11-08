@@ -525,3 +525,11 @@ assert.match(source,/function resetSelectedFurnitureIconBackground\(\)/,'Furnitu
 assert.match(source,/\^#[0-9a-fA-F]\{6\}\$/,'Furniture background color must be restricted to hex colors.');
 assert.match(source,/item\.iconBackground===undefined\|\|\(typeof item\.iconBackground==='string'/,'Saved furniture background color must be validated.');
 assert.match(source,/restoredIcon&&v\.iconBackground/,'Furniture icon background color must be restored.');
+
+const roomSnapshotStart=source.indexOf('function roomData(){');
+const roomSnapshotEnd=source.indexOf('function applyRoom(data',roomSnapshotStart);
+const roomSnapshot=source.slice(roomSnapshotStart,roomSnapshotEnd);
+assert.match(roomSnapshot,/flipX:el\.dataset\.flipX==='true'/,'Room data must include horizontal flip state in each furniture snapshot.');
+assert.match(roomSnapshot,/flipY:el\.dataset\.flipY==='true'/,'Room data must include vertical flip state in each furniture snapshot.');
+assert.match(roomSnapshot,/iconBackground:el\.dataset\.iconBackground\|\|''/,'Room data must include each furniture icon background color in its actual snapshot.');
+assert.match(roomSnapshot,/opacity:el\.style\.opacity/,'Room data must include each furniture opacity value in its actual snapshot.');
