@@ -277,6 +277,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="resizeSelected(1.25)">大きく</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
 <button type="button" onclick="autoArrangeFurniture()">🧩 家具を自動で整列</button>
+<button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
@@ -733,8 +734,7 @@ const deleteButton=document.querySelector('button[onclick="removeSelected()"]');
 if(deleteButton)deleteButton.focus();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
 }
-function autoArrangeFurniture(){
-  const items=[...room.querySelectorAll('.furniture')];
+function arrangeFurnitureItems(items,successLabel){
   const status=document.getElementById('selectedMessage');
   if(!items.length){status.textContent='整列する家具がまだありません。';return;}
   const roomWidth=room.clientWidth,roomHeight=room.clientHeight;
@@ -759,7 +759,23 @@ function autoArrangeFurniture(){
     return;
   }
   selectedFurniture=null;
-  status.textContent=items.length+'個の家具を見やすく整列しました。「1つ戻す」で元の配置に戻せます。';
+  status.textContent=items.length+'個の家具を'+successLabel+'。「1つ戻す」で元の配置に戻せます。';
+}
+function autoArrangeFurniture(){
+  arrangeFurnitureItems([...room.querySelectorAll('.furniture')],'見やすく整列しました');
+}
+function autoArrangeFurnitureByCategory(){
+  const groups={
+    '家具':['🛏️','🛋️','🪑','🪞','🖥️','📚','🛁','🚪','🪟','💡','🧺','🖼️','🕯️','🪜','🧹','🧴','🧼','🛒','📺','⌚','🧦','👒','👜','🎒','🕰️','🪔','🗄️','🗃️','🛎️','🧯','🪭','🪮','🪥'],
+    '植物':['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷','🪺','🦋'],
+    '動物・ぬいぐるみ':['🧸','🐱','🐶','🐰'],
+    '食べ物・飲み物':['🍓','🧁','🍰','🍉','🍊','🥛','☕','🫖']
+  };
+  const rank=new Map();
+  Object.entries(groups).forEach(([name,icons],index)=>icons.forEach(icon=>rank.set(icon,index)));
+  const items=[...room.querySelectorAll('.furniture')];
+  items.sort((a,b)=>(rank.get(a.dataset.icon)??4)-(rank.get(b.dataset.icon)??4));
+  arrangeFurnitureItems(items,'種類ごとにまとめて整列しました');
 }
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
