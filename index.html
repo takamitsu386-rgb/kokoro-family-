@@ -298,6 +298,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="exportRoomFurnitureReport()">📊 家具の内訳をCSVで書き出す</button>
 <div id="roomFurnitureReport" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px;background:#fafaff"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
+<h3>家具の透明度</h3>
+<label for="furnitureOpacity">透明度（20〜100％）</label>
+<input id="furnitureOpacity" type="number" min="20" max="100" step="1" value="100" inputmode="numeric" style="width:100px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" onclick="setSelectedFurnitureOpacity()">透明度を設定</button>
+<button type="button" onclick="resetSelectedFurnitureOpacity()">不透明に戻す</button>
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
 <label for="furnitureExactSize">家具サイズを指定（20〜80px）</label>
@@ -889,7 +894,7 @@ function setAllFurnitureLocked(locked){
  const status=document.getElementById('selectedMessage');
  const items=[...room.querySelectorAll('.furniture')];
  if(!items.length){status.textContent='お部屋に家具がありません。';return;}
- const previous=items.map(el=>({el,locked:el.dataset.locked==='true'}));
+ const previous=items.map(el=>({el,locked:el.dataset.locked==='true',opacity:el.style.opacity}));
  const changed=previous.filter(item=>item.locked!==locked);
  if(!changed.length){status.textContent=locked?'すべての家具はすでに固定されています。':'固定中の家具はありません。';return;}
  const updateHandle=(el,isLocked)=>{
@@ -1528,6 +1533,45 @@ return;
 }
 document.getElementById('selectedMessage').textContent='選択した家具の向きを0°に戻しました。「1つ戻す」で元に戻せます。';
 }
+function setSelectedFurnitureOpacity(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に透明度を変えたい家具をタップしてね。';return;
+ }
+ const input=document.getElementById('furnitureOpacity');
+ const raw=input?input.value:'';
+ const percent=Number(raw);
+ if(raw.trim()===''||!Number.isInteger(percent)||percent<20||percent>100){
+  status.textContent='透明度は20〜100％の整数で指定してください。';return;
+ }
+ const previous=selectedFurniture.style.opacity;
+ const next=String(percent/100);
+ if((previous===''&&percent===100)||previous===next){
+  status.textContent='この家具はすでに指定した透明度です。';return;
+ }
+ selectedFurniture.style.opacity=next;
+ if(!autoSaveRoom()){
+  selectedFurniture.style.opacity=previous;
+  status.textContent='保存できなかったため、透明度を元に戻しました。';return;
+ }
+ status.textContent='選択した家具の透明度を'+percent+'％に設定しました。「1つ戻す」で元に戻せます。';
+}
+function resetSelectedFurnitureOpacity(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に透明度を戻したい家具をタップしてね。';return;
+ }
+ const previous=selectedFurniture.style.opacity;
+ if(!previous||previous==='1'){
+  status.textContent='この家具はすでに不透明です。';return;
+ }
+ selectedFurniture.style.opacity='';
+ if(!autoSaveRoom()){
+  selectedFurniture.style.opacity=previous;
+  status.textContent='保存できなかったため、透明度を元に戻しました。';return;
+ }
+ status.textContent='家具を不透明に戻しました。「1つ戻す」で元に戻せます。';
+}
 function setSelectedFurnitureSize(){
  const status=document.getElementById('selectedMessage');
  if(!selectedFurniture||!room.contains(selectedFurniture)){
@@ -1731,7 +1775,8 @@ typeof item.icon==="string"&&furnitureList.includes(item.icon)&&
 validPosition(item.left)&&validPosition(item.top)&&
 (item.size===undefined||validSize(item.size))&&
 (item.zIndex===undefined||validLayer(item.zIndex))&&
- (item.locked===undefined||typeof item.locked==='boolean'));
+ (item.locked===undefined||typeof item.locked==='boolean')&&
+ (item.opacity===undefined||(typeof item.opacity==='string'&&/^(?:0\.[2-9]\d*|1(?:\.0+)?)$/.test(item.opacity)&&Number(item.opacity)>=0.2&&Number(item.opacity)<=1)));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
@@ -1773,6 +1818,7 @@ if(!el)throw new Error('Furniture could not be restored');
 el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
+if(v.opacity)el.style.opacity=v.opacity;
 if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
 const maxTop=Math.max(0,room.clientHeight-el.offsetHeight);
