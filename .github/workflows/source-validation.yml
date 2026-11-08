@@ -176,6 +176,8 @@ jobs:
         run: node scripts/validate-sync-safety.mjs
       - name: Validate ready-made room templates
         run: node scripts/validate-room-templates.mjs
+      - name: Validate public SNS timeline privacy and access
+        run: node scripts/validate-public-timeline.mjs
       - name: Test Firestore rules in an isolated emulator
         run: npm run test:firestore
       - name: Validate JSON configuration
