@@ -164,6 +164,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
 <p id="familyRecipesShoppingStatus" role="status" aria-live="polite"></p>
+<p id="familyRecipesMealStatus" role="status" aria-live="polite"></p>
 <ul id="familyRecipesList" style="list-style:none;padding:0;display:grid;gap:10px"></ul>
 </section>
 <section class="panel" id="family-shopping">
@@ -6432,6 +6433,22 @@ snsRefreshPosts.addEventListener("click", async () => {
       const ingredients=document.createElement("p");ingredients.style.whiteSpace="pre-wrap";ingredients.textContent="材料：\\n"+recipe.ingredients;
       const steps=document.createElement("p");steps.style.whiteSpace="pre-wrap";steps.textContent="作り方・コツ：\\n"+recipe.steps;
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const addToMeal=document.createElement("button");addToMeal.type="button";addToMeal.textContent="献立に追加";
+      addToMeal.addEventListener("click",()=>{
+        const mealForm=document.getElementById("familyMealsForm");
+        const status=document.getElementById("familyRecipesMealStatus");
+        const date=document.getElementById("familyMealsDate"),type=document.getElementById("familyMealsType");
+        const name=document.getElementById("familyMealsName"),note=document.getElementById("familyMealsNote");
+        if(!mealForm||!date||!type||!name||!note){status.textContent="献立フォームを利用できません。";return;}
+        if(name.value.trim()||note.value.trim()){
+          if(!confirm("入力中の献立内容をレシピ名で置き換えますか？"))return;
+        }
+        const now=new Date();
+        date.value=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+        type.value="dinner";name.value=recipe.title;note.value="レシピノートから追加";
+        status.textContent="献立フォームに「"+recipe.title+"」を入力しました。日付・食事を確認して保存してください。";
+        mealForm.scrollIntoView({behavior:"smooth",block:"start"});name.focus();
+      });
       const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
       edit.addEventListener("click",()=>{
         editingId=recipe.id;titleInput.value=recipe.title;categoryInput.value=recipe.category;
@@ -6460,7 +6477,7 @@ snsRefreshPosts.addEventListener("click", async () => {
           catch(error){try{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);}catch(rollbackError){console.error("Recipe shopping import rollback failed",rollbackError);}throw error;}
         }catch(error){console.error("Recipe shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
       });
-      actions.append(edit,addIngredients,remove);li.append(title,ingredients,steps,actions);listEl.append(li);
+      actions.append(edit,addToMeal,addIngredients,remove);li.append(title,ingredients,steps,actions);listEl.append(li);
     }
     const full=recipes.length>=LIMIT&&!editingId;
     titleInput.disabled=full;categoryInput.disabled=full;ingredientsInput.disabled=full;stepsInput.disabled=full;submitButton.disabled=full;
