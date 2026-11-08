@@ -17,4 +17,8 @@ assert.match(fn,/previous=items\.map/,'Original positions must be retained for r
 assert.match(fn,/autoSaveRoom\(\)/,'Arrangement must use room history persistence.');
 assert.match(fn,/previous\.forEach/,'Failed saves must restore original positions.');
 assert.match(fn,/1つ戻す/,'User must be told that arrangement can be undone.');
-console.log('Automatic furniture arrangement checks passed.');
+assert.match(html,/onclick="autoArrangeFurnitureByCategory\\(\\)"/,'Category arrangement control must be visible.');
+assert.match(html,/function autoArrangeFurnitureByCategory\\(\\)/,'Category arrangement handler must exist.');
+assert.match(html,/種類ごとにまとめて整列しました/,'Category arrangement must explain its result.');
+assert.match(html,/arrangeFurnitureItems\\(items,/,'Category arrangement must use the shared safe layout routine.');
+console.log('Automatic and category-based furniture arrangement checks passed.');
