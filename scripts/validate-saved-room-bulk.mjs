@@ -533,3 +533,11 @@ assert.match(roomSnapshot,/flipX:el\.dataset\.flipX==='true'/,'Room data must in
 assert.match(roomSnapshot,/flipY:el\.dataset\.flipY==='true'/,'Room data must include vertical flip state in each furniture snapshot.');
 assert.match(roomSnapshot,/iconBackground:el\.dataset\.iconBackground\|\|''/,'Room data must include each furniture icon background color in its actual snapshot.');
 assert.match(roomSnapshot,/opacity:el\.style\.opacity/,'Room data must include each furniture opacity value in its actual snapshot.');
+
+assert.match(source,/id="furnitureLabel" type="text" maxlength="20"/,'Furniture label input must be limited to 20 characters.');
+assert.match(source,/function setSelectedFurnitureLabel\(\)/,'Furniture label setter must be present.');
+assert.match(source,/function resetSelectedFurnitureLabel\(\)/,'Furniture label reset must be present.');
+assert.match(source,/badge\.textContent=label/,'Furniture labels must be rendered as text, not HTML.');
+assert.match(source,/label:el\.dataset\.label\|\|''/,'Furniture labels must be saved in room snapshots.');
+assert.match(source,/item\.label===undefined\|\|\(typeof item\.label==='string'/,'Saved furniture labels must be validated.');
+assert.match(source,/labelNode\.textContent=v\.label/,'Furniture labels must be restored safely as text.');
