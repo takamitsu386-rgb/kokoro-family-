@@ -180,6 +180,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyShoppingSubmit">買い物リストに追加</button><button type="button" id="familyShoppingCancel" hidden>編集をやめる</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" id="familyShoppingExport">CSVを書き出す</button></div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="familyShoppingImportFile">CSVから追加</label><input id="familyShoppingImportFile" type="file" accept=".csv,text/csv"></div>
 <p id="familyShoppingExportStatus" role="status" aria-live="polite"></p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyShoppingFilter">表示</label><select id="familyShoppingFilter"><option value="all">すべて</option><option value="needed">買うもの</option><option value="bought">購入済み</option></select>
@@ -6003,6 +6004,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const cancelButton = document.getElementById("familyShoppingCancel");
   const exportButton = document.getElementById("familyShoppingExport");
   const exportStatus = document.getElementById("familyShoppingExportStatus");
+  const importFile = document.getElementById("familyShoppingImportFile");
   const categories = {food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
   let entries = [], ready = false, editingId = null;
   function resetEditor(){editingId=null;form.reset();submitButton.textContent="買い物リストに追加";cancelButton.hidden=true;render();}
@@ -6112,6 +6114,68 @@ snsRefreshPosts.addEventListener("click", async () => {
       link.hidden=true;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
       exportStatus.textContent=entries.length+"件の買い物リストをCSVに書き出しました。";
     }catch(error){console.error("Shopping CSV export failed",error);exportStatus.textContent="CSVを書き出せませんでした。";}
+  });
+  importFile.addEventListener("change",async()=>{
+    const file=importFile.files&&importFile.files[0];
+    if(!file)return;
+    try{
+      if(file.size>1024*1024)throw new Error("CSV file too large");
+      const source=(await file.text()).replace(/^\\uFEFF/,"");
+      const parseCSV=text=>{
+        const rows=[];let row=[],field="",quoted=false;
+        for(let i=0;i<text.length;i++){
+          const ch=text[i];
+          if(quoted){
+            if(ch==='"'&&text[i+1]==='"'){field+='"';i++;}
+            else if(ch==='"')quoted=false;
+            else field+=ch;
+          }else if(ch==='"'){
+            if(field.length)throw new Error("invalid quote");
+            quoted=true;
+          }else if(ch===","){row.push(field);field="";}
+          else if(ch==="\\n"||ch==="\\r"){
+            if(ch==="\\r"&&text[i+1]==="\\n")i++;
+            row.push(field);field="";
+            if(row.some(value=>value!==""))rows.push(row);
+            row=[];
+          }else field+=ch;
+        }
+        if(quoted)throw new Error("unclosed quote");
+        row.push(field);if(row.some(value=>value!==""))rows.push(row);
+        return rows;
+      };
+      const rows=parseCSV(source);
+      const header=["品物","数量・メモ","分類","購入状況","登録日時"];
+      if(!rows.length||rows[0].length!==header.length||!header.every((value,index)=>rows[0][index]===value))
+        throw new Error("unexpected CSV header");
+      if(rows.length>101)throw new Error("too many rows");
+      const categoryByLabel={"食べもの":"food","日用品":"daily","文房具":"stationery","その他":"other"};
+      const imported=rows.slice(1).map(row=>{
+        if(row.length!==5)throw new Error("invalid CSV columns");
+        const [name,quantity,category,bought]=row;
+        if(typeof name!=="string"||!name.trim()||name.trim().length>60||quantity.length>20||
+          !Object.hasOwn(categoryByLabel,category)||!["購入済み","未購入"].includes(bought))
+          throw new Error("invalid CSV value");
+        return {name:name.trim(),quantity:quantity.trim(),category:categoryByLabel[category],bought:bought==="購入済み"};
+      });
+      if(!imported.length){exportStatus.textContent="CSVに取り込める品物がありません。";return;}
+      const existing=new Set(entries.map(item=>item.name.trim().toLocaleLowerCase()));
+      const unique=[];
+      for(const item of imported){
+        const key=item.name.toLocaleLowerCase();
+        if(!existing.has(key)){existing.add(key);unique.push(item);}
+      }
+      const added=unique.slice(0,LIMIT-entries.length);
+      const skipped=imported.length-added.length;
+      if(!added.length){exportStatus.textContent=entries.length>=LIMIT?"買い物リストが上限の100件です。":"CSVの品物はすべて登録済みです。";return;}
+      if(!confirm("CSVから"+added.length+"件を追加しますか？"+(skipped?"\\n重複または上限のため"+skipped+"件は追加しません。":"")+"\\n購入状況は引き継ぎ、登録日時は取り込み時刻になります。"))return;
+      const now=Date.now();
+      const next=[...entries,...added.map((item,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shopcsv_"+now.toString(36)+"_"+index+"_"+Math.random().toString(36).slice(2,7),...item,createdAt:now+index}))];
+      if(save(next))exportStatus.textContent=added.length+"件をCSVから追加しました。"+(skipped?"（"+skipped+"件は重複または上限のため除外）":"");
+    }catch(error){
+      console.error("Shopping CSV import failed",error);
+      exportStatus.textContent="CSVを読み込めませんでした。形式・内容を確認してください。リストは変更していません。";
+    }finally{importFile.value="";}
   });
   cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
