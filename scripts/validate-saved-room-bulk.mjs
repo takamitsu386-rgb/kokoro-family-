@@ -543,3 +543,13 @@ assert.match(source,/item\.label===undefined\|\|\(typeof item\.label==='string'/
 assert.match(source,/labelNode\.textContent=v\.label/,'Furniture labels must be restored safely as text.');
 
 assert.match(source,/label\\.length<=20&&!\/\[\\u0000-\\u001f\\u007f\]\/\.test\(label\)/,'Furniture labels must reject control characters.');
+
+assert.match(source,/function setSelectedFurnitureShadow\(level\)/,'Furniture shadow presets must be configurable.');
+assert.match(source,/function resetSelectedFurnitureShadow\(\)/,'Furniture shadow reset must be available.');
+assert.match(source,/setSelectedFurnitureShadow\('soft'\)/,'Soft shadow control must be present.');
+assert.match(source,/setSelectedFurnitureShadow\('strong'\)/,'Strong shadow control must be present.');
+assert.match(source,/setSelectedFurnitureShadow\('glow'\)/,'Glow shadow control must be present.');
+assert.match(source,/shadow:el\.dataset\.shadow\|\|''/,'Furniture shadow preset must be saved in snapshots.');
+assert.match(source,/item\.shadow===undefined\|\|\['soft','strong','glow'\]\.includes\(item\.shadow\)/,'Only supported shadow presets may be restored.');
+assert.match(source,/restoredIcon&&v\.shadow/,'Furniture shadow must be restored when a room is loaded.');
+assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}家具の影を元に戻しました/,'Failed shadow saves must roll back the visual change.');
