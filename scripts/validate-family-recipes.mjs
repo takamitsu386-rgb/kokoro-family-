@@ -45,3 +45,10 @@ assert.match(html, /favorites\.has\(x\.id\)/);
 assert.match(html, /aria-pressed/);
 assert.match(html, /Recipe favorite save failed/);
 assert.match(sw, /kokoro-family-v227/);
+
+assert.match(html, /id="familyRecipesSort"/);
+assert.match(html, /option value="title">料理名順/);
+assert.match(html, /option value="category">分類順/);
+assert.match(html, /sortInput.addEventListener\("change",render\)/);
+assert.match(html, /a\.title\.localeCompare\(b\.title,"ja"\)/);
+assert.match(sw, /kokoro-family-v232/);
