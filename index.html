@@ -303,6 +303,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="furnitureExactSize">家具サイズを指定（20〜80px）</label>
 <input id="furnitureExactSize" type="number" min="20" max="80" step="1" value="38" inputmode="numeric" style="width:100px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
 <button type="button" onclick="setSelectedFurnitureSize()">指定サイズにする</button>
+<button type="button" onclick="toggleSelectedFurnitureLock()">🔒 選択した家具を固定／解除</button>
 <button type="button" onclick="rotateSelected(-90)">↶ 左に90°回転</button>
 <button type="button" onclick="rotateSelected(90)">↷ 右に90°回転</button>
 <button type="button" onclick="rotateSelected(-15)">↶ 左に15°微調整</button>
@@ -872,7 +873,7 @@ if(event.target===room||event.target.id==='floor')clearSelectedFurniture();
 });
 function selectFurniture(el){
 selectedFurniture=el;
-document.getElementById('selectedMessage').textContent='選択中：'+el.dataset.icon;
+document.getElementById('selectedMessage').textContent='選択中：'+el.dataset.icon+(el.dataset.locked==='true'?'（固定中）':'');
 room.querySelectorAll('.furniture').forEach(x=>{
 x.style.outline='none';
 const button=x.querySelector('.item-icon');
@@ -881,6 +882,34 @@ if(button)button.setAttribute('aria-pressed','false');
 const activeButton=el.querySelector('.item-icon');
 if(activeButton)activeButton.setAttribute('aria-pressed','true');
 el.style.outline='2px dashed #6759d8';
+}
+function toggleSelectedFurnitureLock(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に固定・解除したい家具をタップしてね。';return;
+ }
+ const previous=selectedFurniture.dataset.locked==='true';
+ if(previous)delete selectedFurniture.dataset.locked;
+ else selectedFurniture.dataset.locked='true';
+ const handle=selectedFurniture.querySelector('.drag-handle');
+ if(handle){
+  const locked=!previous;
+  handle.setAttribute('aria-disabled',String(locked));
+  handle.setAttribute('aria-label',selectedFurniture.dataset.icon+(locked?' 固定中。移動できません':' を移動。矢印キーでも操作できます'));
+  handle.title=locked?'固定中':'ドラッグまたは矢印キーで移動';
+ }
+ if(!autoSaveRoom()){
+  if(previous)selectedFurniture.dataset.locked='true';
+  else delete selectedFurniture.dataset.locked;
+  if(handle){
+   const locked=previous;
+   handle.setAttribute('aria-disabled',String(locked));
+   handle.setAttribute('aria-label',selectedFurniture.dataset.icon+(locked?' 固定中。移動できません':' を移動。矢印キーでも操作できます'));
+   handle.title=locked?'固定中':'ドラッグまたは矢印キーで移動';
+  }
+  status.textContent='保存できなかったため、家具の固定状態を元に戻しました。';return;
+ }
+ status.textContent=previous?'家具の固定を解除しました。':'家具を固定しました。誤操作で動かなくなります。「1つ戻す」で元に戻せます。';
 }
 function layerSelected(direction){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
@@ -1535,6 +1564,7 @@ e.preventDefault();
 selectFurniture(el);
 return;
 }
+if(el.dataset.locked==='true'){document.getElementById('selectedMessage').textContent='この家具は固定中です。固定を解除してから移動してください。';return;}
 const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
 const move=moves[e.key];
 if(!move)return;
@@ -1583,6 +1613,7 @@ document.getElementById('selectedMessage').textContent='家具を移動しまし
 };
 handle.addEventListener('pointerdown',e=>{
 if(moving)return;
+if(el.dataset.locked==='true'){e.preventDefault();e.stopPropagation();selectFurniture(el);document.getElementById('selectedMessage').textContent='この家具は固定中です。固定を解除してから移動してください。';return;}
 e.preventDefault();
 e.stopPropagation();
 const itemRect=el.getBoundingClientRect();
@@ -1668,7 +1699,8 @@ value.items.every(item=>item&&typeof item==="object"&&!Array.isArray(item)&&
 typeof item.icon==="string"&&furnitureList.includes(item.icon)&&
 validPosition(item.left)&&validPosition(item.top)&&
 (item.size===undefined||validSize(item.size))&&
-(item.zIndex===undefined||validLayer(item.zIndex)));
+(item.zIndex===undefined||validLayer(item.zIndex))&&
+ (item.locked===undefined||typeof item.locked==='boolean'));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
@@ -1685,7 +1717,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true'
 }))
 };
 }
@@ -1710,6 +1742,7 @@ if(!el)throw new Error('Furniture could not be restored');
 el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
+if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
 const maxTop=Math.max(0,room.clientHeight-el.offsetHeight);
 el.style.left=Math.max(0,Math.min(maxLeft,el.offsetLeft))+'px';
