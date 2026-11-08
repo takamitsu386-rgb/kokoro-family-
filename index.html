@@ -260,6 +260,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>壁と床の色を組み合わせて、一度に変更できます。</p>
 <div class="items" id="roomColorPalettes" aria-label="お部屋の配色セット"></div>
 <button type="button" onclick="applyRandomRoomColorPalette()">🎲 おまかせ配色</button>
+<button type="button" onclick="swapRoomWallAndFloorColors()">🔄 壁と床の色を入れ替え</button>
+<p id="roomColorSwapStatus" role="status" aria-live="polite"></p>
 <p id="roomColorPaletteStatus" role="status" aria-live="polite"></p>
 <h2>🧱 壁の色</h2>
 <div class="items" id="walls"></div>
@@ -720,6 +722,28 @@ if(commitStyleChange(()=>{
 if(target==='wall'){room.style.backgroundColor=color;}
 if(target==='floor'){document.getElementById('floor').style.backgroundColor=color;}
 }))document.getElementById('message').textContent='🎨 好きな色に変更したよ！';
+}
+function swapRoomWallAndFloorColors(){
+const status=document.getElementById('roomColorSwapStatus');
+const wall=room.style.backgroundColor||getComputedStyle(room).backgroundColor;
+const floor=document.getElementById('floor');
+const floorColor=floor.style.backgroundColor||getComputedStyle(floor).backgroundColor;
+if(!wall||!floorColor||wall===floorColor){status.textContent='壁と床の色が同じか、色を取得できません。';return;}
+if(!commitStyleChange(()=>{
+room.style.backgroundColor=floorColor;
+floor.style.backgroundColor=wall;
+})){
+status.textContent='保存できなかったため、色を入れ替えませんでした。';return;
+}
+const wallPicker=document.querySelector('input[aria-label="壁の色を自由に選ぶ"]');
+const floorPicker=document.querySelector('input[aria-label="床の色を自由に選ぶ"]');
+const toHex=value=>{
+const match=value.match(/^rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/i);
+return match?'#'+match.slice(1,4).map(n=>Number(n).toString(16).padStart(2,'0')).join(''):null;
+};
+if(wallPicker){const hex=toHex(floorColor);if(hex)wallPicker.value=hex;}
+if(floorPicker){const hex=toHex(wall);if(hex)floorPicker.value=hex;}
+status.textContent='壁と床の色を入れ替えました。模様や家具はそのままです。';
 }
 function applyTheme(theme){
 const themes={
