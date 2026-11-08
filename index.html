@@ -309,6 +309,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="autoArrangeFurniture()">🧩 家具を自動で整列</button>
 <button type="button" onclick="autoArrangeFurniture(0.78)">↔️ コンパクトに整列</button>
 <button type="button" onclick="autoArrangeFurniture(1.22)">↔️ ゆったり整列</button>
+<button type="button" onclick="distributeFurnitureEvenly('horizontal')">↔️ 横方向に均等配置</button>
+<button type="button" onclick="distributeFurnitureEvenly('vertical')">↕️ 縦方向に均等配置</button>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
@@ -1008,6 +1010,35 @@ function arrangeFurnitureItems(items,successLabel,spacingScale=1){
   selectedFurniture=null;
   status.textContent=items.length+'個の家具を'+successLabel+'。「1つ戻す」で元の配置に戻せます。';
 }
+
+function distributeFurnitureEvenly(axis){
+  const status=document.getElementById('selectedMessage');
+  if(!['horizontal','vertical'].includes(axis)){status.textContent='配置方向を確認できません。';return;}
+  const items=[...room.querySelectorAll('.furniture')];
+  if(items.length<3){status.textContent='均等配置には家具が3個以上必要です。';return;}
+  const roomSize=axis==='horizontal'?room.clientWidth:room.clientHeight;
+  if(roomSize<1){status.textContent='お部屋の大きさを確認できません。';return;}
+  const position=axis==='horizontal'?'left':'top';
+  const dimension=axis==='horizontal'?'offsetWidth':'offsetHeight';
+  const previous=items.map(item=>({item,value:item.style[position]}));
+  const ordered=items.slice().sort((a,b)=>(Number.parseFloat(a.style[position])||0)-(Number.parseFloat(b.style[position])||0));
+  const first=ordered[0],last=ordered[ordered.length-1];
+  const firstCenter=(Number.parseFloat(first.style[position])||0)+first[dimension]/2;
+  const lastCenter=(Number.parseFloat(last.style[position])||0)+last[dimension]/2;
+  if(lastCenter-firstCenter<1){status.textContent='家具の位置が近すぎるため均等配置できません。';return;}
+  ordered.forEach((item,index)=>{
+    const center=firstCenter+(lastCenter-firstCenter)*index/(ordered.length-1);
+    const maxPosition=Math.max(0,roomSize-item[dimension]);
+    item.style[position]=Math.max(0,Math.min(maxPosition,center-item[dimension]/2))+'px';
+  });
+  if(!autoSaveRoom()){
+    previous.forEach(({item,value})=>{item.style[position]=value;});
+    status.textContent='保存できなかったため、家具を元の位置に戻しました。';
+    return;
+  }
+  status.textContent=ordered.length+'個の家具を'+(axis==='horizontal'?'横':'縦')+'方向に均等配置しました。「1つ戻す」で元に戻せます。';
+}
+
 function autoArrangeFurniture(spacingScale=1){
   if(![0.78,1,1.22].includes(spacingScale)){document.getElementById('selectedMessage').textContent='配置間隔を確認できません。';return;}
   const label=spacingScale<1?'コンパクトに整列しました':spacingScale>1?'ゆったり整列しました':'見やすく整列しました';
