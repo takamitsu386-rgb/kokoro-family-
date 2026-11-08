@@ -761,7 +761,7 @@ if(!Array.isArray(list)||list.length>8||!list.every(item=>item&&typeof item.name
 return list;
 }catch(error){
 console.warn('Custom room palettes could not be read',error);
-return [];
+return null;
 }
 }
 function roomColorToHex(value){
@@ -774,7 +774,9 @@ function renderCustomRoomPalettes(){
 const root=document.getElementById('customRoomPalettes');
 if(!root)return;
 root.replaceChildren();
-readCustomRoomPalettes().forEach((palette,index)=>{
+const palettes=readCustomRoomPalettes();
+if(!Array.isArray(palettes))return;
+palettes.forEach((palette,index)=>{
 const group=document.createElement('div');
 group.style.display='flex';group.style.gap='6px';group.style.flexWrap='wrap';group.style.alignItems='center';
 const apply=document.createElement('button');
@@ -793,8 +795,8 @@ const status=document.getElementById('customRoomPaletteStatus');
 const input=document.getElementById('customRoomPaletteName');
 const name=input?input.value.trim():'';
 if(!name||name.length>16){status.textContent='配色の名前を1〜16文字で入力してください。';return;}
-let list;
-try{list=readCustomRoomPalettes();}catch(error){status.textContent='保存済み配色を読み込めません。';return;}
+const list=readCustomRoomPalettes();
+if(!Array.isArray(list)){status.textContent='保存済み配色に問題があるため、上書きせず保護しました。';return;}
 if(list.length>=8){status.textContent='お気に入り配色は8件まで保存できます。不要な配色を削除してください。';return;}
 const wall=roomColorToHex(getComputedStyle(room).backgroundColor);
 const floor=roomColorToHex(getComputedStyle(document.getElementById('floor')).backgroundColor);
@@ -806,7 +808,9 @@ catch(error){status.textContent='保存できませんでした。端末の空�
 input.value='';renderCustomRoomPalettes();status.textContent='「'+name+'」をお気に入り配色に保存しました。';
 }
 function loadCustomRoomPalette(index){
-const list=readCustomRoomPalettes(),palette=list[index],status=document.getElementById('customRoomPaletteStatus');
+const list=readCustomRoomPalettes(),status=document.getElementById('customRoomPaletteStatus');
+if(!Array.isArray(list)){status.textContent='保存済み配色を読み込めません。';return;}
+const palette=list[index];
 if(!palette){status.textContent='選んだ配色が見つかりません。';return;}
 if(!commitStyleChange(()=>{
 room.style.backgroundColor=palette.wall;document.getElementById('floor').style.backgroundColor=palette.floor;
@@ -815,6 +819,7 @@ status.textContent='「'+palette.name+'」を適用しました。壁紙と床�
 }
 function deleteCustomRoomPalette(index){
 const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
+if(!Array.isArray(list)){status.textContent='保存済み配色を読み込めません。';return;}
 if(!Number.isInteger(index)||index<0||index>=list.length){status.textContent='削除する配色が見つかりません。';return;}
 const removed=list.splice(index,1);
 try{localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(list));}
