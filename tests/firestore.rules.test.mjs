@@ -615,10 +615,92 @@ describe('blocks', () => {
 
 });
 
+describe('comments and likes', () => {
+  before(async () => {
+    await seed('profiles/interaction-author', {
+      nickname: 'Author', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/interaction-post', {
+      authorUid: 'interaction-author', text: 'Public post', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+  });
+
+  it('allows a signed-in user to like and unlike a public post only once under their UID', async () => {
+    const db = testEnv.authenticatedContext('interaction-viewer').firestore();
+    const like = doc(db, 'posts/interaction-post/likes/interaction-viewer');
+    await assertSucceeds(setDoc(like, { createdAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(like));
+    await assertSucceeds(deleteDoc(like));
+    await assertFails(setDoc(doc(db, 'posts/interaction-post/likes/someone-else'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(like, { createdAt: serverTimestamp(), note: 'extra' }));
+  });
+
+  it('allows valid comments and lets only the commenter or post author delete them', async () => {
+    const alice = testEnv.authenticatedContext('commenter').firestore();
+    const comment = doc(alice, 'posts/interaction-post/comments/comment-1');
+    await assertSucceeds(setDoc(comment, {
+      authorUid: 'commenter', text: 'すてきですね', status: 'active',
+      createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(alice, 'posts/interaction-post/comments/comment-spoof'), {
+      authorUid: 'other-user', text: 'なりすまし', status: 'active',
+      createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(alice, 'posts/interaction-post/comments/comment-long'), {
+      authorUid: 'commenter', text: 'x'.repeat(301), status: 'active',
+      createdAt: serverTimestamp()
+    }));
+    const other = testEnv.authenticatedContext('comment-reader').firestore();
+    await assertFails(deleteDoc(doc(other, 'posts/interaction-post/comments/comment-1')));
+    await assertSucceeds(deleteDoc(comment));
+    await assertSucceeds(setDoc(doc(alice, 'posts/interaction-post/comments/comment-by-other'), {
+      authorUid: 'commenter', text: '残す', status: 'active', createdAt: serverTimestamp()
+    }));
+    const postAuthor = testEnv.authenticatedContext('interaction-author').firestore();
+    await assertSucceeds(deleteDoc(doc(postAuthor, 'posts/interaction-post/comments/comment-by-other')));
+  });
+
+  it('denies comments and likes for private, deleted, hidden-profile, or blocked posts', async () => {
+    await seed('posts/interaction-private', {
+      authorUid: 'interaction-author', text: 'Private', visibility: 'private',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/interaction-deleted', {
+      authorUid: 'interaction-author', text: 'Deleted', visibility: 'public',
+      status: 'deleted', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('profiles/interaction-private-author', {
+      nickname: 'Private', avatarId: 'avatar-01', visibility: 'private',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/interaction-hidden-profile', {
+      authorUid: 'interaction-private-author', text: 'Hidden', visibility: 'public',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/interaction-author/blocks/interaction-viewer-2', { createdAt: new Date() });
+    const db = testEnv.authenticatedContext('interaction-viewer-2').firestore();
+    for (const postId of ['interaction-private', 'interaction-deleted', 'interaction-hidden-profile', 'interaction-post']) {
+      if (postId === 'interaction-post') continue;
+      await assertFails(setDoc(doc(db, 'posts', postId, 'likes', 'interaction-viewer-2'), {
+        createdAt: serverTimestamp()
+      }));
+      await assertFails(setDoc(doc(db, 'posts', postId, 'comments', 'comment'), {
+        authorUid: 'interaction-viewer-2', text: 'comment', status: 'active',
+        createdAt: serverTimestamp()
+      }));
+    }
+    await assertFails(setDoc(doc(db, 'posts/interaction-post/likes/interaction-viewer-2'), {
+      createdAt: serverTimestamp()
+    }));
+  });
+});
+
 describe('SNS features not yet implemented remain denied', () => {
   const deniedPaths = [
-    'posts/post-1/comments/comment-1',
-    'posts/post-1/likes/alice',
     'users/alice/following/bob',
     'friendRequests/request-1',
     'reports/report-1',
