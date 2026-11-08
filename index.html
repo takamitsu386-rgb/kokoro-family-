@@ -278,6 +278,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
 <button type="button" onclick="autoArrangeFurniture()">🧩 家具を自動で整列</button>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
+<button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
@@ -776,6 +777,46 @@ function autoArrangeFurnitureByCategory(){
   const items=[...room.querySelectorAll('.furniture')];
   items.sort((a,b)=>(rank.get(a.dataset.icon)??4)-(rank.get(b.dataset.icon)??4));
   arrangeFurnitureItems(items,'種類ごとにまとめて整列しました');
+}
+function arrangeFurnitureByUse(){
+  const items=[...room.querySelectorAll('.furniture')];
+  if(!items.length){
+    document.getElementById('selectedMessage').textContent='配置する家具がまだありません。';
+    return;
+  }
+  const groups=[
+    {name:'会話スペース',icons:['🛋️','🪑','🪑','🛏️','🪟','🖼️','☕','🫖','🍰','🧁'],x:0},
+    {name:'学習スペース',icons:['🖥️','📚','💡','🕰️','✏️','📖','🗄️','🗃️'],x:1},
+    {name:'くつろぎスペース',icons:['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷','🧸','🐱','🐶','🐰','🦋'],x:2}
+  ];
+  const groupFor=item=>groups.findIndex(group=>group.icons.includes(item.dataset.icon));
+  const buckets=[[],[],[],[]];
+  items.forEach(item=>buckets[groupFor(item)<0?3:groupFor(item)].push(item));
+  const width=room.clientWidth,height=room.clientHeight;
+  if(width<1||height<1)return;
+  const previous=items.map(item=>({item,left:item.style.left,top:item.style.top}));
+  const columns=4,zoneWidth=width/columns;
+  buckets.forEach((bucket,zone)=>{
+    if(!bucket.length)return;
+    const rows=Math.ceil(bucket.length/Math.max(1,Math.floor(zoneWidth/90)));
+    const cols=Math.max(1,Math.ceil(bucket.length/rows));
+    const cellW=zoneWidth/cols,cellH=height/rows;
+    bucket.forEach((item,index)=>{
+      const col=index%cols,row=Math.floor(index/cols);
+      const maxLeft=Math.max(0,width-item.offsetWidth),maxTop=Math.max(0,height-item.offsetHeight);
+      const left=zone*zoneWidth+(col+.5)*cellW-item.offsetWidth/2;
+      const top=(row+.5)*cellH-item.offsetHeight/2;
+      item.style.left=Math.max(0,Math.min(maxLeft,left))+'px';
+      item.style.top=Math.max(0,Math.min(maxTop,top))+'px';
+    });
+  });
+  if(!autoSaveRoom()){
+    previous.forEach(({item,left,top})=>{item.style.left=left;item.style.top=top;});
+    document.getElementById('selectedMessage').textContent='保存できなかったため、家具を元の配置に戻しました。';
+    return;
+  }
+  selectedFurniture=null;
+  document.getElementById('selectedMessage').textContent='会話・学習・くつろぎの3つのスペースに分けて配置しました。分類できない家具は右端にまとめています。「1つ戻す」で元に戻せます。';
 }
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
