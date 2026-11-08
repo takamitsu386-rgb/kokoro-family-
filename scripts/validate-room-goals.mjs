@@ -14,3 +14,9 @@ assert.ok(html.includes('達成 '),'Completion progress must be displayed.');
 assert.ok(html.includes('あと'),'Missing furniture guidance must be displayed.');
 assert.ok(html.includes("label==='植物を2つ以上'?2:1"),'Green goal must require multiple plants.');
 console.log('Room goal planner checks passed.');
+
+assert.ok(html.includes("accepted.filter(icon=>furnitureList.includes(icon)"),'Suggestions must use available furniture only.');
+assert.ok(html.includes("button.textContent=icon+' を追加'"),'Missing items must have direct add controls.');
+assert.ok(html.includes("if(addFurniture(icon))checkRoomGoal(goalKey)"),'Adding a suggestion must refresh the goal result.');
+assert.ok(!html.includes("['座って話せる場所',['🛋️','🪑','🛏️']]"),'Family seating must not count a bed.');
+assert.ok(!html.includes("['机・作業場所',['🖥️','🪑','📚']]"),'Study desk must not count a chair or books.');
