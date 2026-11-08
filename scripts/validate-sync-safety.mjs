@@ -179,14 +179,14 @@ assert.ok(snsStart >= 0 && snsEnd > snsStart, 'SNS client module must exist.');
 const sns = html.slice(snsStart, snsEnd);
 assert.doesNotMatch(sns, /finally\s*\{\s*snsSetBusy\(false\);/,
   'SNS asynchronous cleanup must never release a possibly newer account busy state unconditionally.');
-assert.ok((sns.match(/finally \{ snsReleaseBusyFor\(user\); \}/g) || []).length >= 5,
-  'SNS profile, post, report, and refresh operations must use account-scoped busy cleanup.');
-assert.match(sns, /function snsReleaseBusyFor\(user\) \{[\s\S]*?if \(user && snsUser\?\.uid === user\.uid\) snsSetBusy\(false\);/,
-  'A stale SNS request must not unlock controls belonging to a different account.');
-assert.match(sns, /finally \{ snsReleaseBusyFor\(activeUser\); \}/,
-  'Unblocking must release its busy state only for the account that started it.');
-assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user\);\s*\}/,
-  'Post edits and deletions must release their busy state only for the account that started them.');
+assert.ok((sns.match(/finally \{ snsReleaseBusyFor\(user, operationGeneration\); \}/g) || []).length >= 5,
+  'SNS profile, post, report, and refresh operations must use generation-scoped busy cleanup.');
+assert.match(sns, /let snsBusyGeneration = 0;[\s\S]*?function snsSetBusy\(value\) \{\s*snsBusyGeneration \+= 1;[\s\S]*?return snsBusyGeneration;[\s\S]*?function snsReleaseBusyFor\(user, operationGeneration\) \{[\s\S]*?snsUser\?\.uid === user\.uid && snsBusyGeneration === operationGeneration\) snsSetBusy\(false\);/,
+  'A stale SNS request must not unlock a newer operation, including after a same-UID sign-out/sign-in cycle.');
+assert.match(sns, /finally \{ snsReleaseBusyFor\(activeUser, operationGeneration\); \}/,
+  'Unblocking must release its busy state only for the exact operation that started it.');
+assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user, operationGeneration\);\s*\}/,
+  'Post edits and deletions must release their busy state only for the exact operation that started them.');
 assert.match(sns, /const response = await fetch\(path,[\s\S]*?if \(!snsUser \|\| snsUser\.uid !== user\.uid\) throw new Error\("アカウントが切り替わりました。"\);[\s\S]*?const data = await response\.json\(\)/,
   'Admin API responses must be discarded if the signed-in account changes while the request is in flight.');
 assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
