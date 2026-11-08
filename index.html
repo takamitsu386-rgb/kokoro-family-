@@ -115,7 +115,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </select>
 <div id="snsProfilePreview" role="status" aria-live="polite" style="display:flex;align-items:center;gap:10px;margin:12px 0;padding:12px;background:#f7f5ff;border:1px solid #e5e0ff;border-radius:10px"><span id="snsPreviewAvatar" aria-hidden="true" style="font-size:32px">🌷</span><span><strong id="snsPreviewNickname">ニックネーム未設定</strong><br><small id="snsPreviewVisibility">公開範囲：自分のみ</small></span></div>
 <label for="snsProfileVisibility" style="display:block;margin-top:8px">プロフィール公開範囲</label>
-<select id="snsProfileVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="public">公開</option></select>
+<select id="snsProfileVisibility" style="padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="private">自分のみ（おすすめ）</option><option value="friends">友達のみ</option><option value="public">公開</option></select>
 <button type="button" id="snsSaveProfile" class="primary" style="margin-top:10px">プロフィールを保存</button>
 <div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
 <h3>投稿する</h3>
@@ -129,7 +129,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="snsPostList" aria-live="polite"><p>ログインすると自分の投稿が表示されます。</p></div>
 <div style="border-top:1px solid #e5e7eb;margin:18px 0;padding-top:16px">
 <h3>🌏 みんなの公開投稿</h3>
-<p style="font-size:13px;color:#667085">公開プロフィールの人の公開投稿だけを表示します。あなたと相手のどちらかがブロックしている場合は表示されません。</p>
+<p style="font-size:13px;color:#667085">公開プロフィールの公開投稿と、承認済みの友達の友達限定投稿を表示します。ブロックすると互いの投稿は表示されません。</p>
 <button type="button" id="snsRefreshTimeline">公開投稿を読み込む</button>
 <p id="snsTimelineStatus" role="status" aria-live="polite">ログインすると公開投稿を読み込みます。</p>
 <div id="snsTimelineList" aria-live="polite"></div>
@@ -176,7 +176,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="snsAdminReportList" aria-live="polite"></div>
 </section>
 </div>
-<p style="font-size:13px;color:#667085">友達申請は準備中です。コメント・いいねは公開投稿で利用できます。通報確認画面は管理者権限を持つ運営担当者だけが利用できます。</p>
+<p style="font-size:13px;color:#667085">友達申請・承認後は友達限定投稿も見られます。コメント・いいねは閲覧できる投稿で利用できます。通報確認画面は管理者権限を持つ運営担当者だけが利用できます。</p>
 </section>
 <section class="panel" id="cloud-sync">
 <h2>☁️ スマホ・PC同期</h2>
@@ -2696,7 +2696,7 @@ function snsRenderPublicTimeline(items) {
   snsTimelineList.replaceChildren();
   if (!items.length) {
     const empty = document.createElement("p");
-    empty.textContent = "まだ公開投稿はありません。公開プロフィールと公開投稿があると、ここに表示されます。";
+    empty.textContent = "まだ投稿はありません。公開投稿または友達限定投稿があると、ここに表示されます。";
     snsTimelineList.appendChild(empty);
     return;
   }
@@ -2708,7 +2708,8 @@ function snsRenderPublicTimeline(items) {
     author.textContent = (avatarEmojis[item.avatarId] || "🌷") + " " + (item.nickname || "ユーザー");
     const date = document.createElement("small");
     date.style.cssText = "display:block;color:#667085;margin-top:2px";
-    date.textContent = Number.isFinite(item.createdAtMs) ? new Date(item.createdAtMs).toLocaleString("ja-JP") : "日時不明";
+    const visibilityLabel = item.visibility === "friends" ? "友達限定" : "公開投稿";
+    date.textContent = visibilityLabel + " ・ " + (Number.isFinite(item.createdAtMs) ? new Date(item.createdAtMs).toLocaleString("ja-JP") : "日時不明");
     const body = document.createElement("p");
     body.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0";
     body.textContent = item.text;
