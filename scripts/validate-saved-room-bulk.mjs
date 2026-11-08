@@ -605,3 +605,9 @@ assert.match(html,/お気に入り配色：'\+data\.customRoomPalettes\.length/,
 assert.match(html,/localStorage\.setItem\(CUSTOM_ROOM_PALETTE_KEY,JSON\.stringify\(incomingPalettes\)\)/,'Backup import must restore custom palettes.');
 assert.match(html,/kokoroCustomRoomPalettesBeforeImport/,'Backup import must preserve pre-import custom palettes.');
 assert.match(html,/renderCustomRoomPalettes\(\);/,'Palette list must refresh after backup import.');
+assert.match(html,/exportCustomRoomPalettes\(\)/,'Custom palettes must be independently exportable.');
+assert.match(html,/importCustomRoomPalettes\(\)/,'Custom palettes must be independently importable.');
+assert.match(html,/kokoro-family-palettes/,'Palette-only backup must use a distinct file format marker.');
+assert.match(html,/kokoroCustomRoomPalettesBeforePaletteImport/,'Palette import must preserve the previous palette set.');
+assert.match(html,/file\.size>16384/,'Palette import must enforce a bounded file size.');
+assert.match(html,/validCustomRoomPalettes\(data\.palettes\)/,'Palette import must validate all imported palettes.');
