@@ -14,5 +14,5 @@ assert.match(html, /label\.textContent = \(friendAvatarEmojis\[profile\?\.avatar
 assert.match(html, /removeFriend\.addEventListener\("click", \(\) => snsRemoveFriend\(item\.snap\.id\)\)/, 'The list must reuse the existing friend-removal flow.');
 assert.match(html, /snsFriendList\.replaceChildren\(\)/, 'The friend list must be cleared when refreshing and switching accounts.');
 assert.match(rules, /match \/friendRequests\/{requestId}/, 'Friend request access rules must remain present.');
-assert.match(rules, /resource\\.data\\.status\\s*==\\s*[\'"]accepted[\'"]/, 'Friend-only access must depend on an accepted request.');
+assert.match(rules, /resource\.data\.status\s*==\s*[\'"]accepted[\'"]/, 'Friend-only access must depend on an accepted request.');
 console.log('Accepted friends list UI and relationship access checks passed.');
