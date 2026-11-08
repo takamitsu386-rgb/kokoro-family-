@@ -487,3 +487,16 @@ assert.match(source,/resetSelectedFurnitureOpacity\(\)/,'Room editor must expose
 assert.match(source,/opacity:el\.style\.opacity/,'Room snapshots must preserve opacity.');
 assert.match(source,/item\.opacity===undefined\|\|\(typeof item\.opacity==='string'/,'Room validation must validate saved opacity.');
 assert.match(source,/if\(v\.opacity\)el\.style\.opacity=v\.opacity/,'Room restoration must restore opacity.');
+
+const positionStart=source.indexOf('function setSelectedFurniturePosition(){');
+const positionEnd=source.indexOf('function setSelectedFurnitureSize(){',positionStart);
+const positionFunction=source.slice(positionStart,positionEnd);
+assert.notEqual(positionStart,-1,'Room editor must provide exact furniture position controls.');
+assert.match(source,/id="furniturePositionX"[^>]*min="0"/,'X input must reject negative coordinates.');
+assert.match(source,/id="furniturePositionY"[^>]*min="0"/,'Y input must reject negative coordinates.');
+assert.match(source,/setSelectedFurniturePosition\(\)/,'Room editor must expose exact position application.');
+assert.match(positionFunction,/Number\.isInteger\(x\).*Number\.isInteger\(y\)/,'Exact coordinates must be integers.');
+assert.match(positionFunction,/x>maxX\|\|y>maxY/,'Exact coordinates must stay within room bounds.');
+assert.match(positionFunction,/selectedFurniture\.style\.left=nextLeft/,'Exact X coordinate must be applied.');
+assert.match(positionFunction,/selectedFurniture\.style\.top=nextTop/,'Exact Y coordinate must be applied.');
+assert.match(positionFunction,/if\(!autoSaveRoom\(\)\)/,'Position changes must persist and roll back on failure.');
