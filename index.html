@@ -2956,6 +2956,10 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
       accept.addEventListener("click", () => snsDecideFriendRequest(snap.id, "accepted"));
       decline.addEventListener("click", () => snsDecideFriendRequest(snap.id, "declined"));
       row.append(accept, decline);
+    } else if (data.status === "accepted") {
+      const removeFriend = document.createElement("button"); removeFriend.type = "button"; removeFriend.textContent = "友達解除";
+      removeFriend.addEventListener("click", () => snsRemoveFriend(snap.id));
+      row.appendChild(removeFriend);
     }
     snsIncomingFriends.appendChild(row);
   }
@@ -2969,6 +2973,11 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     const label = document.createElement("span");
     label.textContent = data.toUid + (data.status === "accepted" ? "（友達）" : "（返事待ち）");
     row.appendChild(label);
+    if (data.status === "accepted") {
+      const removeFriend = document.createElement("button"); removeFriend.type = "button"; removeFriend.textContent = "友達解除";
+      removeFriend.addEventListener("click", () => snsRemoveFriend(snap.id));
+      row.appendChild(removeFriend);
+    }
     if (data.status === "pending") {
       const cancel = document.createElement("button"); cancel.type = "button"; cancel.textContent = "申請を取り消す";
       cancel.addEventListener("click", async () => {
@@ -2991,6 +3000,23 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
       row.appendChild(cancel);
     }
     snsOutgoingFriends.appendChild(row);
+  }
+}
+async function snsRemoveFriend(requestId) {
+  const user = snsUser;
+  if (!user || snsBusy || !window.confirm("この相手との友達関係を解除しますか？")) return;
+  const operationGeneration = snsSetBusy(true);
+  try {
+    await deleteDoc(doc(snsDb, "friendRequests", requestId));
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsFriendNotice.textContent = "友達関係を解除しました。";
+    await snsLoadFriendRequests(user);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    console.error("Friend removal failed", error);
+    snsFriendNotice.textContent = "友達を解除できませんでした。";
+  } finally {
+    snsReleaseBusyFor(user, operationGeneration);
   }
 }
 async function snsDecideFriendRequest(requestId, status) {
