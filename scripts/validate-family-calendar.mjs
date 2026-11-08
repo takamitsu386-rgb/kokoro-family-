@@ -41,3 +41,9 @@ assert.match(html, /id="familyCalendarResetFilters"/);
 assert.match(html, /item\.title\+" "\+item\.place/);
 assert.match(html, /searchInput\.addEventListener\("input",render\)/);
 assert.match(sw, /kokoro-family-v229/);
+
+assert.match(html, /option value="month">選択した月/);
+assert.match(html, /id="familyCalendarMonth"/);
+assert.match(html, /item\.date\.startsWith\(selectedMonth\)/);
+assert.match(html, /monthInput\.addEventListener\("change"/);
+assert.match(sw, /kokoro-family-v230/);
