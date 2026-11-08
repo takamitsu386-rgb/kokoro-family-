@@ -23,7 +23,7 @@ assert.match(handler, /if\(!selected\.length\)/, 'Empty selections must be rejec
 
 const duplicateStart = html.indexOf('function duplicateBulkSavedRooms()');
 assert.notEqual(duplicateStart, -1, 'Bulk duplication handler must exist.');
-const duplicateEnd = html.indexOf('\nfunction deleteBulkSavedRooms()', duplicateStart);
+const duplicateEnd = html.indexOf('function deleteBulkSavedRooms()', duplicateStart);
 assert.notEqual(duplicateEnd, -1, 'Bulk duplication handler must end before bulk deletion.');
 const duplicate = html.slice(duplicateStart, duplicateEnd);
 assert.match(html, /onclick="duplicateBulkSavedRooms\(\)"/, 'Bulk duplication button is missing.');
