@@ -319,6 +319,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="alignSelectedFurniture('top')">⬆️ 上端</button>
 <button type="button" onclick="alignSelectedFurniture('centerY')">↕️ 縦中央</button>
 <button type="button" onclick="alignSelectedFurniture('bottom')">⬇️ 下端</button>
+<button type="button" id="furnitureGridSnapToggle" aria-pressed="false" onclick="toggleFurnitureGridSnap()">🧲 グリッド吸着：OFF</button>
 <button type="button" onclick="checkFurnitureOverlaps()">🔎 家具の重なりをチェック</button>
 <div id="furnitureOverlapReport" role="status" aria-live="polite" style="display:none;margin:8px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc"></div>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
@@ -520,6 +521,14 @@ const floorPatterns=[
 ['なし','none'],['木目','repeating-linear-gradient(0deg,transparent 0 22px,#79553835 22px 24px)'],['タイル','linear-gradient(90deg,#ffffff55 2px,transparent 2px),linear-gradient(#ffffff55 2px,transparent 2px)'],['しま','repeating-linear-gradient(90deg,transparent 0 28px,#ffffff55 28px 32px)']
 ];
 let selectedFurniture=null;
+let furnitureGridSnapEnabled=false;
+const FURNITURE_GRID_SIZE=20;
+function toggleFurnitureGridSnap(){
+ furnitureGridSnapEnabled=!furnitureGridSnapEnabled;
+ const button=document.getElementById('furnitureGridSnapToggle');
+ if(button){button.setAttribute('aria-pressed',String(furnitureGridSnapEnabled));button.textContent=furnitureGridSnapEnabled?'🧲 グリッド吸着：ON':'🧲 グリッド吸着：OFF';}
+ document.getElementById('selectedMessage').textContent=furnitureGridSnapEnabled?'家具を20px間隔のグリッドに合わせて移動します。':'グリッド吸着を解除しました。';
+}
 function buttons(id,values,fn){
 const el=document.getElementById(id);
 values.forEach((v,i)=>{
@@ -1404,7 +1413,7 @@ const move=moves[e.key];
 if(!move)return;
 e.preventDefault();
 const previousLeft=el.style.left,previousTop=el.style.top;
-const step=e.shiftKey?30:10;
+const step=furnitureGridSnapEnabled?(e.shiftKey?40:FURNITURE_GRID_SIZE):(e.shiftKey?30:10);
 const left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),el.offsetLeft+move[0]*step));
 const top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),el.offsetTop+move[1]*step));
 if(left===el.offsetLeft&&top===el.offsetTop){
@@ -1472,8 +1481,10 @@ e.preventDefault();
 const r=room.getBoundingClientRect();
 const x=e.clientX-r.left-room.clientLeft-grabX;
 const y=e.clientY-r.top-room.clientTop-grabY;
-el.style.left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),x))+'px';
-el.style.top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),y))+'px';
+const rawX=furnitureGridSnapEnabled?Math.round(x/FURNITURE_GRID_SIZE)*FURNITURE_GRID_SIZE:x;
+const rawY=furnitureGridSnapEnabled?Math.round(y/FURNITURE_GRID_SIZE)*FURNITURE_GRID_SIZE:y;
+el.style.left=Math.max(0,Math.min(Math.max(0,room.clientWidth-el.offsetWidth),rawX))+'px';
+el.style.top=Math.max(0,Math.min(Math.max(0,room.clientHeight-el.offsetHeight),rawY))+'px';
 });
 handle.addEventListener('pointerup',stop);
 handle.addEventListener('pointercancel',stop);
