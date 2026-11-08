@@ -235,6 +235,10 @@ assert.ok(queueSyncHandler.includes('const queuedUid = currentUser.uid;') &&
 assert.ok(queueSyncHandler.includes('if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {') &&
   queueSyncHandler.includes('if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration && !logoutInProgress) queueSync();'),
   'Automatic sync success notices and retries must remain scoped to the originating account generation.');
+assert.match(queueSyncHandler, /await uploadLocal\(queuedUid\);[\s\S]*?clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;\s*status\("自動同期しました。"\)/,
+  'A successful automatic upload must clear any pending retry and reset the retry budget.');
+assert.match(queueSyncHandler, /if \(syncRetryCount < 3\) \{\s*const delay = \[3000, 10000, 30000\]\[syncRetryCount\+\+\];[\s\S]*?syncRetryTimer = setTimeout/,
+  'A failed automatic upload must schedule at most three retries and consume one retry slot per scheduled attempt.');
 
 const downloadCloudStart = html.indexOf('async function downloadCloud()');
 const downloadCloudEnd = html.indexOf('\nasync function syncNow()', downloadCloudStart);
