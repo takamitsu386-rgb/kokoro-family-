@@ -5,6 +5,9 @@ const html = readFileSync('index.html', 'utf8');
 const rules = readFileSync('firestore.rules', 'utf8');
 const tests = readFileSync('tests/firestore.rules.test.mjs', 'utf8');
 
+assert.match(html, /id="snsShareRoomSource"/);
+assert.match(html, /window\.savedRoomData\?\.\(\)/, "Saved local rooms must be available as share sources.");
+assert.match(html, /roomSource\.startsWith\("saved:"\)/, "A saved room must be shareable without replacing the current room.");
 assert.match(html, /id="snsShareRoomFriend"/);
 assert.match(html, /id="snsShareCurrentRoom"/);
 assert.match(html, /id="snsSharedRoomList"/);
