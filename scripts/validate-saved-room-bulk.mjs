@@ -49,4 +49,17 @@ assert.ok(exportHandler.includes('categories:Object.fromEntries'), 'Selected cat
 assert.ok(exportHandler.includes('notes:Object.fromEntries'), 'Selected notes must be preserved.');
 assert.match(exportHandler, /MAX_BACKUP_BYTES/, 'The backup size limit must be enforced.');
 assert.match(exportHandler, /createObjectURL/, 'The export must create a downloadable file.');
+const multiImportStart = html.indexOf('function importMultipleRoomsFromBackup()');
+assert.notEqual(multiImportStart, -1, 'Multi-room backup import handler must exist.');
+const multiImportEnd = html.indexOf('function importRoomBackup()', multiImportStart);
+assert.notEqual(multiImportEnd, -1, 'Multi-room import handler must end before full backup import.');
+const multiImport = html.slice(multiImportStart, multiImportEnd);
+assert.ok(html.includes("bulkChoice.multiple=true"), 'Backup preview must allow multiple selection.');
+assert.ok(html.includes('bulkButton.onclick=importMultipleRoomsFromBackup'), 'Multi-room import button must be wired.');
+assert.ok(multiImport.includes('choice.selectedOptions'), 'Multi-room import must use selected entries only.');
+assert.ok(multiImport.includes('validRoomData(data.savedRooms[sourceName])'), 'Imported room data must be validated.');
+assert.ok(multiImport.includes('Object.keys(rooms).length+selected.length>100'), 'Saved-room capacity must be enforced.');
+assert.ok(multiImport.includes('while(Object.prototype.hasOwnProperty.call(nextRooms,newName))'), 'Name collisions must be resolved.');
+assert.ok(multiImport.includes('saveSavedRoomsWithUndo(nextRooms)'), 'Multi-room import must be undoable.');
+assert.ok(multiImport.includes('refreshSavedRooms()'), 'Saved room list must refresh after multi-import.');
 console.log('Bulk saved-room favorites, duplication, and portable export checks passed.');
