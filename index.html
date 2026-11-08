@@ -14,6 +14,8 @@ main{max-width:850px;margin:auto;padding:16px}
 h2{font-size:19px;margin-top:0}
 .room{height:290px;border:8px solid #d7c3a7;border-radius:12px;position:relative;overflow:hidden;background:#f5e9d8}
 .floor{position:absolute;bottom:0;left:0;width:100%;height:28%;background:#c89b72;border-top:5px solid #b7855e}
+#furnitureGridOverlay{position:absolute;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(to right,#6759d855 1px,transparent 1px),linear-gradient(to bottom,#6759d855 1px,transparent 1px);background-size:20px 20px;}
+#furnitureGridOverlay[hidden]{display:none}
 .furniture{position:absolute;display:flex;align-items:center;gap:2px;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture .drag-handle{position:relative;z-index:1;flex:0 0 42px;font-size:20px;background:#fff;border:2px solid #6759d8;border-radius:50%;width:42px;height:42px;min-width:42px;display:grid;place-items:center;box-shadow:0 1px 5px #3335;touch-action:none}.furniture:active{cursor:grabbing}.furniture .drag-handle:focus-visible{outline:3px solid #d94b91;outline-offset:3px}
 button,select{border:0;border-radius:10px;padding:11px 14px;margin:4px;background:#eeeaff;color:#40358e;font-size:15px}
 button:active{transform:scale(.97)}
@@ -215,6 +217,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h2>🎨 お部屋のデザイン</h2>
 <div class="room" id="room">
 <div class="floor" id="floor"></div>
+<div id="furnitureGridOverlay" aria-hidden="true" hidden></div>
 </div>
 <p id="message" role="status" aria-live="polite">家具を追加して、好きな場所に動かしてみよう。</p>
 <div style="margin:12px 0;padding:12px;background:#fff0f6;border:2px solid #e7a4c2;border-radius:12px"><strong>🌸 壁紙を変える</strong><br><button type="button" style="background:#c93679;color:white;font-weight:bold" onclick="setDotWallpaper()">🔴 水玉の壁紙にする</button></div>
@@ -525,6 +528,8 @@ let furnitureGridSnapEnabled=false;
 const FURNITURE_GRID_SIZE=20;
 function toggleFurnitureGridSnap(){
  furnitureGridSnapEnabled=!furnitureGridSnapEnabled;
+ const overlay=document.getElementById('furnitureGridOverlay');
+ if(overlay)overlay.hidden=!furnitureGridSnapEnabled;
  const button=document.getElementById('furnitureGridSnapToggle');
  if(button){button.setAttribute('aria-pressed',String(furnitureGridSnapEnabled));button.textContent=furnitureGridSnapEnabled?'🧲 グリッド吸着：ON':'🧲 グリッド吸着：OFF';}
  document.getElementById('selectedMessage').textContent=furnitureGridSnapEnabled?'家具を20px間隔のグリッドに合わせて移動します。':'グリッド吸着を解除しました。';
