@@ -97,7 +97,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label>優先度<select id="familyTaskPriority"><option value="normal">ふつう</option><option value="high">高い</option><option value="low">低い</option></select></label>
 <label>期限<input id="familyTaskDue" type="date"></label>
 </div>
-<button class="primary" type="submit">リストに追加</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyTaskSubmit">リストに追加</button><button type="button" id="familyTaskCancel" hidden>編集をキャンセル</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyTaskFilter">表示</label><select id="familyTaskFilter"><option value="all">すべて</option><option value="open">未完了</option><option value="done">完了</option></select>
@@ -5829,11 +5829,21 @@ snsRefreshPosts.addEventListener("click", async () => {
   const listEl = document.getElementById("familyTaskList");
   const summaryEl = document.getElementById("familyTaskSummary");
   const clearButton = document.getElementById("familyTaskClearDone");
+  const submitButton = document.getElementById("familyTaskSubmit");
+  const cancelButton = document.getElementById("familyTaskCancel");
   const categories = { household: "家のこと", cleaning: "掃除", study: "勉強・仕事", other: "その他" };
   const priorities = { low: "低", normal: "ふつう", high: "高" };
   let tasks = [];
   let storageReady = false;
+  let editingId = null;
 
+  function resetEditor() {
+    editingId = null;
+    form.reset();
+    submitButton.textContent = "リストに追加";
+    cancelButton.hidden = true;
+    render();
+  }
   function validTask(task) {
     return !!task && typeof task === "object" &&
       typeof task.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(task.id) &&
@@ -5899,18 +5909,35 @@ snsRefreshPosts.addEventListener("click", async () => {
       meta.style.color = "#667085";
       meta.textContent = categories[task.category] + "・優先度：" + priorities[task.priority] + (task.dueDate ? "・期限：" + task.dueDate : "");
       const actions = document.createElement("div");
+      actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+      const edit = document.createElement("button");
+      edit.type = "button"; edit.textContent = "編集";
+      edit.addEventListener("click", () => {
+        editingId = task.id;
+        titleInput.value = task.title;
+        categoryInput.value = task.category;
+        priorityInput.value = task.priority;
+        dueInput.value = task.dueDate;
+        submitButton.textContent = "変更を保存";
+        cancelButton.hidden = false;
+        titleInput.focus();
+        form.scrollIntoView({behavior:"smooth",block:"start"});
+        render();
+      });
       const remove = document.createElement("button");
       remove.type = "button"; remove.textContent = "削除";
       remove.addEventListener("click", () => {
-        if (confirm("「" + task.title + "」を削除しますか？")) persist(tasks.filter(item => item.id !== task.id));
+        if (!confirm("「" + task.title + "」を削除しますか？")) return;
+        const wasEditing = editingId === task.id;
+        if (persist(tasks.filter(item => item.id !== task.id)) && wasEditing) resetEditor();
       });
-      actions.append(remove);
+      actions.append(edit, remove);
       li.append(heading, meta, actions);
       listEl.append(li);
     }
     clearButton.disabled = done === 0;
-    titleInput.disabled = tasks.length >= LIMIT;
-    form.querySelector('button[type="submit"]').disabled = tasks.length >= LIMIT;
+    titleInput.disabled = tasks.length >= LIMIT && editingId === null;
+    submitButton.disabled = tasks.length >= LIMIT && editingId === null;
   }
   try {
     tasks = readTasks();
@@ -5926,17 +5953,32 @@ snsRefreshPosts.addEventListener("click", async () => {
   form.addEventListener("submit", event => {
     event.preventDefault();
     const title = titleInput.value.trim();
-    if (!title || title.length > 80 || tasks.length >= LIMIT) return;
+    if (!title || title.length > 80 || !Object.hasOwn(categories, categoryInput.value) ||
+        !Object.hasOwn(priorities, priorityInput.value)) return;
+    if (editingId) {
+      const existing = tasks.find(task => task.id === editingId);
+      if (!existing) { resetEditor(); summaryEl.textContent = "編集対象が見つかりません。"; return; }
+      const next = tasks.map(task => task.id === editingId
+        ? {...task, title, category: categoryInput.value, priority: priorityInput.value, dueDate: dueInput.value}
+        : task);
+      if (persist(next)) { resetEditor(); titleInput.focus(); }
+      return;
+    }
+    if (tasks.length >= LIMIT) return;
     const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : "task_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,10);
     const next = [...tasks, {id, title, category: categoryInput.value, priority: priorityInput.value, dueDate: dueInput.value, completed: false, createdAt: Date.now()}];
-    if (persist(next)) { titleInput.value = ""; dueInput.value = ""; titleInput.focus(); }
+    if (persist(next)) { form.reset(); titleInput.focus(); }
   });
+  cancelButton.addEventListener("click", resetEditor);
   filterInput.addEventListener("change", render);
   clearButton.addEventListener("click", () => {
     const count = tasks.filter(task => task.completed).length;
-    if (count && confirm("完了した" + count + "件をリストから削除しますか？")) persist(tasks.filter(task => !task.completed));
+    if (count && confirm("完了した" + count + "件をリストから削除しますか？")) {
+      const next = tasks.filter(task => !task.completed);
+      if (persist(next) && editingId && !next.some(task => task.id === editingId)) resetEditor();
+    }
   });
-})();
+})();;
 </script>
 
 
