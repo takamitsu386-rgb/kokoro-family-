@@ -244,3 +244,13 @@ assert.match(randomPalette,/roomColorPalettes\.filter/,'Random palette must choo
 assert.match(randomPalette,/Math\.random\(\)/,'Random palette must select a palette.');
 assert.match(randomPalette,/applyRoomColorPalette\(palette\.key\)/,'Random palette must use the normal save and undo path.');
 console.log('Random room color palette checks passed.');
+
+const summary=source.slice(source.indexOf('function showSavedRoomSummary()'),source.indexOf('function previewSavedRoom()'));
+assert.match(source,/onclick="showSavedRoomSummary\(\)"/,'Saved room summary action must exist.');
+assert.match(source,/id="savedRoomSummary"/,'Saved room summary panel must exist.');
+assert.match(summary,/validRoomData\(rooms\[name\]\)/,'Summary must validate saved room data.');
+assert.match(summary,/data\.items\.length/,'Summary must include furniture count.');
+assert.match(summary,/data\.items\.forEach/,'Summary must calculate furniture breakdown.');
+assert.match(summary,/textContent=/,'Summary must render text safely.');
+assert.match(summary,/readSavedRoomPrefs\(\)/,'Summary must include saved category and notes when available.');
+console.log('Saved room summary checks passed.');
