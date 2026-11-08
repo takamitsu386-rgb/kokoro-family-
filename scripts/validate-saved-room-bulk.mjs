@@ -631,3 +631,15 @@ assert.match(cloudStore,/kokoroCustomRoomPalettesBeforeCloudImport/,'Cloud downl
 assert.match(cloudStore,/renderCustomRoomPalettes/,'Cloud downloads must refresh the palette list.');
 assert.match(cloudStore,/previousPalettes/,'Cloud import rollback must restore previous palettes.');
 console.log('Cloud custom palette sync and rollback checks passed.');
+
+assert.match(html,/furnitureLabelTextColor/,'Label text color control must exist.');
+assert.match(html,/furnitureLabelBackground/,'Label background control must exist.');
+assert.match(html,/function setSelectedFurnitureLabelStyle\(/,'Label style setter must exist.');
+assert.match(html,/function resetSelectedFurnitureLabelStyle\(/,'Label style reset must exist.');
+assert.match(html,/labelColor:el\.dataset\.labelColor/,'Label text color must be persisted in room snapshots.');
+assert.match(html,/labelBackground:el\.dataset\.labelBackground/,'Label background must be persisted in room snapshots.');
+assert.match(html,/item\.labelColor===undefined/,'Label text color must be validated.');
+assert.match(html,/item\.labelBackground===undefined/,'Label background must be validated.');
+assert.match(html,/labelNode\.style\.color=v\.labelColor/,'Label text color must be restored.');
+assert.match(html,/labelNode\.style\.backgroundColor=v\.labelBackground/,'Label background must be restored.');
+console.log('Furniture label color checks passed.');
