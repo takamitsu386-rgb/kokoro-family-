@@ -34,3 +34,13 @@ assert.match(html,/new Blob\(\[csv\]/);
 assert.match(html,/text\/csv;charset=utf-8/);
 assert.match(html,/購入済み/);
 assert.match(sw,/kokoro-family-v207/);
+
+assert.match(html,/id="familyShoppingImportFile"/);
+assert.match(html,/accept="\.csv,text\/csv"/);
+assert.match(html,/importFile\.addEventListener\("change",async\(\)=>/);
+assert.match(html,/const parseCSV=text=>/);
+assert.match(html,/unclosed quote/);
+assert.match(html,/categoryByLabel/);
+assert.match(html,/登録日時は取り込み時刻になります/);
+assert.match(html,/Shopping CSV import failed/);
+assert.match(sw,/kokoro-family-v208/);
