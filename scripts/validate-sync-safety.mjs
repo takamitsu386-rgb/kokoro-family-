@@ -252,6 +252,8 @@ assert.match(downloadCloudOperation, /const generation = authStateGeneration;[\s
   'Cloud downloads must capture the authentication generation to reject rapid account switches.');
 assert.match(downloadCloudOperation, /if \(!isCurrentAccount\(\)\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*applyCloudDataSafely\(data\);/,
   'Cloud data must not be applied after the account changes during the confirmation prompt, including A-to-B-to-A switches.');
+assert.match(downloadCloudOperation, /markCloudSync\(uid\);\s*clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;/,
+  'A successful cloud download must cancel stale automatic retries and reset the retry budget.');
 
 const syncNowStart = html.indexOf('async function syncNow()');
 const syncNowEnd = html.indexOf('\nfunction queueSync()', syncNowStart);
@@ -261,6 +263,8 @@ assert.match(syncNowHandler, /const generation = authStateGeneration;[\s\S]*?con
   'Manual sync must capture the authentication generation to reject rapid account switches.');
 assert.match(syncNowHandler, /catch \(error\) \{\s*if \(!isCurrentAccount\(\)\) return;/,
   'A failed manual sync must not show an old account error after an account switch.');
+assert.match(syncNowHandler, /markCloudSync\(uid\);\s*clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;/,
+  'A successful manual sync must cancel stale automatic retries and reset the retry budget.');
 const downloadHandlerStart = html.indexOf('downloadButton.addEventListener("click"');
 const downloadHandlerEnd = html.indexOf('logoutButton.addEventListener("click"', downloadHandlerStart);
 assert.ok(downloadHandlerStart >= 0 && downloadHandlerEnd > downloadHandlerStart, 'Cloud download click handler must exist.');
