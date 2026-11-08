@@ -16,7 +16,7 @@ h2{font-size:19px;margin-top:0}
 .floor{position:absolute;bottom:0;left:0;width:100%;height:28%;background:#c89b72;border-top:5px solid #b7855e}
 #furnitureGridOverlay{position:absolute;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(to right,#6759d855 1px,transparent 1px),linear-gradient(to bottom,#6759d855 1px,transparent 1px);background-size:var(--furniture-grid-size,20px) var(--furniture-grid-size,20px);}
 #furnitureGridOverlay[hidden]{display:none}
-.furniture{position:absolute;display:flex;align-items:center;gap:2px;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture .drag-handle{position:relative;z-index:1;flex:0 0 42px;font-size:20px;background:#fff;border:2px solid #6759d8;border-radius:50%;width:42px;height:42px;min-width:42px;display:grid;place-items:center;box-shadow:0 1px 5px #3335;touch-action:none}.furniture:active{cursor:grabbing}.furniture .drag-handle:focus-visible{outline:3px solid #d94b91;outline-offset:3px}
+.furniture{position:absolute;display:flex;align-items:center;gap:2px;font-size:38px;cursor:grab;touch-action:none;user-select:none}.furniture .item-label{position:absolute;top:100%;left:0;max-width:120px;padding:2px 6px;border-radius:8px;background:#fff;color:#40358e;font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 4px #0002;pointer-events:none}.furniture .drag-handle{position:relative;z-index:1;flex:0 0 42px;font-size:20px;background:#fff;border:2px solid #6759d8;border-radius:50%;width:42px;height:42px;min-width:42px;display:grid;place-items:center;box-shadow:0 1px 5px #3335;touch-action:none}.furniture:active{cursor:grabbing}.furniture .drag-handle:focus-visible{outline:3px solid #d94b91;outline-offset:3px}
 button,select{border:0;border-radius:10px;padding:11px 14px;margin:4px;background:#eeeaff;color:#40358e;font-size:15px}
 button:active{transform:scale(.97)}
 .primary{background:#6759d8;color:white}
@@ -298,6 +298,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="exportRoomFurnitureReport()">📊 家具の内訳をCSVで書き出す</button>
 <div id="roomFurnitureReport" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px;background:#fafaff"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
+<h3>家具に名前・メモを付ける</h3>
+<label for="furnitureLabel">家具の名前・メモ（20文字まで）</label>
+<input id="furnitureLabel" type="text" maxlength="20" placeholder="例：お父さんの椅子">
+<button type="button" onclick="setSelectedFurnitureLabel()">名前・メモを設定</button>
+<button type="button" onclick="resetSelectedFurnitureLabel()">名前・メモを解除</button>
 <h3>家具アイコンの背景色</h3>
 <label for="furnitureIconBackground">選択した家具の背景色</label>
 <input id="furnitureIconBackground" type="color" value="#ffffff" aria-label="家具アイコンの背景色">
@@ -1548,6 +1553,49 @@ return;
 }
 document.getElementById('selectedMessage').textContent='選択した家具の向きを0°に戻しました。「1つ戻す」で元に戻せます。';
 }
+function setSelectedFurnitureLabel(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に名前を付けたい家具を選んでね。';return;}
+ const input=document.getElementById('furnitureLabel');
+ const label=input?input.value.trim():'';
+ if(!label||label.length>20||/[\\u0000-\\u001f\\u007f]/.test(label)){status.textContent='名前・メモは1〜20文字で入力してください。';return;}
+ let badge=selectedFurniture.querySelector('.item-label');
+ if(!badge){badge=document.createElement('span');badge.className='item-label';selectedFurniture.appendChild(badge);}
+ const previous=selectedFurniture.dataset.label||'';
+ selectedFurniture.dataset.label=label;
+ badge.textContent=label;
+ selectedFurniture.title=label+'（手のマークで移動）';
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(icon)icon.setAttribute('aria-label',selectedFurniture.dataset.icon+'：'+label+' を選択');
+ if(!autoSaveRoom()){
+  if(previous)selectedFurniture.dataset.label=previous;else delete selectedFurniture.dataset.label;
+  if(previous)badge.textContent=previous;else badge.remove();
+  selectedFurniture.title=previous?previous+'（手のマークで移動）':'手のマークでつかんで、そのままスライドして移動';
+  if(icon)icon.setAttribute('aria-label',selectedFurniture.dataset.icon+(previous?'：'+previous:'')+' を選択');
+  status.textContent='保存できなかったため、変更を元に戻しました。';return;
+ }
+ status.textContent='家具に「'+label+'」を設定しました。「1つ戻す」で元に戻せます。';
+}
+function resetSelectedFurnitureLabel(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に名前を解除したい家具を選んでね。';return;}
+ const previous=selectedFurniture.dataset.label||'';
+ if(!previous){status.textContent='この家具には名前・メモがありません。';return;}
+ const badge=selectedFurniture.querySelector('.item-label');
+ const icon=selectedFurniture.querySelector('.item-icon');
+ delete selectedFurniture.dataset.label;
+ if(badge)badge.remove();
+ selectedFurniture.title='手のマークでつかんで、そのままスライドして移動';
+ if(icon)icon.setAttribute('aria-label',selectedFurniture.dataset.icon+' を選択');
+ if(!autoSaveRoom()){
+  selectedFurniture.dataset.label=previous;
+  const restored=document.createElement('span');restored.className='item-label';restored.textContent=previous;selectedFurniture.appendChild(restored);
+  selectedFurniture.title=previous+'（手のマークで移動）';
+  if(icon)icon.setAttribute('aria-label',selectedFurniture.dataset.icon+'：'+previous+' を選択');
+  status.textContent='保存できなかったため、変更を元に戻しました。';return;
+ }
+ status.textContent='家具の名前・メモを解除しました。「1つ戻す」で元に戻せます。';
+}
 function setSelectedFurnitureIconBackground(){
  const status=document.getElementById('selectedMessage');
  if(!selectedFurniture||!room.contains(selectedFurniture)){
@@ -1918,7 +1966,8 @@ validPosition(item.left)&&validPosition(item.top)&&
  (item.opacity===undefined||(typeof item.opacity==='string'&&/^(?:0\.[2-9]\d*|1(?:\.0+)?)$/.test(item.opacity)&&Number(item.opacity)>=0.2&&Number(item.opacity)<=1))&&
  (item.flipX===undefined||typeof item.flipX==='boolean')&&
  (item.flipY===undefined||typeof item.flipY==='boolean')&&
- (item.iconBackground===undefined||(typeof item.iconBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.iconBackground))));
+ (item.iconBackground===undefined||(typeof item.iconBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.iconBackground)))&&
+ (item.label===undefined||(typeof item.label==='string'&&item.label.length<=20&&!/[\\u0000-\\u001f\\u007f]/.test(item.label))));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
@@ -1935,7 +1984,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||''
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',label:el.dataset.label||''
 }))
 };
 }
@@ -1964,6 +2013,7 @@ if(v.opacity)el.style.opacity=v.opacity;
  if(v.flipX===true)el.dataset.flipX='true';
  if(v.flipY===true)el.dataset.flipY='true';
  const restoredIcon=el.querySelector('.item-icon');
+ if(typeof v.label==='string'&&v.label){el.dataset.label=v.label;const labelNode=document.createElement('span');labelNode.className='item-label';labelNode.textContent=v.label;el.appendChild(labelNode);el.title=v.label+'（手のマークで移動）';if(restoredIcon)restoredIcon.setAttribute('aria-label',v.icon+'：'+v.label+' を選択');}
  if(restoredIcon&&v.iconBackground){el.dataset.iconBackground=v.iconBackground;restoredIcon.style.backgroundColor=v.iconBackground;restoredIcon.style.borderRadius='12px';restoredIcon.style.padding='2px 6px';}
  if(restoredIcon&&(v.flipX===true||v.flipY===true))restoredIcon.style.transform='scale('+(v.flipX===true?-1:1)+', '+(v.flipY===true?-1:1)+')';
 if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
