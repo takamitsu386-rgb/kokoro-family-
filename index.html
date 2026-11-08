@@ -2950,11 +2950,15 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     ...incomingVisible.map(snap => snap.data().fromUid),
     ...outgoingVisible.map(snap => snap.data().toUid)
   ].filter(uid => typeof uid === "string" && uid !== user.uid))];
+  const acceptedPeerUids = new Set([
+    ...incomingVisible.filter(snap => snap.data().status === "accepted").map(snap => snap.data().fromUid),
+    ...outgoingVisible.filter(snap => snap.data().status === "accepted").map(snap => snap.data().toUid)
+  ]);
   const peerNames = new Map();
   await Promise.all(peerUids.map(async uid => {
     try {
       const profile = await getDoc(doc(snsDb, "profiles", uid));
-      if (profile.exists() && profile.data().visibility === "public") {
+      if (profile.exists() && (profile.data().visibility === "public" || acceptedPeerUids.has(uid))) {
         const nickname = String(profile.data().nickname || "").trim().slice(0, 24);
         peerNames.set(uid, nickname || "ユーザー");
       } else {
