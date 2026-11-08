@@ -189,13 +189,13 @@ assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user, operationGeneration\);\
   'Post edits and deletions must release their busy state only for the exact operation that started them.');
 assert.match(sns, /const response = await fetch\(path,[\s\S]*?if \(!snsUser \|\| snsUser\.uid !== user\.uid\) throw new Error\("アカウントが切り替わりました。"\);[\s\S]*?const data = await response\.json\(\)/,
   'Admin API responses must be discarded if the signed-in account changes while the request is in flight.');
-assert.match(sns, /const user = snsUser;\s*if \(!user\) return;\s*try \{\s*await snsLoadAdminReports\(user\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid\) return;/,
+assert.match(sns, /const user = snsUser;\s*const authGeneration = snsAuthGeneration;\s*if \(!user \|\| snsAdminPanel\.hidden\) return;\s*try \{\s*await snsLoadAdminReports\(user, snsAdminFilter\.value \|\| "pending", authGeneration\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration\) return;/,
   'Admin report refresh failures must be scoped to the account that started the request.');
 assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
 assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
   'SNS must clear private profile, post, block, and report form data on account changes.');
-assert.match(sns, /let snsAuthGeneration = 0;[\\s\\S]*?onAuthStateChanged\\(getAuth\\(snsApp\\), async user => \\{\\s*const authGeneration = \\+\\+snsAuthGeneration;/,
+assert.match(sns, /let snsAuthGeneration = 0;[\s\S]*?onAuthStateChanged\(getAuth\(snsApp\), async user => \{\s*const authGeneration = \+\+snsAuthGeneration;/,
   'Every SNS auth-state callback must receive a fresh generation, including same-UID sign-in cycles.');
 for (const [loader, firstUiWrite] of [
   ['snsLoadProfile', 'snsNickname.value ='],
