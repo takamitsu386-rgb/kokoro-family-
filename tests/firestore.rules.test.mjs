@@ -699,6 +699,86 @@ describe('comments and likes', () => {
   });
 });
 
+describe('friend requests', () => {
+  before(async () => {
+    await seed('profiles/friend-target', {
+      nickname: 'Target', avatarId: 'avatar-01', visibility: 'public',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('profiles/friend-private-target', {
+      nickname: 'Private', avatarId: 'avatar-01', visibility: 'private',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+  });
+
+  it('allows a request to a public profile and only the recipient can accept it', async () => {
+    const alice = testEnv.authenticatedContext('friend-sender').firestore();
+    const requestRef = doc(alice, 'friendRequests/friend-sender_friend-target');
+    await assertSucceeds(setDoc(requestRef, {
+      fromUid: 'friend-sender', toUid: 'friend-target', status: 'pending',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+    const recipient = testEnv.authenticatedContext('friend-target').firestore();
+    await assertSucceeds(getDoc(doc(recipient, 'friendRequests/friend-sender_friend-target')));
+    await assertFails(updateDoc(doc(alice, 'friendRequests/friend-sender_friend-target'), {
+      status: 'accepted', updatedAt: serverTimestamp()
+    }));
+    await assertSucceeds(updateDoc(doc(recipient, 'friendRequests/friend-sender_friend-target'), {
+      status: 'accepted', updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(recipient, 'friendRequests/friend-sender_friend-target'), {
+      status: 'pending', updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('rejects requests to private profiles, self, spoofed senders, and duplicate reverse requests', async () => {
+    const alice = testEnv.authenticatedContext('friend-sender-2').firestore();
+    await assertFails(setDoc(doc(alice, 'friendRequests/friend-sender-2_friend-private-target'), {
+      fromUid: 'friend-sender-2', toUid: 'friend-private-target', status: 'pending',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(alice, 'friendRequests/friend-sender-2_friend-sender-2'), {
+      fromUid: 'friend-sender-2', toUid: 'friend-sender-2', status: 'pending',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(alice, 'friend-sender_friend-target'), {
+      fromUid: 'someone-else', toUid: 'friend-target', status: 'pending',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+    await seed('friendRequests/friend-target_friend-sender-2', {
+      fromUid: 'friend-target', toUid: 'friend-sender-2', status: 'pending',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await assertFails(setDoc(doc(alice, 'friendRequests/friend-sender-2_friend-target'), {
+      fromUid: 'friend-sender-2', toUid: 'friend-target', status: 'pending',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('prevents outsiders from reading or deciding requests and lets the sender cancel pending requests', async () => {
+    await seed('friendRequests/friend-owner_friend-recipient', {
+      fromUid: 'friend-owner', toUid: 'friend-recipient', status: 'pending',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    const outsider = testEnv.authenticatedContext('friend-outsider').firestore();
+    await assertFails(getDoc(doc(outsider, 'friendRequests/friend-owner_friend-recipient')));
+    await assertFails(updateDoc(doc(outsider, 'friendRequests/friend-owner_friend-recipient'), {
+      status: 'accepted', updatedAt: serverTimestamp()
+    }));
+    const sender = testEnv.authenticatedContext('friend-owner').firestore();
+    await assertSucceeds(deleteDoc(doc(sender, 'friendRequests/friend-owner_friend-recipient')));
+  });
+
+  it('blocks requests in either direction and denies requests after a block', async () => {
+    await seed('users/friend-blocker/blocks/friend-blocked', { createdAt: new Date() });
+    const sender = testEnv.authenticatedContext('friend-blocked').firestore();
+    await assertFails(setDoc(doc(sender, 'friendRequests/friend-blocked_friend-blocker'), {
+      fromUid: 'friend-blocked', toUid: 'friend-blocker', status: 'pending',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+  });
+});
+
 describe('SNS features not yet implemented remain denied', () => {
   const deniedPaths = [
     'users/alice/following/bob',
