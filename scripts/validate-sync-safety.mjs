@@ -104,6 +104,8 @@ assert.ok(offlineStart >= 0 && onlineStart > offlineStart && visibilityStart > o
 const offlineHandler = sync.slice(offlineStart, onlineStart);
 assert.match(offlineHandler, /clearTimeout\(syncRetryTimer\);[\s\S]*?syncRetryTimer = null;/,
   'Going offline must cancel a pending cloud retry timer.');
+assert.match(offlineHandler, /if \(syncRetryTimer\) \{\s*clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = Math\.max\(0, syncRetryCount - 1\);/,
+  'Canceling a scheduled retry because the device went offline must restore the unused retry slot.');
 const onlineHandler = sync.slice(onlineStart, visibilityStart);
 assert.match(onlineHandler, /if \(!currentUser\) \{[\s\S]*?return;[\s\S]*?queueSync\(\);/,
   'Coming back online must retry only when a user is signed in.');
