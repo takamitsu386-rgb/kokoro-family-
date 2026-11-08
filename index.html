@@ -305,6 +305,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="applyBulkSavedRoomCategory()">選択したお部屋を一括分類</button>
 <button type="button" onclick="setBulkSavedRoomFavorites(true)">選択したお部屋をお気に入り登録</button>
 <button type="button" onclick="setBulkSavedRoomFavorites(false)">選択したお部屋のお気に入り解除</button>
+<button type="button" onclick="duplicateBulkSavedRooms()">選択したお部屋をまとめて複製</button>
 <button type="button" onclick="deleteBulkSavedRooms()">選択したお部屋を一括削除</button>
 </div>
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
@@ -1042,6 +1043,34 @@ prefs.favorites=[...favorites];
 if(!writeSavedRoomPrefs(prefs))return;
 refreshSavedRooms();
 document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋のお気に入りを'+(enabled?'登録':'解除')+'しました。';
+}
+function duplicateBulkSavedRooms(){
+const rooms=savedRoomData();
+if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データを保護しています。';return;}
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)&&validRoomData(rooms[name]));
+if(!selected.length){document.getElementById('message').textContent='複製するお部屋を選んでください。';return;}
+if(Object.keys(rooms).length+selected.length>100){document.getElementById('message').textContent='保存できるお部屋は100個までです。不要なお部屋を整理してから複製してください。';return;}
+const nextRooms={...rooms},created=[];
+for(const name of selected){
+let base=name+' のコピー';
+if(base.length>80)base=name.slice(0,80-6)+' のコピー';
+let candidate=base,suffix=2;
+while(Object.prototype.hasOwnProperty.call(nextRooms,candidate)){
+const tail=' ('+suffix+')';
+candidate=base.slice(0,80-tail.length)+tail;
+suffix+=1;
+}
+if(['__proto__','constructor','prototype'].includes(candidate))continue;
+nextRooms[candidate]=JSON.parse(JSON.stringify(rooms[name]));
+created.push(candidate);
+}
+if(!created.length){document.getElementById('message').textContent='複製できるお部屋がありませんでした。';return;}
+if(!saveSavedRoomsWithUndo(nextRooms))return;
+bulkSavedRoomSelection.clear();
+created.forEach(name=>bulkSavedRoomSelection.add(name));
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+refreshSavedRooms();
+document.getElementById('message').textContent=created.length+'個のお部屋を複製しました。複製したお部屋を選択中です。元のお部屋はそのまま残しています。';
 }
 function deleteBulkSavedRooms(){
 const rooms=savedRoomData();
