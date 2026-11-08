@@ -2573,15 +2573,18 @@ const snsApp = getApps()[0];
 let snsDb = null;
 let snsUser = null;
 let snsBusy = false;
+let snsBusyGeneration = 0;
 
 function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
+  snsBusyGeneration += 1;
   snsBusy = value;
   [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  return snsBusyGeneration;
 }
-function snsReleaseBusyFor(user) {
-  // A request from a signed-out or previous account must not unlock the new account's UI.
-  if (user && snsUser?.uid === user.uid) snsSetBusy(false);
+function snsReleaseBusyFor(user, operationGeneration) {
+  // A stale request, including a same-UID sign-out/sign-in cycle, must not unlock a newer operation.
+  if (user && snsUser?.uid === user.uid && snsBusyGeneration === operationGeneration) snsSetBusy(false);
 }
 function snsRenderPosts(items) {
   snsPostList.replaceChildren();
@@ -2659,7 +2662,7 @@ async function snsLoadBlocks(user) {
     unblock.addEventListener("click", async () => {
       if (!snsUser || snsBusy) return;
       const activeUser = snsUser;
-      snsSetBusy(true);
+      const operationGeneration = snsSetBusy(true);
       try {
         await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
         if (!snsUser || snsUser.uid !== activeUser.uid) return;
@@ -2669,7 +2672,7 @@ async function snsLoadBlocks(user) {
         if (!snsUser || snsUser.uid !== activeUser.uid) return;
         console.error("SNS unblock failed", error);
         snsMessage("ブロックを解除できませんでした。");
-      } finally { snsReleaseBusyFor(activeUser); }
+      } finally { snsReleaseBusyFor(activeUser, operationGeneration); }
     });
     row.append(label, unblock);
     snsBlockList.appendChild(row);
@@ -2685,7 +2688,7 @@ async function snsEditPost(postId, currentText) {
     return;
   }
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   try {
     await updateDoc(doc(snsDb, "posts", postId), {
       text,
@@ -2699,14 +2702,14 @@ async function snsEditPost(postId, currentText) {
     console.error("SNS post edit failed", error);
     snsMessage("更新できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
-    snsReleaseBusyFor(user);
+    snsReleaseBusyFor(user, operationGeneration);
   }
 }
 async function snsDeletePost(postId) {
   if (!snsUser || snsBusy || !postId) return;
   if (!window.confirm("この投稿を削除しますか？")) return;
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   try {
     await updateDoc(doc(snsDb, "posts", postId), {
       status: "deleted",
@@ -2720,7 +2723,7 @@ async function snsDeletePost(postId) {
     console.error("SNS post delete failed", error);
     snsMessage("削除できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
-    snsReleaseBusyFor(user);
+    snsReleaseBusyFor(user, operationGeneration);
   }
 }
 
@@ -2888,7 +2891,7 @@ snsAddBlock.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   try {
     await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), {
       createdAt: serverTimestamp()
@@ -2901,7 +2904,7 @@ snsAddBlock.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
-  } finally { snsReleaseBusyFor(user); }
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 snsSubmitReport.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2916,7 +2919,7 @@ snsSubmitReport.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   snsReportNotice.textContent = "通報を送信しています…";
   try {
     const token = await user.getIdToken();
@@ -2936,7 +2939,7 @@ snsSubmitReport.addEventListener("click", async () => {
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid) return;
     snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
-  } finally { snsReleaseBusyFor(user); }
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 snsSaveProfile.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2946,7 +2949,7 @@ snsSaveProfile.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   try {
     const profileRef = doc(snsDb, "profiles", user.uid);
     const existing = await getDoc(profileRef);
@@ -2965,7 +2968,7 @@ snsSaveProfile.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS profile save failed", error);
     snsMessage("保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
-  } finally { snsReleaseBusyFor(user); }
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 snsCreatePost.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
@@ -2975,7 +2978,7 @@ snsCreatePost.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   try {
     await setDoc(doc(collection(snsDb, "posts")), {
       authorUid: user.uid,
@@ -2993,12 +2996,12 @@ snsCreatePost.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post create failed", error);
     snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
-  } finally { snsReleaseBusyFor(user); }
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 snsRefreshPosts.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
   const user = snsUser;
-  snsSetBusy(true);
+  const operationGeneration = snsSetBusy(true);
   try {
     await snsLoadPosts(user);
     snsMessage("自分の投稿を読み直しました。");
@@ -3006,7 +3009,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post refresh failed", error);
     snsMessage("投稿を読み込めませんでした。");
-  } finally { snsReleaseBusyFor(user); }
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 </script>
 
