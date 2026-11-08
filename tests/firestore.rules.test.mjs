@@ -719,6 +719,7 @@ describe('friend requests', () => {
       fromUid: 'friend-sender', toUid: 'friend-target', status: 'pending',
       createdAt: serverTimestamp(), updatedAt: serverTimestamp()
     }));
+    await assertSucceeds(getDocs(query(collection(alice, 'friendRequests'), where('fromUid', '==', 'friend-sender'))));
     const recipient = testEnv.authenticatedContext('friend-target').firestore();
     await assertSucceeds(getDoc(doc(recipient, 'friendRequests/friend-sender_friend-target')));
     await assertFails(updateDoc(doc(alice, 'friendRequests/friend-sender_friend-target'), {
