@@ -397,4 +397,14 @@ assert.match(snapSelectedFunction,/Math\.min\(maxY/,'Snapped Y position must rem
 assert.match(snapSelectedFunction,/if\(!autoSaveRoom\(\)\)/,'Grid alignment must persist and roll back on save failure.');
 assert.match(snapSelectedFunction,/previous\.left/,'Grid alignment must restore the previous X position on save failure.');
 assert.match(snapSelectedFunction,/previous\.top/,'Grid alignment must restore the previous Y position on save failure.');
+
+const rotationFunction=source.slice(source.indexOf('function rotateSelected(degrees){'),source.indexOf('function resizeSelected('));
+assert.match(source,/rotateSelected\(-15\)/,'Room editor must offer fine left rotation.');
+assert.match(source,/rotateSelected\(15\)/,'Room editor must offer fine right rotation.');
+assert.match(source,/rotateSelected\(-45\)/,'Room editor must offer 45-degree left rotation.');
+assert.match(source,/rotateSelected\(45\)/,'Room editor must offer 45-degree right rotation.');
+assert.match(rotationFunction,/\[-90,-45,-15,15,45,90\]\.includes\(degrees\)/,'Rotation must accept only supported increments.');
+assert.match(rotationFunction,/selectedFurniture\.style\.rotate=next\+'deg'/,'Rotation must update the selected furniture angle.');
+assert.match(rotationFunction,/if\(!autoSaveRoom\(\)\)/,'Rotation must save and roll back on failure.');
+assert.match(rotationFunction,/Math\.abs\(degrees\)/,'Rotation status must announce the actual angle.');
 console.log('Saved room comparison CSV checks passed.');
