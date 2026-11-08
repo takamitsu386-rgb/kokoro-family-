@@ -3694,8 +3694,9 @@ function validCloudData(data) {
     if (!data || typeof data !== "object" || data.version !== 1 ||
         !validRoomData(data.currentRoom) || !validSavedRooms(data.savedRooms)) return false;
     const prefs = data.savedRoomPrefs === undefined ? defaultSavedRoomPrefs() : data.savedRoomPrefs;
-    if (!validSavedRoomPrefs(prefs)) return false;
-    const payload = { version: 1, currentRoom: data.currentRoom, savedRooms: data.savedRooms, savedRoomPrefs: prefs };
+    const palettes = data.customRoomPalettes === undefined ? [] : data.customRoomPalettes;
+    if (!validSavedRoomPrefs(prefs) || !validCustomRoomPalettes(palettes)) return false;
+    const payload = { version: 1, currentRoom: data.currentRoom, savedRooms: data.savedRooms, savedRoomPrefs: prefs, customRoomPalettes: palettes };
     return new TextEncoder().encode(JSON.stringify(payload)).length <= 900 * 1024;
   } catch (error) {
     console.warn("Cloud data validation failed", error);
@@ -3703,21 +3704,23 @@ function validCloudData(data) {
   }
 }
 function localPayload() {
-  let currentRoom, savedRooms, savedRoomPrefs;
+  let currentRoom, savedRooms, savedRoomPrefs, customRoomPalettes;
   try {
     const currentRaw = localStorage.getItem("kokoroRoom");
     const savedRaw = localStorage.getItem("kokoroSavedRooms");
     const prefsRaw = localStorage.getItem("kokoroSavedRoomPrefs");
+    const palettesRaw = localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
     currentRoom = currentRaw === null ? null : JSON.parse(currentRaw);
     savedRooms = savedRaw === null ? {} : JSON.parse(savedRaw);
     savedRoomPrefs = prefsRaw === null ? defaultSavedRoomPrefs() : JSON.parse(prefsRaw);
+    customRoomPalettes = palettesRaw === null ? [] : JSON.parse(palettesRaw);
   } catch {
     throw new Error("端末内の保存データを読み取れません。バックアップを確認してください。");
   }
-  if (!validRoomData(currentRoom) || !validSavedRooms(savedRooms) || !validSavedRoomPrefs(savedRoomPrefs)) {
+  if (!validRoomData(currentRoom) || !validSavedRooms(savedRooms) || !validSavedRoomPrefs(savedRoomPrefs) || !validCustomRoomPalettes(customRoomPalettes)) {
     throw new Error("端末内の保存データの形式が正しくありません。クラウドへの上書きを中止しました。");
   }
-  const payload = { version: 1, currentRoom, savedRooms, savedRoomPrefs };
+  const payload = { version: 1, currentRoom, savedRooms, savedRoomPrefs, customRoomPalettes };
   const payloadBytes = new TextEncoder().encode(JSON.stringify(payload)).length;
   if (payloadBytes > 900 * 1024) {
     throw new Error("クラウド保存データが大きすぎます。保存したお部屋や家具を整理してください。端末内データはそのままです。");
@@ -3780,13 +3783,15 @@ function applyCloudDataSafely(data) {
   return true;
 }
 function storeCloudDataSafely(data, previousDisplayRoom) {
-  let previousRoom, previousSavedRooms, previousPrefs;
+  let previousRoom, previousSavedRooms, previousPrefs, previousPalettes;
   const incomingPrefs = data.savedRoomPrefs === undefined ? defaultSavedRoomPrefs() : data.savedRoomPrefs;
-  if (!validSavedRoomPrefs(incomingPrefs)) throw new Error("クラウドのお気に入り・カテゴリ・メモの形式が正しくありません。端末内データは変更していません。");
+  const incomingPalettes = data.customRoomPalettes === undefined ? [] : data.customRoomPalettes;
+  if (!validSavedRoomPrefs(incomingPrefs) || !validCustomRoomPalettes(incomingPalettes)) throw new Error("クラウドのお気に入り・配色データの形式が正しくありません。端末内データは変更していません。");
   try {
     previousRoom = localStorage.getItem("kokoroRoom");
     previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
     previousPrefs = localStorage.getItem("kokoroSavedRoomPrefs");
+    previousPalettes = localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
   } catch (readError) {
     throw new Error("端末内の保存データを読み取れないため、クラウドの内容は反映しませんでした。");
   }
@@ -3794,9 +3799,12 @@ function storeCloudDataSafely(data, previousDisplayRoom) {
     localStorage.setItem("kokoroRoomBeforeCloudImport", previousRoom === null ? JSON.stringify(previousDisplayRoom) : previousRoom);
     localStorage.setItem("kokoroSavedRoomsBeforeCloudImport", previousSavedRooms === null ? "{}" : previousSavedRooms);
     localStorage.setItem("kokoroSavedRoomPrefsBeforeCloudImport", previousPrefs === null ? JSON.stringify(defaultSavedRoomPrefs()) : previousPrefs);
+    localStorage.setItem("kokoroCustomRoomPalettesBeforeCloudImport", previousPalettes === null ? "[]" : previousPalettes);
     localStorage.setItem("kokoroRoom", JSON.stringify(data.currentRoom));
     localStorage.setItem("kokoroSavedRooms", JSON.stringify(data.savedRooms));
     localStorage.setItem("kokoroSavedRoomPrefs", JSON.stringify(incomingPrefs));
+    localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY, JSON.stringify(incomingPalettes));
+    if (typeof window.renderCustomRoomPalettes === "function") window.renderCustomRoomPalettes();
     return true;
   } catch (writeError) {
     try {
@@ -3806,6 +3814,9 @@ function storeCloudDataSafely(data, previousDisplayRoom) {
       else localStorage.setItem("kokoroSavedRooms", previousSavedRooms);
       if (previousPrefs === null) localStorage.removeItem("kokoroSavedRoomPrefs");
       else localStorage.setItem("kokoroSavedRoomPrefs", previousPrefs);
+      if (previousPalettes === null) localStorage.removeItem(CUSTOM_ROOM_PALETTE_KEY);
+      else localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY, previousPalettes);
+      if (typeof window.renderCustomRoomPalettes === "function") window.renderCustomRoomPalettes();
     } catch (rollbackError) {
       console.error("Cloud import rollback failed", rollbackError);
       throw new Error("端末への保存と元データの復元に失敗しました。ブラウザの保存領域を消去せず、復旧用コピーを確認してください。");
