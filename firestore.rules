@@ -146,8 +146,7 @@ service cloud.firestore {
             resource.data.status == 'active'
             && !blockedBetween(request.auth.uid, resource.data.authorUid)
             && (
-              (resource.data.visibility == 'public'
-                && get(/databases/$(database)/documents/profiles/$(resource.data.authorUid)).data.visibility == 'public')
+              (resource.data.visibility == 'public')
               || (resource.data.visibility == 'friends'
                 && acceptedFriend(request.auth.uid, resource.data.authorUid))
             )
