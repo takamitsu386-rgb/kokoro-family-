@@ -110,6 +110,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="familyTaskCompleteAll">未完了をすべて完了</button><button type="button" id="familyTaskClearDone">完了した項目を整理</button><button type="button" id="familyTaskResetFilters">絞り込みを解除</button>
 </div>
 <p id="familyTaskSummary" role="status" aria-live="polite">タスクを読み込んでいます。</p>
+<h3>今後7日間のやること</h3>
+<div id="familyTaskWeekOverview" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"></div>
 <ul id="familyTaskList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="family-calendar">
@@ -5867,6 +5869,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const searchInput = document.getElementById("familyTaskSearch");
   const listEl = document.getElementById("familyTaskList");
   const summaryEl = document.getElementById("familyTaskSummary");
+  const weekOverview=document.getElementById("familyTaskWeekOverview");
   const clearButton = document.getElementById("familyTaskClearDone");
   const completeAllButton = document.getElementById("familyTaskCompleteAll");
   const resetFiltersButton = document.getElementById("familyTaskResetFilters");
@@ -5958,6 +5961,19 @@ snsRefreshPosts.addEventListener("click", async () => {
     const dueToday = tasks.filter(isToday).length;
     const upcoming = tasks.filter(isUpcoming).length;
     summaryEl.textContent = "全" + tasks.length + "件・未完了" + (tasks.length-done) + "件・期限切れ" + overdue + "件・今日" + dueToday + "件・今後" + upcoming + "件・完了" + done + "件";
+    weekOverview.replaceChildren();
+    for(let offset=0;offset<7;offset++){
+      const day=new Date(today+"T00:00:00");day.setDate(day.getDate()+offset);
+      const date=[day.getFullYear(),String(day.getMonth()+1).padStart(2,"0"),String(day.getDate()).padStart(2,"0")].join("-");
+      const card=document.createElement("section");card.style.cssText="padding:10px;border:1px solid #e4e7ef;border-radius:10px;background:#fff;display:grid;gap:6px";
+      const heading=document.createElement("strong");heading.textContent=(offset===0?"今日・":"")+date.replaceAll("-","/")+"（"+["日","月","火","水","木","金","土"][day.getDay()]+"）";card.append(heading);
+      const dayTasks=tasks.filter(task=>!task.completed&&task.dueDate===date).sort((a,b)=>priorityRank[a.priority]-priorityRank[b.priority]||a.title.localeCompare(b.title,"ja"));
+      if(!dayTasks.length){const empty=document.createElement("small");empty.textContent="期限のある項目なし";empty.style.color="#667085";card.append(empty);}
+      dayTasks.forEach(task=>{const line=document.createElement("p");line.style.cssText="margin:0;font-size:0.92em";const priority=document.createElement("span");priority.style.fontWeight="600";priority.textContent="["+priorities[task.priority]+"] ";const title=document.createElement("span");title.textContent=task.title;line.append(priority,title);card.append(line);});
+      const addDay=document.createElement("button");addDay.type="button";addDay.textContent="この日を期限に設定";
+      addDay.addEventListener("click",()=>{dueInput.value=date;filterInput.value="open";titleInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});render();});
+      card.append(addDay);weekOverview.append(card);
+    }
     listEl.replaceChildren();
     if (!visible.length) {
       const empty = document.createElement("li");
