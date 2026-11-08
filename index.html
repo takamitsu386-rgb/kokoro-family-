@@ -783,11 +783,19 @@ const apply=document.createElement('button');
 apply.type='button';apply.textContent='🎨 '+palette.name;
 apply.setAttribute('aria-label',palette.name+' の配色を適用');
 apply.addEventListener('click',()=>loadCustomRoomPalette(index));
+const wallOnly=document.createElement('button');
+wallOnly.type='button';wallOnly.textContent='壁だけ';
+wallOnly.setAttribute('aria-label',palette.name+' の壁色だけを適用');
+wallOnly.addEventListener('click',()=>loadCustomRoomPalettePart(index,'wall'));
+const floorOnly=document.createElement('button');
+floorOnly.type='button';floorOnly.textContent='床だけ';
+floorOnly.setAttribute('aria-label',palette.name+' の床色だけを適用');
+floorOnly.addEventListener('click',()=>loadCustomRoomPalettePart(index,'floor'));
 const remove=document.createElement('button');
 remove.type='button';remove.textContent='削除';
 remove.setAttribute('aria-label',palette.name+' の配色を削除');
 remove.addEventListener('click',()=>deleteCustomRoomPalette(index));
-group.append(apply,remove);root.appendChild(group);
+group.append(apply,wallOnly,floorOnly,remove);root.appendChild(group);
 });
 }
 function saveCustomRoomPalette(){
@@ -816,6 +824,17 @@ if(!commitStyleChange(()=>{
 room.style.backgroundColor=palette.wall;document.getElementById('floor').style.backgroundColor=palette.floor;
 })){status.textContent='保存できなかったため、配色を変更しませんでした。';return;}
 status.textContent='「'+palette.name+'」を適用しました。壁紙と床の模様はそのままです。';
+}
+function loadCustomRoomPalettePart(index,target){
+const list=readCustomRoomPalettes(),status=document.getElementById('customRoomPaletteStatus');
+if(!Array.isArray(list)){status.textContent='保存済み配色を読み込めません。';return;}
+const palette=list[index];
+if(!palette||!['wall','floor'].includes(target)){status.textContent='選んだ配色を確認できません。';return;}
+if(!commitStyleChange(()=>{
+if(target==='wall')room.style.backgroundColor=palette.wall;
+else document.getElementById('floor').style.backgroundColor=palette.floor;
+})){status.textContent='保存できなかったため、色を変更しませんでした。';return;}
+status.textContent='「'+palette.name+'」の'+(target==='wall'?'壁':'床')+'の色だけを適用しました。';
 }
 function deleteCustomRoomPalette(index){
 const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
