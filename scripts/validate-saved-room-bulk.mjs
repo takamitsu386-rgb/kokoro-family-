@@ -428,3 +428,17 @@ assert.match(setRotationFunction,/selectedFurniture\.style\.rotate=next/,'Exact 
 assert.match(setRotationFunction,/if\(!autoSaveRoom\(\)\)/,'Exact rotation must persist and roll back on failure.');
 assert.match(setRotationFunction,/selectedFurniture\.style\.rotate=previous/,'Exact rotation must restore previous angle after save failure.');
 console.log('Saved room comparison CSV checks passed.');
+
+const exactSizeStart=source.indexOf('function setSelectedFurnitureSize(){');
+const exactSizeEnd=source.indexOf('function resizeSelected(',exactSizeStart);
+const exactSizeFunction=source.slice(exactSizeStart,exactSizeEnd);
+assert.notEqual(exactSizeStart,-1,'Room editor must provide an exact furniture size action.');
+assert.match(source,/id="furnitureExactSize"[^>]*min="20"[^>]*max="80"[^>]*step="1"/,'Exact furniture size input must be limited to integer pixels from 20 to 80.');
+assert.match(source,/setSelectedFurnitureSize\(\)/,'Room editor must expose exact furniture size application.');
+assert.match(exactSizeFunction,/Number\.isInteger\(size\)/,'Exact furniture size must be an integer.');
+assert.match(exactSizeFunction,/size<20\|\|size>80/,'Exact furniture size must reject values outside 20–80.');
+assert.match(exactSizeFunction,/selectedFurniture\.style\.fontSize=size\+'px'/,'Exact furniture size must update the selected item.');
+assert.match(exactSizeFunction,/if\(!autoSaveRoom\(\)\)/,'Exact furniture size must persist and roll back on failure.');
+assert.match(exactSizeFunction,/selectedFurniture\.style\.fontSize=previous/,'Exact furniture size must restore the previous size after save failure.');
+assert.match(exactSizeFunction,/previousLeft/,'Exact furniture size must preserve the original position for rollback.');
+assert.match(exactSizeFunction,/room\.contains\(selectedFurniture\)/,'Exact furniture size must reject stale selections.');
