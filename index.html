@@ -3517,15 +3517,33 @@ snsAddBlock.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
   try {
     await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), {
       createdAt: serverTimestamp()
     });
-    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) throw new Error("アカウントが切り替わりました。");
+    const [ownedShares, receivedShares] = await Promise.all([
+      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(200))),
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(200)))
+    ]);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const revokedShares = new Map();
+    ownedShares.docs.filter(snap => snap.data().recipientUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    receivedShares.docs.filter(snap => snap.data().ownerUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    if (revokedShares.size) {
+      const batch = writeBatch(snsDb);
+      for (const [shareId, share] of revokedShares) {
+        batch.delete(doc(snsDb, "sharedRooms", shareId));
+        batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+      }
+      await batch.commit();
+    }
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsBlockUid.value = "";
-    await snsLoadBlocks(user);
-    snsMessage("ブロックしました。相手の公開プロフィールや投稿は表示されなくなります。");
+    await Promise.all([snsLoadBlocks(user), snsLoadSharedRooms(user, authGeneration)]);
+    snsMessage("ブロックしました。相手の公開プロフィールや投稿に加え、お部屋の共有も解除しました。");
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS block failed", error);
