@@ -78,13 +78,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
 </section>
 <section class="panel" id="family-tasks">
 <h2>📝 家族のやることリスト</h2>
@@ -105,6 +105,27 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <p id="familyTaskSummary" role="status" aria-live="polite">タスクを読み込んでいます。</p>
 <ul id="familyTaskList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
+</section>
+<section class="panel" id="family-calendar">
+<h2>📅 家族の予定カレンダー</h2>
+<p>家族の予定や約束を日付ごとにまとめられます。予定はこの端末のブラウザー内に保存されます（クラウド同期・家族間共有には未対応です）。個人情報や詳しい住所は書かないようにしてください。</p>
+<form id="familyCalendarForm" style="display:grid;gap:8px">
+<label for="familyCalendarTitle">予定（80文字以内）</label>
+<input id="familyCalendarTitle" maxlength="80" required placeholder="例：家族で映画を見る">
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<label>日付<input id="familyCalendarDate" type="date" required></label>
+<label>時刻（任意）<input id="familyCalendarTime" type="time"></label>
+</div>
+<label for="familyCalendarPlace">場所・メモ（60文字以内）</label>
+<input id="familyCalendarPlace" maxlength="60" placeholder="例：自宅・持ち物を確認">
+<button class="primary" type="submit">予定を追加</button>
+</form>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
+<label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
+<button type="button" id="familyCalendarClearDone">完了した予定を整理</button>
+</div>
+<p id="familyCalendarSummary" role="status" aria-live="polite">予定を読み込んでいます。</p>
+<ul id="familyCalendarList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="family-shopping">
 <h2>🛒 家族のお買い物リスト</h2>
@@ -5982,6 +6003,118 @@ snsRefreshPosts.addEventListener("click", async () => {
     if(count&&confirm("購入済みの"+count+"件を削除しますか？"))save(entries.filter(item=>!item.bought));
   });
 })();
+
+(() => {
+  const KEY = "kokoroFamilyCalendarV1", LIMIT = 100;
+  const form = document.getElementById("familyCalendarForm");
+  if (!form) return;
+  const titleInput = document.getElementById("familyCalendarTitle");
+  const dateInput = document.getElementById("familyCalendarDate");
+  const timeInput = document.getElementById("familyCalendarTime");
+  const placeInput = document.getElementById("familyCalendarPlace");
+  const filterInput = document.getElementById("familyCalendarFilter");
+  const listEl = document.getElementById("familyCalendarList");
+  const summaryEl = document.getElementById("familyCalendarSummary");
+  const clearButton = document.getElementById("familyCalendarClearDone");
+  const today = () => {
+    const now = new Date();
+    return now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+  };
+  const validDate = value => {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(value+"T00:00:00");
+    return !Number.isNaN(parsed.getTime()) && parsed.getFullYear()+"-"+String(parsed.getMonth()+1).padStart(2,"0")+"-"+String(parsed.getDate()).padStart(2,"0") === value;
+  };
+  dateInput.value = today();
+  let entries = [], ready = false;
+  function validEvent(item) {
+    return !!item && typeof item === "object" &&
+      typeof item.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(item.id) &&
+      typeof item.title === "string" && item.title.trim().length >= 1 && item.title.length <= 80 &&
+      validDate(item.date) && typeof item.time === "string" && (item.time === "" || /^([01]\d|2[0-3]):[0-5]\d$/.test(item.time)) &&
+      typeof item.place === "string" && item.place.length <= 60 &&
+      typeof item.done === "boolean" && Number.isSafeInteger(item.createdAt) && item.createdAt > 0;
+  }
+  function readEntries() {
+    const raw = localStorage.getItem(KEY);
+    if (raw === null) return [];
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data) || data.length > LIMIT || !data.every(validEvent) ||
+        new Set(data.map(item=>item.id)).size !== data.length) throw new Error("invalid family calendar");
+    return data;
+  }
+  function save(next) {
+    if (!ready || !Array.isArray(next) || next.length > LIMIT || !next.every(validEvent) ||
+        new Set(next.map(item=>item.id)).size !== next.length) {
+      summaryEl.textContent = "保存データを確認できないため、変更を保留しました。";
+      return false;
+    }
+    const previous = JSON.stringify(entries);
+    try { localStorage.setItem(KEY,JSON.stringify(next)); entries=next; render(); return true; }
+    catch(error) {
+      try { if(previous==="[]") localStorage.removeItem(KEY); else localStorage.setItem(KEY,previous); }
+      catch(rollbackError) { console.error("Family calendar rollback failed",rollbackError); }
+      summaryEl.textContent = "保存できませんでした。端末の空き容量を確認してください。";
+      return false;
+    }
+  }
+  function render() {
+    const filter=filterInput.value, current=today();
+    const visible=entries.filter(item=>filter==="all"||(filter==="done"?item.done:!item.done&&item.date>=current))
+      .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)||a.createdAt-b.createdAt);
+    const done=entries.filter(item=>item.done).length;
+    summaryEl.textContent="全"+entries.length+"件・これからの予定"+entries.filter(item=>!item.done&&item.date>=current).length+"件・完了"+done+"件";
+    listEl.replaceChildren();
+    if(!visible.length) {
+      const empty=document.createElement("li");
+      empty.textContent=entries.length?"この表示条件に合う予定はありません。":"まだ予定がありません。上から追加できます。";
+      listEl.append(empty);
+    }
+    for(const item of visible) {
+      const li=document.createElement("li");
+      li.style.cssText="padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:7px";
+      const row=document.createElement("div");
+      row.style.cssText="display:flex;gap:8px;align-items:center;flex-wrap:wrap";
+      const checkbox=document.createElement("input");
+      checkbox.type="checkbox";checkbox.checked=item.done;
+      checkbox.setAttribute("aria-label",item.title+"を完了にする");
+      checkbox.addEventListener("change",()=>save(entries.map(entry=>entry.id===item.id?{...entry,done:checkbox.checked}:entry)));
+      const title=document.createElement("strong");title.textContent=item.title;
+      if(item.done)title.style.textDecoration="line-through";
+      row.append(checkbox,title);
+      const meta=document.createElement("small");meta.style.color="#667085";
+      meta.textContent=item.date.replaceAll("-","/")+(item.time?"・"+item.time:"")+(item.place?"・"+item.place:"");
+      const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
+      remove.addEventListener("click",()=>{if(confirm("「"+item.title+"」を削除しますか？"))save(entries.filter(entry=>entry.id!==item.id));});
+      li.append(row,meta,remove);listEl.append(li);
+    }
+    clearButton.disabled=done===0;
+    titleInput.disabled=entries.length>=LIMIT;
+    form.querySelector('button[type="submit"]').disabled=entries.length>=LIMIT;
+  }
+  try { entries=readEntries();ready=true;render(); }
+  catch(error) {
+    console.error("Family calendar validation failed",error);
+    summaryEl.textContent="保存データに問題があるため、上書きせず保護しました。";
+    form.querySelectorAll("input,select,button").forEach(control=>control.disabled=true);
+    filterInput.disabled=false;return;
+  }
+  form.addEventListener("submit",event=>{
+    event.preventDefault();
+    const title=titleInput.value.trim(),date=dateInput.value,time=timeInput.value,place=placeInput.value.trim();
+    if(!title||title.length>80||!validDate(date)||(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))||place.length>60||entries.length>=LIMIT)return;
+    const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"event_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+    if(save([...entries,{id,title,date,time,place,done:false,createdAt:Date.now()}])) {
+      titleInput.value="";timeInput.value="";placeInput.value="";titleInput.focus();
+    }
+  });
+  filterInput.addEventListener("change",render);
+  clearButton.addEventListener("click",()=>{
+    const count=entries.filter(item=>item.done).length;
+    if(count&&confirm("完了した"+count+"件の予定を削除しますか？"))save(entries.filter(item=>!item.done));
+  });
+})();
+
 </script>
 
 </body>
