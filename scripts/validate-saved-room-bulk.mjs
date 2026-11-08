@@ -254,3 +254,12 @@ assert.match(summary,/data\.items\.forEach/,'Summary must calculate furniture br
 assert.match(summary,/textContent=/,'Summary must render text safely.');
 assert.match(summary,/readSavedRoomPrefs\(\)/,'Summary must include saved category and notes when available.');
 console.log('Saved room summary checks passed.');
+
+const downloadSummary=source.slice(source.indexOf('function downloadSavedRoomSummary()'),source.indexOf('function showSavedRoomSummary()'));
+assert.match(source,/onclick="downloadSavedRoomSummary\(\)"/,'Saved room text export control must exist.');
+assert.match(downloadSummary,/validRoomData\(rooms\[name\]\)/,'Text export must validate selected room.');
+assert.match(downloadSummary,/new Blob/,'Text export must create a downloadable text file.');
+assert.match(downloadSummary,/text\/plain;charset=utf-8/,'Text export must use UTF-8 plain text.');
+assert.match(downloadSummary,/URL\.revokeObjectURL/,'Text export must release its temporary object URL.');
+assert.match(downloadSummary,/prefs\.notes\[name\]/,'Text export must include saved notes.');
+console.log('Saved room text export checks passed.');
