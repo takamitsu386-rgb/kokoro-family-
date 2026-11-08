@@ -1935,7 +1935,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||''
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||''
 }))
 };
 }
