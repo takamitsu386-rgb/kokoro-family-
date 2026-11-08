@@ -94,6 +94,7 @@ assert.match(compareHandler, /matchMedia.*max-width:520px/, 'Comparison layout m
 assert.match(compareHandler, /new Map\(\)/, 'Furniture counts must be grouped by furniture type.');
 assert.match(compareHandler, /家具の内訳：/, 'Each comparison card must show furniture breakdown.');
 assert.match(compareHandler, /共通の家具種類：/, 'Comparison summary must identify shared furniture types.');
+assert.match(compareHandler, /壁の色：.*床の色：/, 'Comparison summary must identify wall and floor color differences.');
 assert.match(compareHandler, /だけ：/, 'Comparison summary must identify furniture unique to each room.');
 assert.match(compareHandler, /textContent=/, 'User-controlled room data must be rendered as text.');
 console.log('Saved room visual comparison and responsive summary checks passed.');
