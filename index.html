@@ -298,6 +298,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="exportRoomFurnitureReport()">📊 家具の内訳をCSVで書き出す</button>
 <div id="roomFurnitureReport" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px;background:#fafaff"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
+<h3>家具の向きを反転</h3>
+<button type="button" onclick="toggleSelectedFurnitureFlip('horizontal')">↔️ 左右反転</button>
+<button type="button" onclick="toggleSelectedFurnitureFlip('vertical')">↕️ 上下反転</button>
+<button type="button" onclick="resetSelectedFurnitureFlip()">反転をリセット</button>
 <h3>家具の透明度</h3>
 <label for="furnitureOpacity">透明度（20〜100％）</label>
 <input id="furnitureOpacity" type="number" min="20" max="100" step="1" value="100" inputmode="numeric" style="width:100px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
@@ -900,7 +904,7 @@ function setAllFurnitureLocked(locked){
  const status=document.getElementById('selectedMessage');
  const items=[...room.querySelectorAll('.furniture')];
  if(!items.length){status.textContent='お部屋に家具がありません。';return;}
- const previous=items.map(el=>({el,locked:el.dataset.locked==='true',opacity:el.style.opacity}));
+ const previous=items.map(el=>({el,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true'}));
  const changed=previous.filter(item=>item.locked!==locked);
  if(!changed.length){status.textContent=locked?'すべての家具はすでに固定されています。':'固定中の家具はありません。';return;}
  const updateHandle=(el,isLocked)=>{
@@ -1539,6 +1543,52 @@ return;
 }
 document.getElementById('selectedMessage').textContent='選択した家具の向きを0°に戻しました。「1つ戻す」で元に戻せます。';
 }
+function toggleSelectedFurnitureFlip(axis){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に反転したい家具をタップしてね。';return;
+ }
+ if(axis!=='horizontal'&&axis!=='vertical'){
+  status.textContent='反転方向を確認できません。';return;
+ }
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(!icon){status.textContent='家具の表示を確認できません。';return;}
+ const previousX=selectedFurniture.dataset.flipX==='true';
+ const previousY=selectedFurniture.dataset.flipY==='true';
+ const nextX=axis==='horizontal'?!previousX:previousX;
+ const nextY=axis==='vertical'?!previousY:previousY;
+ if(nextX)selectedFurniture.dataset.flipX='true';else delete selectedFurniture.dataset.flipX;
+ if(nextY)selectedFurniture.dataset.flipY='true';else delete selectedFurniture.dataset.flipY;
+ icon.style.transform=nextX||nextY?'scale('+(nextX?-1:1)+', '+(nextY?-1:1)+')':'';
+ if(!autoSaveRoom()){
+  if(previousX)selectedFurniture.dataset.flipX='true';else delete selectedFurniture.dataset.flipX;
+  if(previousY)selectedFurniture.dataset.flipY='true';else delete selectedFurniture.dataset.flipY;
+  icon.style.transform=previousX||previousY?'scale('+(previousX?-1:1)+', '+(previousY?-1:1)+')':'';
+  status.textContent='保存できなかったため、家具の向きを元に戻しました。';return;
+ }
+ status.textContent=axis==='horizontal'?'家具を左右反転しました。「1つ戻す」で元に戻せます。':'家具を上下反転しました。「1つ戻す」で元に戻せます。';
+}
+function resetSelectedFurnitureFlip(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に反転を戻したい家具をタップしてね。';return;
+ }
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(!icon){status.textContent='家具の表示を確認できません。';return;}
+ const previousX=selectedFurniture.dataset.flipX==='true';
+ const previousY=selectedFurniture.dataset.flipY==='true';
+ if(!previousX&&!previousY){status.textContent='この家具は反転していません。';return;}
+ delete selectedFurniture.dataset.flipX;
+ delete selectedFurniture.dataset.flipY;
+ icon.style.transform='';
+ if(!autoSaveRoom()){
+  if(previousX)selectedFurniture.dataset.flipX='true';
+  if(previousY)selectedFurniture.dataset.flipY='true';
+  icon.style.transform='scale('+(previousX?-1:1)+', '+(previousY?-1:1)+')';
+  status.textContent='保存できなかったため、反転状態を元に戻しました。';return;
+ }
+ status.textContent='家具の反転をリセットしました。「1つ戻す」で元に戻せます。';
+}
 function setSelectedFurnitureOpacity(){
  const status=document.getElementById('selectedMessage');
  if(!selectedFurniture||!room.contains(selectedFurniture)){
@@ -1813,7 +1863,9 @@ validPosition(item.left)&&validPosition(item.top)&&
 (item.size===undefined||validSize(item.size))&&
 (item.zIndex===undefined||validLayer(item.zIndex))&&
  (item.locked===undefined||typeof item.locked==='boolean')&&
- (item.opacity===undefined||(typeof item.opacity==='string'&&/^(?:0\.[2-9]\d*|1(?:\.0+)?)$/.test(item.opacity)&&Number(item.opacity)>=0.2&&Number(item.opacity)<=1)));
+ (item.opacity===undefined||(typeof item.opacity==='string'&&/^(?:0\.[2-9]\d*|1(?:\.0+)?)$/.test(item.opacity)&&Number(item.opacity)>=0.2&&Number(item.opacity)<=1))&&
+ (item.flipX===undefined||typeof item.flipX==='boolean')&&
+ (item.flipY===undefined||typeof item.flipY==='boolean'));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
@@ -1856,6 +1908,10 @@ el.style.left=v.left;el.style.top=v.top;
 if(v.size)el.style.fontSize=v.size;
 if(v.zIndex)el.style.zIndex=v.zIndex;
 if(v.opacity)el.style.opacity=v.opacity;
+ if(v.flipX===true)el.dataset.flipX='true';
+ if(v.flipY===true)el.dataset.flipY='true';
+ const restoredIcon=el.querySelector('.item-icon');
+ if(restoredIcon&&(v.flipX===true||v.flipY===true))restoredIcon.style.transform='scale('+(v.flipX===true?-1:1)+', '+(v.flipY===true?-1:1)+')';
 if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
 const maxTop=Math.max(0,room.clientHeight-el.offsetHeight);
