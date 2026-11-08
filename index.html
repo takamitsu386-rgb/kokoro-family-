@@ -284,6 +284,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <select id="savedRooms" aria-label="保存したお部屋" onchange="previewSavedRoom();loadSavedRoomNote()"><option value="">保存したお部屋を選ぶ</option></select>
 <p id="savedRoomCount" role="status" aria-live="polite">💾 保存したお部屋：0個</p>
 <div id="savedRoomGallery" aria-label="保存したお部屋のビジュアル一覧" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin:12px 0"></div>
+<label for="savedRoomSearch">お部屋を名前・カテゴリ・メモで検索</label>
+<input id="savedRoomSearch" type="search" maxlength="80" placeholder="例：寝室、春、模様替えメモ" oninput="refreshSavedRooms()" autocomplete="off" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit;margin:6px 0">
 <label for="savedRoomCategoryFilter">カテゴリで絞り込み</label>
 <select id="savedRoomCategoryFilter" onchange="refreshSavedRooms()"><option value="">すべてのカテゴリ</option></select>
 <label for="savedRoomCategoryName">選んだお部屋のカテゴリ</label>
@@ -1158,9 +1160,18 @@ const allNames=Object.keys(rooms);
 const categories=prefs?prefs.categories:{};
 const filter=document.getElementById('savedRoomCategoryFilter');
 const selectedCategory=filter?filter.value:'';
+const searchField=document.getElementById('savedRoomSearch');
+const searchQuery=searchField?searchField.value.trim().toLocaleLowerCase('ja-JP'):'';
 const categoryNames=[...new Set(allNames.map(name=>categories[name]).filter(value=>typeof value==='string'&&value.trim()))].sort((a,b)=>a.localeCompare(b,'ja'));
 if(filter){const previous=filter.value;filter.replaceChildren();const allOption=document.createElement('option');allOption.value='';allOption.textContent='すべてのカテゴリ';filter.appendChild(allOption);categoryNames.forEach(category=>{const option=document.createElement('option');option.value=category;option.textContent=category;filter.appendChild(option);});if(categoryNames.includes(previous))filter.value=previous;}
-const names=allNames.filter(name=>!selectedCategory||categories[name]===selectedCategory);
+const notes=prefs?prefs.notes:{};
+const names=allNames.filter(name=>{
+const categoryMatch=!selectedCategory||categories[name]===selectedCategory;
+if(!categoryMatch)return false;
+if(!searchQuery)return true;
+const searchable=[name,categories[name]||'',notes[name]||''].join(' ').toLocaleLowerCase('ja-JP');
+return searchable.includes(searchQuery);
+});
 const favorites=prefs?prefs.favorites.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
 const order=prefs?prefs.order.filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)):[];
 names.sort((a,b)=>{
@@ -1178,7 +1189,7 @@ const option=document.createElement('option');option.value=name;option.textConte
 });
 if(Object.prototype.hasOwnProperty.call(rooms,current))select.value=current;
 loadSavedRoomNote();
-document.getElementById('savedRoomCount').textContent='💾 表示中：'+names.length+'個 ／ 全 '+allNames.length+'個'+(favorites.length?'（⭐ お気に入り '+favorites.length+'個）':'')+(selectedCategory?'・カテゴリ：'+selectedCategory:'')+(prefs===null?'・設定データに問題があります。既存データは保護しています。':'');
+document.getElementById('savedRoomCount').textContent='💾 表示中：'+names.length+'個 ／ 全 '+allNames.length+'個'+(favorites.length?'（⭐ お気に入り '+favorites.length+'個）':'')+(selectedCategory?'・カテゴリ：'+selectedCategory:'')+(searchQuery?'・検索：'+searchQuery:'')+(prefs===null?'・設定データに問題があります。既存データは保護しています。':'');
 renderSavedRoomGallery(names,rooms,prefs);
 
 const bulkList=document.getElementById('bulkSavedRoomList');
