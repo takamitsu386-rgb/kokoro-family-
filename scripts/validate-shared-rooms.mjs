@@ -63,3 +63,7 @@ assert.match(html, /if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGe
 
 assert.match(html, /removeShare\.addEventListener\("click", async \(\) => \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration \|\| snsBusy\) return;[\s\S]*?const operationGeneration = snsSetBusy\(true\);[\s\S]*?snsReleaseBusyFor\(user, operationGeneration\);/);
 assert.match(html, /if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration\) return;\s*console\.error\("Shared room removal failed"/);
+
+assert.match(html, /getDocs\(query\(collection\(snsDb, "users", user\.uid, "sharedRooms"\), limit\(50\)\)\)/);
+assert.match(html, /if \(ownerShares\.size >= 50\) throw new Error\("共有できるお部屋は50件までです。不要な共有を解除してください。"\)/);
+assert.doesNotMatch(html, /where\("recipientUid", "==", recipientUid\)/, "Share creation must not read another user's private received-share list.");
