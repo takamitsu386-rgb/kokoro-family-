@@ -2930,7 +2930,7 @@ async function snsLoadPosts(user, authGeneration = snsAuthGeneration) {
 }
 async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
   const [incoming, outgoing] = await Promise.all([
-    getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid), where("status", "==", "pending"))),
+    getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
     getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
@@ -2939,17 +2939,23 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
   const addEmpty = (container, message) => {
     const p = document.createElement("p"); p.textContent = message; container.appendChild(p);
   };
-  if (incoming.empty) addEmpty(snsIncomingFriends, "届いている申請はありません。");
-  for (const snap of incoming.docs) {
+  const incomingVisible = incoming.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status));
+  if (!incomingVisible.length) addEmpty(snsIncomingFriends, "届いている申請はありません。");
+  for (const snap of incomingVisible) {
     const data = snap.data();
     const row = document.createElement("div");
     row.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0";
-    const label = document.createElement("span"); label.textContent = "申請者：" + data.fromUid;
-    const accept = document.createElement("button"); accept.type = "button"; accept.textContent = "承認";
-    const decline = document.createElement("button"); decline.type = "button"; decline.textContent = "辞退";
-    accept.addEventListener("click", () => snsDecideFriendRequest(snap.id, "accepted"));
-    decline.addEventListener("click", () => snsDecideFriendRequest(snap.id, "declined"));
-    row.append(label, accept, decline); snsIncomingFriends.appendChild(row);
+    const label = document.createElement("span");
+    label.textContent = data.status === "accepted" ? "友達：" + data.fromUid : "申請者：" + data.fromUid;
+    row.appendChild(label);
+    if (data.status === "pending") {
+      const accept = document.createElement("button"); accept.type = "button"; accept.textContent = "承認";
+      const decline = document.createElement("button"); decline.type = "button"; decline.textContent = "辞退";
+      accept.addEventListener("click", () => snsDecideFriendRequest(snap.id, "accepted"));
+      decline.addEventListener("click", () => snsDecideFriendRequest(snap.id, "declined"));
+      row.append(accept, decline);
+    }
+    snsIncomingFriends.appendChild(row);
   }
   const pendingOutgoing = outgoing.docs.filter(snap => snap.data().status === "pending");
   const accepted = outgoing.docs.filter(snap => snap.data().status === "accepted");
@@ -2971,9 +2977,6 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
       row.appendChild(cancel);
     }
     snsOutgoingFriends.appendChild(row);
-  }
-  for (const snap of incoming.docs) {
-    if (snap.data().status === "accepted") continue;
   }
 }
 async function snsDecideFriendRequest(requestId, status) {
