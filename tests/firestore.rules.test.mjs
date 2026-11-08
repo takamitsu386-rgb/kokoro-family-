@@ -852,3 +852,54 @@ describe('SNS features not yet implemented remain denied', () => {
     });
   }
 });
+
+
+describe('shared room snapshots', () => {
+  before(async () => {
+    await seed('friendRequests/room-owner_room-recipient', {
+      fromUid: 'room-owner', toUid: 'room-recipient', status: 'accepted',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('sharedRooms/room-share-1', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Family room',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
+  });
+
+  it('allows only the owner and recipient to read their shared snapshot', async () => {
+    const owner = testEnv.authenticatedContext('room-owner').firestore();
+    const recipient = testEnv.authenticatedContext('room-recipient').firestore();
+    const stranger = testEnv.authenticatedContext('room-stranger').firestore();
+    await assertSucceeds(getDoc(doc(owner, 'sharedRooms/room-share-1')));
+    await assertSucceeds(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
+    await assertSucceeds(getDocs(query(collection(recipient, 'sharedRooms'), where('recipientUid', '==', 'room-recipient'))));
+    await assertFails(getDoc(doc(stranger, 'sharedRooms/room-share-1')));
+    await assertFails(getDocs(query(collection(stranger, 'sharedRooms'), where('recipientUid', '==', 'room-stranger'))));
+  });
+
+  it('allows an owner to create a bounded snapshot only for an accepted friend', async () => {
+    const owner = testEnv.authenticatedContext('room-owner').firestore();
+    await assertSucceeds(setDoc(doc(owner, 'sharedRooms/room-share-2'), {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'My room',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(owner, 'sharedRooms/room-share-3'), {
+      ownerUid: 'room-owner', recipientUid: 'room-stranger', title: 'Not a friend',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(owner, 'sharedRooms/room-share-4'), {
+      ownerUid: 'room-recipient', recipientUid: 'room-owner', title: 'Spoofed owner',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(owner, 'sharedRooms/room-share-1'), { title: 'Changed' }));
+  });
+
+  it('allows only the owner to revoke a shared snapshot and blocks either direction', async () => {
+    await seed('users/room-owner/blocks/room-recipient', { createdAt: new Date() });
+    const recipient = testEnv.authenticatedContext('room-recipient').firestore();
+    const owner = testEnv.authenticatedContext('room-owner').firestore();
+    await assertFails(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
+    await assertFails(deleteDoc(doc(recipient, 'sharedRooms/room-share-1')));
+    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));
+  });
+});
