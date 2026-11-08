@@ -353,7 +353,7 @@ exports.searchPublicProfiles = onRequest({
     if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
     const decoded = await getAuth().verifyIdToken(match[1], true);
     const prefix = typeof req.body?.prefix === "string" ? req.body.prefix.trim() : "";
-    if (prefix.length < 2 || prefix.length > 24 || /[\\u0000-\\u001f]/.test(prefix)) {
+    if (prefix.length < 2 || prefix.length > 24 || /[\u0000-\u001f]/.test(prefix)) {
       return sendJson(res, 400, { error: "ニックネームを2〜24文字で入力してください。" });
     }
 
@@ -381,7 +381,7 @@ exports.searchPublicProfiles = onRequest({
         .where("visibility", "==", "public")
         .orderBy("nickname")
         .startAt(prefix)
-        .endAt(prefix + "\\uf8ff")
+        .endAt(prefix + "\uf8ff")
         .limit(10)
         .get(),
       db.collection("users").doc(decoded.uid).collection("blocks").get()
