@@ -6030,7 +6030,7 @@ snsRefreshPosts.addEventListener("click", async () => {
         if(row.length!==5)throw new Error("invalid CSV columns");
         const [title,category,priority,dueDate,state]=row;
         if(!title.trim()||title.trim().length>80||!Object.hasOwn(categoryMap,category)||!Object.hasOwn(priorityMap,priority)||
-          (dueDate!==""&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||Number.isNaN(Date.parse(dueDate))))||
+          (dueDate!==""&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||(()=>{const [year,month,day]=dueDate.split("-").map(Number);const date=new Date(Date.UTC(year,month-1,day));return date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day;})()))||
           !["完了","未完了"].includes(state))throw new Error("invalid task row");
         return {title:title.trim(),category:categoryMap[category],priority:priorityMap[priority],dueDate,completed:state==="完了"};
       });
