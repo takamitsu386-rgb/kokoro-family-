@@ -379,4 +379,12 @@ assert.match(source,/#furnitureGridOverlay\{[^}]*pointer-events:none/,'The visua
 assert.match(source,/#furnitureGridOverlay\[hidden\]\{display:none\}/,'The visual grid must respect its hidden state.');
 assert.match(gridSnapCode,/overlay\.hidden=!furnitureGridSnapEnabled/,'The visual grid must appear and disappear with grid snap mode.');
 assert.match(source,/#furnitureGridOverlay\{[^}]*background-size:20px 20px/,'The visible grid must match the 20px snap interval.');
+
+const gridSizeFunction=source.slice(source.indexOf('function setFurnitureGridSize('),source.indexOf('function toggleFurnitureGridSnap()'));
+assert.match(source,/id="furnitureGridSize"/,'Room editor must expose grid spacing choices.');
+assert.match(gridSizeFunction,/\[10,20,40\]\.includes\(next\)/,'Grid spacing must be limited to supported safe intervals.');
+assert.match(gridSizeFunction,/overlay\.style\.backgroundSize=next\+'px '\+next\+'px'/,'Visible grid spacing must update when the interval changes.');
+assert.match(gridSizeFunction,/FURNITURE_GRID_SIZE=next/,'Selected grid spacing must update the snap interval.');
+assert.match(source,/background-size:var\(--furniture-grid-size,20px\)/,'The grid overlay must use the selected spacing.');
+assert.match(source,/家具を'\+FURNITURE_GRID_SIZE\+'px間隔/,'The status message must announce the active grid spacing.');
 console.log('Saved room comparison CSV checks passed.');
