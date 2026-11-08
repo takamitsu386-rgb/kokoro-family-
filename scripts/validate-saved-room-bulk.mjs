@@ -319,4 +319,14 @@ assert.match(spacingArrange,/spacingScale=1/,'Furniture arrangement must retain 
 assert.match(spacingArrange,/baseCenterX/,'Furniture arrangement must calculate horizontal grid centers.');
 assert.match(spacingArrange,/baseCenterY/,'Furniture arrangement must calculate vertical grid centers.');
 assert.match(spacingArrange,/spacingScale/,'Furniture arrangement must apply the selected spacing scale.');
+
+const distribution=source.slice(source.indexOf('function distributeFurnitureEvenly('),source.indexOf('function autoArrangeFurniture(spacingScale=1)'));
+assert.match(source,/distributeFurnitureEvenly\('horizontal'\)/,'Room editor must expose horizontal even distribution.');
+assert.match(source,/distributeFurnitureEvenly\('vertical'\)/,'Room editor must expose vertical even distribution.');
+assert.match(distribution,/items\.length<3/,'Even distribution must require at least three furniture items.');
+assert.match(distribution,/ordered\.sort|sort\(/,'Even distribution must sort furniture by current position.');
+assert.match(distribution,/firstCenter/,'Even distribution must preserve the outer center positions.');
+assert.match(distribution,/lastCenter/,'Even distribution must calculate the final center position.');
+assert.match(distribution,/autoSaveRoom\(\)/,'Even distribution must save through the existing room save path.');
+assert.match(distribution,/previous\.forEach/,'Even distribution must restore positions if saving fails.');
 console.log('Saved room comparison CSV checks passed.');
