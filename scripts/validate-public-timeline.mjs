@@ -17,7 +17,7 @@ assert.match(endpoint, /where\("visibility", "==", "public"\)/,
   'The timeline query must select public posts only.');
 assert.match(endpoint, /where\("status", "==", "active"\)/,
   'Deleted posts must never enter the timeline.');
-assert.match(endpoint, /orderBy\("createdAt", "desc"\)\.limit\(50\)/,
+assert.match(endpoint, /orderBy\("createdAt", "desc"\)\s*\.limit\(50\)/,
   'The timeline must be newest-first and bounded to 50 source posts.');
 assert.match(endpoint, /users"\)\.doc\(decoded\.uid\)\.collection\("blocks"\)/,
   'The viewer block list must be checked server-side.');
