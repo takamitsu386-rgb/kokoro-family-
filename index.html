@@ -304,6 +304,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <input id="furnitureExactSize" type="number" min="20" max="80" step="1" value="38" inputmode="numeric" style="width:100px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
 <button type="button" onclick="setSelectedFurnitureSize()">指定サイズにする</button>
 <button type="button" onclick="toggleSelectedFurnitureLock()">🔒 選択した家具を固定／解除</button>
+<button type="button" onclick="setAllFurnitureLocked(true)">🔒 部屋の家具をすべて固定</button>
+<button type="button" onclick="setAllFurnitureLocked(false)">🔓 すべての固定を解除</button>
 <button type="button" onclick="rotateSelected(-90)">↶ 左に90°回転</button>
 <button type="button" onclick="rotateSelected(90)">↷ 右に90°回転</button>
 <button type="button" onclick="rotateSelected(-15)">↶ 左に15°微調整</button>
@@ -882,6 +884,35 @@ if(button)button.setAttribute('aria-pressed','false');
 const activeButton=el.querySelector('.item-icon');
 if(activeButton)activeButton.setAttribute('aria-pressed','true');
 el.style.outline='2px dashed #6759d8';
+}
+function setAllFurnitureLocked(locked){
+ const status=document.getElementById('selectedMessage');
+ const items=[...room.querySelectorAll('.furniture')];
+ if(!items.length){status.textContent='お部屋に家具がありません。';return;}
+ const previous=items.map(el=>({el,locked:el.dataset.locked==='true'}));
+ const changed=previous.filter(item=>item.locked!==locked);
+ if(!changed.length){status.textContent=locked?'すべての家具はすでに固定されています。':'固定中の家具はありません。';return;}
+ const updateHandle=(el,isLocked)=>{
+  const handle=el.querySelector('.drag-handle');
+  if(!handle)return;
+  handle.setAttribute('aria-disabled',String(isLocked));
+  handle.setAttribute('aria-label',el.dataset.icon+(isLocked?' 固定中。移動できません':' を移動。矢印キーでも操作できます'));
+  handle.title=isLocked?'固定中':'ドラッグまたは矢印キーで移動';
+ };
+ changed.forEach(({el})=>{
+  if(locked)el.dataset.locked='true';
+  else delete el.dataset.locked;
+  updateHandle(el,locked);
+ });
+ if(!autoSaveRoom()){
+  previous.forEach(({el,locked:wasLocked})=>{
+   if(wasLocked)el.dataset.locked='true';
+   else delete el.dataset.locked;
+   updateHandle(el,wasLocked);
+  });
+  status.textContent='保存できなかったため、家具の固定状態をすべて元に戻しました。';return;
+ }
+ status.textContent=locked?'部屋の家具'+items.length+'個をまとめて固定しました。':'部屋の家具'+items.length+'個の固定をまとめて解除しました。';
 }
 function toggleSelectedFurnitureLock(){
  const status=document.getElementById('selectedMessage');
