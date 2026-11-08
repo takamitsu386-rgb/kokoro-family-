@@ -145,17 +145,17 @@ assert.match(html, /let snsAdminLoadGeneration = 0/,
   'Admin report queue loads must have an independent latest-request generation.');
 assert.match(html, /snsAdminLoadGeneration !== loadGeneration/,
   'Older admin report queue responses must not overwrite a newer filter or refresh result.');
-assert.match(html, /snsAuthGeneration !== authGeneration \\|\\| snsAdminLoadGeneration !== loadGeneration/,
+assert.match(html, /snsAuthGeneration !== authGeneration \|\| snsAdminLoadGeneration !== loadGeneration/,
   'Admin report queue responses must be discarded after same-UID auth transitions.');
-assert.match(html, /snsAdminUpdatingReports\\.has\\(report\\.id\\)/,
+assert.match(html, /snsAdminUpdatingReports\.has\(report\.id\)/,
   'Repeated review clicks for the same report must be blocked while its update is pending.');
-assert.match(html, /snsAdminUpdatingReports\\.add\\(report\\.id\\)/,
+assert.match(html, /snsAdminUpdatingReports\.add\(report\.id\)/,
   'A report must be locked before sending its review update.');
 assert.match(html, /if \(snsAuthGeneration === authGeneration\) snsAdminUpdatingReports\.delete\(report\.id\)/,
   'An old auth session must not release a newer session report lock.');
-assert.match(html, /snsAdminUpdatingReports\\.delete\\(report\\.id\\)/,
+assert.match(html, /snsAdminUpdatingReports\.delete\(report\.id\)/,
   'A report review lock must always be released after the request.');
-assert.match(html, /snsAdminUpdatingReports\\.clear\\(\\)/,
+assert.match(html, /snsAdminUpdatingReports\.clear\(\)/,
   'Report review locks must be cleared when auth state changes.');
 
 console.log('Report submission, admin authorization, and SNS text-rendering safety checks passed.');
