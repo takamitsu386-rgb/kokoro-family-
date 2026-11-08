@@ -592,3 +592,9 @@ assert.match(html,/function renameCustomRoomPalette\(index,newName\)/,'Saved pal
 assert.match(html,/name\.length>16/,'Renamed palette names must be limited to 16 characters.');
 assert.match(html,/i!==index&&item\.name===name/,'Renaming must reject duplicate names without matching itself.');
 assert.match(html,/renameInput\.maxLength=16/,'Rename input must enforce the 16-character limit.');
+assert.match(html,/moveCustomRoomPalette\(index,-1\)/,'Saved palettes must support moving up.');
+assert.match(html,/moveCustomRoomPalette\(index,1\)/,'Saved palettes must support moving down.');
+assert.match(html,/function moveCustomRoomPalette\(index,direction\)/,'Palette reorder handler must exist.');
+assert.match(html,/\[list\[index\],list\[next\]\]=\[list\[next\],list\[index\]\]/,'Palette reorder must swap adjacent entries.');
+assert.match(html,/moveUp\.disabled=index===0/,'First palette must disable move-up.');
+assert.match(html,/moveDown\.disabled=index===palettes\.length-1/,'Last palette must disable move-down.');
