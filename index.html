@@ -102,7 +102,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" id="familyTaskExport">CSVを書き出す</button><label for="familyTaskImportFile">CSVから追加</label><input id="familyTaskImportFile" type="file" accept=".csv,text/csv"></div>
 <p id="familyTaskCsvStatus" role="status" aria-live="polite"></p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
-<label for="familyTaskFilter">表示</label><select id="familyTaskFilter"><option value="all">すべて</option><option value="open">未完了</option><option value="done">完了</option></select>
+<label for="familyTaskFilter">表示</label><select id="familyTaskFilter"><option value="all">すべて</option><option value="open">未完了</option><option value="overdue">期限切れ</option><option value="today">今日が期限</option><option value="upcoming">今後の期限</option><option value="done">完了</option></select>
 <button type="button" id="familyTaskClearDone">完了した項目を整理</button>
 </div>
 <p id="familyTaskSummary" role="status" aria-live="polite">タスクを読み込んでいます。</p>
@@ -5900,10 +5900,26 @@ snsRefreshPosts.addEventListener("click", async () => {
   }
   function render() {
     const filter = filterInput.value;
-    const visible = tasks.filter(task => filter === "all" || (filter === "done" ? task.completed : !task.completed))
+    const now = new Date();
+    const today = [now.getFullYear(), String(now.getMonth()+1).padStart(2,"0"), String(now.getDate()).padStart(2,"0")].join("-");
+    const isOverdue = task => !task.completed && !!task.dueDate && task.dueDate < today;
+    const isToday = task => !task.completed && task.dueDate === today;
+    const isUpcoming = task => !task.completed && !!task.dueDate && task.dueDate > today;
+    const matchesFilter = task => {
+      if (filter === "done") return task.completed;
+      if (filter === "open") return !task.completed;
+      if (filter === "overdue") return isOverdue(task);
+      if (filter === "today") return isToday(task);
+      if (filter === "upcoming") return isUpcoming(task);
+      return true;
+    };
+    const visible = tasks.filter(matchesFilter)
       .sort((a,b) => Number(a.completed)-Number(b.completed) || (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || b.createdAt-a.createdAt);
     const done = tasks.filter(task => task.completed).length;
-    summaryEl.textContent = "全" + tasks.length + "件・未完了" + (tasks.length-done) + "件・完了" + done + "件";
+    const overdue = tasks.filter(isOverdue).length;
+    const dueToday = tasks.filter(isToday).length;
+    const upcoming = tasks.filter(isUpcoming).length;
+    summaryEl.textContent = "全" + tasks.length + "件・未完了" + (tasks.length-done) + "件・期限切れ" + overdue + "件・今日" + dueToday + "件・今後" + upcoming + "件・完了" + done + "件";
     listEl.replaceChildren();
     if (!visible.length) {
       const empty = document.createElement("li");
@@ -5925,7 +5941,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       heading.append(checkbox, title);
       const meta = document.createElement("small");
       meta.style.color = "#667085";
-      meta.textContent = categories[task.category] + "・優先度：" + priorities[task.priority] + (task.dueDate ? "・期限：" + task.dueDate : "");
+      meta.textContent = categories[task.category] + "・優先度：" + priorities[task.priority] + (task.dueDate ? "・期限：" + task.dueDate + (isOverdue(task) ? "（期限切れ）" : isToday(task) ? "（今日）" : "") : "");
       const actions = document.createElement("div");
       actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
       const edit = document.createElement("button");
