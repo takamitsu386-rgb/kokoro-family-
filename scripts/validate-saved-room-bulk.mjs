@@ -649,3 +649,11 @@ assert.match(html,/この色を全家具のメモに適用/,'Bulk label style co
 assert.match(html,/const previous=targets\.map/,'Bulk label style must preserve previous values for rollback.');
 assert.match(html,/全家具の色を元に戻しました/,'Bulk label style must roll back after save failure.');
 console.log('Bulk furniture label style checks passed.');
+
+assert.match(html,/furnitureLabelFontSize/,'Furniture label font-size control must exist.');
+assert.match(html,/function setSelectedFurnitureLabelFontSize\(/,'Furniture label font-size setter must exist.');
+assert.match(html,/function resetSelectedFurnitureLabelFontSize\(/,'Furniture label font-size reset must exist.');
+assert.match(html,/labelFontSize:el\.dataset\.labelFontSize/,'Furniture label font size must be included in room snapshots.');
+assert.match(html,/item\.labelFontSize===undefined/,'Furniture label font size must be validated.');
+assert.match(html,/labelNode\.style\.fontSize=v\.labelFontSize\+'px'/,'Furniture label font size must be restored.');
+console.log('Furniture label font-size checks passed.');
