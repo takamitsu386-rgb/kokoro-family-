@@ -46,7 +46,7 @@ assert.match(html, /（期限切れ）/, "overdue tasks are visibly labeled");
 assert.match(html, /Task storage rollback failed/, "failed writes attempt rollback");
 assert.match(html, /保存データに問題があるため、上書きせず保護しました/, "invalid stored data fails closed");
 assert.match(html, /クラウド同期・家族間共有にはまだ対応していません/, "local-only scope is disclosed");
-assert.match(sw, /kokoro-family-v220/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v221/, "service worker cache is refreshed");
 
 console.log("Family task list source checks passed.");
 
@@ -58,8 +58,12 @@ assert.match(html,/categoryMap/);
 assert.match(html,/priorityMap/);
 assert.match(html,/Task CSV import failed/);
 assert.match(html,/Task CSV export failed/);
-assert.match(sw,/kokoro-family-v220/);
+assert.match(sw,/kokoro-family-v221/);
 
 assert.match(html, /id="familyTaskSearch"/, "task keyword search input exists");
 assert.match(html, /task\.title\.toLocaleLowerCase\(\)\.includes\(query\)/, "task keyword search filters titles");
 assert.match(html, /searchInput\.addEventListener\("input", render\)/, "task keyword search updates as the user types");
+
+assert.match(html, /id="familyTaskResetFilters"/, "task filter reset button exists");
+assert.match(html, /resetFiltersButton\.addEventListener\("click"/, "task filter reset action is wired");
+assert.match(html, /searchInput\.value = ""/, "task filter reset clears keyword search");
