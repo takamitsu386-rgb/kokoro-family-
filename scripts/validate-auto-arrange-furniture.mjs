@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const html=readFileSync('index.html','utf8');
+assert.match(html,/onclick="autoArrangeFurniture\(\)"/,'Automatic arrangement control must be visible.');
+const start=html.indexOf('function autoArrangeFurniture(){');
+assert.notEqual(start,-1,'Automatic arrangement handler must exist.');
+const end=html.indexOf('\nfunction centerSelected(){',start);
+assert.notEqual(end,-1,'Arrangement handler must end before centerSelected.');
+const fn=html.slice(start,end);
+assert.match(fn,/querySelectorAll\('\.furniture'\)/,'All room furniture must be arranged.');
+assert.match(fn,/Math\.sqrt\(items\.length\*ratio\)/,'Grid must adapt to room aspect ratio.');
+assert.match(fn,/offsetWidth/,'Arrangement must account for furniture width.');
+assert.match(fn,/offsetHeight/,'Arrangement must account for furniture height.');
+assert.match(fn,/Math\.max\(0,Math\.min\(/,'Furniture must stay within room bounds.');
+assert.match(fn,/previous=items\.map/,'Original positions must be retained for rollback.');
+assert.match(fn,/autoSaveRoom\(\)/,'Arrangement must use room history persistence.');
+assert.match(fn,/previous\.forEach/,'Failed saves must restore original positions.');
+assert.match(fn,/1つ戻す/,'User must be told that arrangement can be undone.');
+console.log('Automatic furniture arrangement checks passed.');
