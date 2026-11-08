@@ -127,6 +127,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h3 style="margin-top:20px">自分の投稿</h3>
 <button type="button" id="snsRefreshPosts">投稿を読み直す</button>
 <div id="snsPostList" aria-live="polite"><p>ログインすると自分の投稿が表示されます。</p></div>
+<div style="border-top:1px solid #e5e7eb;margin:18px 0;padding-top:16px">
+<h3>🌏 みんなの公開投稿</h3>
+<p style="font-size:13px;color:#667085">公開プロフィールの人の公開投稿だけを表示します。あなたと相手のどちらかがブロックしている場合は表示されません。</p>
+<button type="button" id="snsRefreshTimeline">公開投稿を読み込む</button>
+<p id="snsTimelineStatus" role="status" aria-live="polite">ログインすると公開投稿を読み込みます。</p>
+<div id="snsTimelineList" aria-live="polite"></div>
+</div>
 <div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
 <h3>ユーザーを通報</h3>
 <p style="font-size:13px;color:#667085">困った行為や不適切な内容を運営に知らせます。通報は非公開で保存されます。個人情報や詳しい事情は入力しないでください。</p>
@@ -2604,6 +2611,9 @@ const snsPostList = document.getElementById("snsPostList");
 const snsSaveProfile = document.getElementById("snsSaveProfile");
 const snsCreatePost = document.getElementById("snsCreatePost");
 const snsRefreshPosts = document.getElementById("snsRefreshPosts");
+const snsRefreshTimeline = document.getElementById("snsRefreshTimeline");
+const snsTimelineStatus = document.getElementById("snsTimelineStatus");
+const snsTimelineList = document.getElementById("snsTimelineList");
 const snsBlockUid = document.getElementById("snsBlockUid");
 const snsAddBlock = document.getElementById("snsAddBlock");
 const snsBlockList = document.getElementById("snsBlockList");
@@ -2629,7 +2639,7 @@ function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusyGeneration += 1;
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
   return snsBusyGeneration;
 }
 function snsReleaseBusyFor(user, operationGeneration) {
@@ -2664,6 +2674,60 @@ function snsRenderPosts(items) {
     article.append(body, meta, document.createElement("br"), edit, document.createTextNode(" "), remove);
     snsPostList.appendChild(article);
   }
+}
+function snsRenderPublicTimeline(items) {
+  snsTimelineList.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "まだ公開投稿はありません。公開プロフィールと公開投稿があると、ここに表示されます。";
+    snsTimelineList.appendChild(empty);
+    return;
+  }
+  const avatarEmojis = { "avatar-01":"🌷", "avatar-02":"🐱", "avatar-03":"🐻", "avatar-04":"⭐", "avatar-05":"🐰" };
+  for (const item of items) {
+    const article = document.createElement("article");
+    article.style.cssText = "border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:10px 0;background:#fff";
+    const author = document.createElement("strong");
+    author.textContent = (avatarEmojis[item.avatarId] || "🌷") + " " + (item.nickname || "ユーザー");
+    const date = document.createElement("small");
+    date.style.cssText = "display:block;color:#667085;margin-top:2px";
+    date.textContent = Number.isFinite(item.createdAtMs) ? new Date(item.createdAtMs).toLocaleString("ja-JP") : "日時不明";
+    const body = document.createElement("p");
+    body.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0";
+    body.textContent = item.text;
+    article.append(author, date, body);
+    if (snsUser && item.authorUid !== snsUser.uid) {
+      const report = document.createElement("button");
+      report.type = "button";
+      report.textContent = "この投稿者を通報";
+      report.addEventListener("click", () => {
+        if (!snsUser) return;
+        snsReportUid.value = item.authorUid;
+        snsReportCategory.focus();
+        snsReportNotice.textContent = "通報理由を選んで「通報を送信」を押してください。投稿本文は自動送信されません。";
+        snsReportUid.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      article.appendChild(report);
+    }
+    snsTimelineList.appendChild(article);
+  }
+}
+async function snsLoadPublicTimeline(user, authGeneration = snsAuthGeneration) {
+  snsTimelineStatus.textContent = "公開投稿を読み込んでいます…";
+  const token = await user.getIdToken();
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const response = await fetch("/api/sns-public-timeline", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+    body: JSON.stringify({})
+  });
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "公開投稿を読み込めませんでした。");
+  if (!Array.isArray(data.items)) throw new Error("公開投稿のデータ形式が正しくありません。");
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  snsRenderPublicTimeline(data.items);
+  snsTimelineStatus.textContent = data.items.length + "件の公開投稿を表示しています（最大50件）。";
 }
 async function snsLoadProfile(user, authGeneration = snsAuthGeneration) {
   const snapshot = await getDoc(doc(snsDb, "profiles", user.uid));
@@ -2898,6 +2962,8 @@ if (snsApp) {
       snsProfileVisibility.value = "private";
       snsUpdateProfilePreview();
       snsRenderPosts([]);
+      snsTimelineList.replaceChildren();
+      snsTimelineStatus.textContent = "公開投稿を読み込んでいます…";
       snsBlockList.replaceChildren();
       snsBlockUid.value = "";
       snsReportUid.value = "";
@@ -2912,6 +2978,8 @@ if (snsApp) {
     if (!user) {
       snsMessage("未ログインです。Googleログイン後に利用できます。");
       snsRenderPosts([]);
+      snsTimelineList.replaceChildren();
+      snsTimelineStatus.textContent = "ログインすると公開投稿を読み込みます。";
       return;
     }
     try {
@@ -2932,6 +3000,8 @@ if (snsApp) {
       await snsLoadPosts(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadBlocks(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsLoadPublicTimeline(user, authGeneration);
     } catch (error) {
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       console.error("SNS initial load failed", error);
@@ -3058,6 +3128,19 @@ snsCreatePost.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS post create failed", error);
     snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
+});
+snsRefreshTimeline.addEventListener("click", async () => {
+  if (!snsUser || snsBusy) return;
+  const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  const operationGeneration = snsSetBusy(true);
+  try {
+    await snsLoadPublicTimeline(user, authGeneration);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    console.error("SNS public timeline refresh failed", error);
+    snsTimelineStatus.textContent = error.message || "公開投稿を読み込めませんでした。";
   } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 snsRefreshPosts.addEventListener("click", async () => {
