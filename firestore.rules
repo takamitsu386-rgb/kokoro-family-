@@ -29,21 +29,37 @@ service cloud.firestore {
         && data.nickname.size() <= 24
         && data.nickname.matches('.*\\S.*')
         && data.avatarId in ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']
-        && data.visibility in ['private', 'public']
+        && data.visibility in ['private', 'public', 'friends']
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
+    }
+
+    function acceptedFriend(uidA, uidB) {
+      return (
+        exists(/databases/$(database)/documents/friendRequests/$(uidA + '_' + uidB))
+        && get(/databases/$(database)/documents/friendRequests/$(uidA + '_' + uidB)).data.status == 'accepted'
+      ) || (
+        exists(/databases/$(database)/documents/friendRequests/$(uidB + '_' + uidA))
+        && get(/databases/$(database)/documents/friendRequests/$(uidB + '_' + uidA)).data.status == 'accepted'
+      );
     }
 
     function canInteractWithPost(postId) {
       let post = get(/databases/$(database)/documents/posts/$(postId)).data;
       return signedIn()
         && exists(/databases/$(database)/documents/posts/$(postId))
-        && post.visibility == 'public'
         && post.status == 'active'
         && !blockedBetween(request.auth.uid, post.authorUid)
         && (
           post.authorUid == request.auth.uid
-          || get(/databases/$(database)/documents/profiles/$(post.authorUid)).data.visibility == 'public'
+          || (
+            post.visibility == 'public'
+            && get(/databases/$(database)/documents/profiles/$(post.authorUid)).data.visibility == 'public'
+          )
+          || (
+            post.visibility == 'friends'
+            && acceptedFriend(request.auth.uid, post.authorUid)
+          )
         );
     }
 
@@ -119,14 +135,19 @@ service cloud.firestore {
 
     // Posts are private by default; only explicit public + active posts are readable by others.
     match /posts/{postId} {
-      // Direct reads may access public active posts unless either side has blocked the other.
+      // Public posts are visible to everyone; friends-only posts require an accepted request.
       allow get: if signedIn()
         && (
           resource.data.authorUid == request.auth.uid
           || (
-            resource.data.visibility == 'public'
-            && resource.data.status == 'active'
+            resource.data.status == 'active'
             && !blockedBetween(request.auth.uid, resource.data.authorUid)
+            && (
+              (resource.data.visibility == 'public'
+                && get(/databases/$(database)/documents/profiles/$(resource.data.authorUid)).data.visibility == 'public')
+              || (resource.data.visibility == 'friends'
+                && acceptedFriend(request.auth.uid, resource.data.authorUid))
+            )
           )
         );
 
@@ -153,8 +174,7 @@ service cloud.firestore {
       // Use status='deleted' so deleted posts disappear from all read paths.
       allow delete: if false;
 
-      // Interactions are available only on active public posts with visible authors,
-      // and are blocked immediately in either direction.
+      // Interactions require an active public post or an accepted-friend post; blocks override both.
       match /comments/{commentId} {
         allow get, list: if canInteractWithPost(postId);
         allow create: if canInteractWithPost(postId)
