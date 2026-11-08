@@ -147,6 +147,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="snsSendFriendRequest" style="margin-top:8px">友達申請を送る</button>
 <p id="snsFriendNotice" role="status" aria-live="polite">申請は相手の承認後に成立します。</p>
 <h4>友達一覧</h4>
+<button type="button" id="snsRefreshFriends" style="margin:6px 0">友達・申請を更新</button>
 <div id="snsFriendList" aria-live="polite"><p>ログインすると表示されます。</p></div>
 <h4>届いた申請</h4>
 <div id="snsIncomingFriends" aria-live="polite"><p>ログインすると表示されます。</p></div>
@@ -2647,6 +2648,7 @@ const snsFriendUid = document.getElementById("snsFriendUid");
 const snsSendFriendRequest = document.getElementById("snsSendFriendRequest");
 const snsFriendNotice = document.getElementById("snsFriendNotice");
 const snsFriendList = document.getElementById("snsFriendList");
+const snsRefreshFriends = document.getElementById("snsRefreshFriends");
 const snsIncomingFriends = document.getElementById("snsIncomingFriends");
 const snsOutgoingFriends = document.getElementById("snsOutgoingFriends");
 const snsAdminPanel = document.getElementById("snsAdminPanel");
@@ -2668,7 +2670,7 @@ function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusyGeneration += 1;
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, snsProfileSearchButton, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, snsProfileSearchButton, snsSendFriendRequest, snsRefreshFriends, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
   return snsBusyGeneration;
 }
 function snsReleaseBusyFor(user, operationGeneration) {
@@ -3363,6 +3365,24 @@ if (snsApp) {
 } else {
   snsMessage("Firebaseが初期化されていません。ログイン設定を確認してください。");
 }
+snsRefreshFriends.addEventListener("click", async () => {
+  const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  if (!user || snsBusy) return;
+  const operationGeneration = snsSetBusy(true);
+  snsFriendNotice.textContent = "友達と申請を更新しています…";
+  try {
+    await snsLoadFriendRequests(user, authGeneration);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    snsFriendNotice.textContent = "友達と申請を更新しました。";
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    console.error("Friend list refresh failed", error);
+    snsFriendNotice.textContent = "更新できませんでした。通信状態を確認してください。";
+  } finally {
+    snsReleaseBusyFor(user, operationGeneration);
+  }
+});
 snsAddBlock.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
   const targetUid = snsBlockUid.value.trim();
