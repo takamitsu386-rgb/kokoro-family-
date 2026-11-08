@@ -500,3 +500,18 @@ assert.match(positionFunction,/x>maxX\|\|y>maxY/,'Exact coordinates must stay wi
 assert.match(positionFunction,/selectedFurniture\.style\.left=nextLeft/,'Exact X coordinate must be applied.');
 assert.match(positionFunction,/selectedFurniture\.style\.top=nextTop/,'Exact Y coordinate must be applied.');
 assert.match(positionFunction,/if\(!autoSaveRoom\(\)\)/,'Position changes must persist and roll back on failure.');
+
+const flipStart=source.indexOf('function toggleSelectedFurnitureFlip(axis){');
+const flipEnd=source.indexOf('function setSelectedFurnitureOpacity(){',flipStart);
+const flipFunctions=source.slice(flipStart,flipEnd);
+assert.notEqual(flipStart,-1,'Room editor must provide furniture flip controls.');
+assert.match(source,/toggleSelectedFurnitureFlip\('horizontal'\)/,'Room editor must expose horizontal flip.');
+assert.match(source,/toggleSelectedFurnitureFlip\('vertical'\)/,'Room editor must expose vertical flip.');
+assert.match(source,/resetSelectedFurnitureFlip\(\)/,'Room editor must expose flip reset.');
+assert.match(flipFunctions,/axis!=='horizontal'&&axis!=='vertical'/,'Flip direction must be allowlisted.');
+assert.match(flipFunctions,/icon\.style\.transform=/,'Flip must affect the furniture icon.');
+assert.match(flipFunctions,/if\(!autoSaveRoom\(\)\)/,'Flip changes must persist and roll back on failure.');
+assert.match(source,/flipX:el\.dataset\.flipX==='true',flipY:el\.dataset\.flipY==='true'/,'Room snapshots must preserve flip state.');
+assert.match(source,/item\.flipX===undefined\|\|typeof item\.flipX==='boolean'/,'Room validation must check horizontal flip data.');
+assert.match(source,/item\.flipY===undefined\|\|typeof item\.flipY==='boolean'/,'Room validation must check vertical flip data.');
+assert.match(source,/if\(restoredIcon&&\(v\.flipX===true\|\|v\.flipY===true\)\)/,'Room restoration must reapply flip state.');
