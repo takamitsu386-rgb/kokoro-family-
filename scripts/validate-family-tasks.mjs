@@ -25,6 +25,12 @@ assert.match(html, /cancelButton\.addEventListener\("click", resetEditor\)/, "ta
 assert.match(html, /tasks\.length >= LIMIT && editingId === null/, "existing tasks remain editable at the item limit");
 assert.match(html, /confirm\("「" \+ task\.title/, "task deletion is confirmed");
 assert.match(html, /familyTaskClearDone/, "completed tasks can be cleared");
+assert.match(html, /id="familyTaskSort"/, "task sort selector exists");
+assert.match(html, /option value="priority"/, "priority sort option exists");
+assert.match(html, /option value="newest"/, "newest-first sort option exists");
+assert.match(html, /option value="oldest"/, "oldest-first sort option exists");
+assert.match(html, /const priorityRank = \{high: 0, normal: 1, low: 2\}/, "priority sort order is explicit");
+assert.match(html, /sortInput\.addEventListener\("change", render\)/, "sort selector rerenders task list");
 assert.match(html, /id="familyTaskCategoryFilter"/, "task category filter exists");
 assert.match(html, /id="familyTaskPriorityFilter"/, "task priority filter exists");
 assert.match(html, /categoryFilterInput\.value === "all" \|\| task\.category === categoryFilterInput\.value/, "task category filter combines with status and due filters");
@@ -40,7 +46,7 @@ assert.match(html, /（期限切れ）/, "overdue tasks are visibly labeled");
 assert.match(html, /Task storage rollback failed/, "failed writes attempt rollback");
 assert.match(html, /保存データに問題があるため、上書きせず保護しました/, "invalid stored data fails closed");
 assert.match(html, /クラウド同期・家族間共有にはまだ対応していません/, "local-only scope is disclosed");
-assert.match(sw, /kokoro-family-v218/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v219/, "service worker cache is refreshed");
 
 console.log("Family task list source checks passed.");
 
@@ -52,4 +58,4 @@ assert.match(html,/categoryMap/);
 assert.match(html,/priorityMap/);
 assert.match(html,/Task CSV import failed/);
 assert.match(html,/Task CSV export failed/);
-assert.match(sw,/kokoro-family-v218/);
+assert.match(sw,/kokoro-family-v219/);
