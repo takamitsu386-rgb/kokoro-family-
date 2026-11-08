@@ -98,3 +98,18 @@ assert.match(compareHandler, /壁の色：.*床の色：/, 'Comparison summary m
 assert.match(compareHandler, /だけ：/, 'Comparison summary must identify furniture unique to each room.');
 assert.match(compareHandler, /textContent=/, 'User-controlled room data must be rendered as text.');
 console.log('Saved room visual comparison and responsive summary checks passed.');
+
+const cornerPlacementStart = html.indexOf('function placeSelectedAtCorner(corner){');
+assert.notEqual(cornerPlacementStart, -1, 'Selected furniture must support quick corner placement.');
+const cornerPlacementEnd = html.indexOf('function centerSelected()', cornerPlacementStart);
+assert.notEqual(cornerPlacementEnd, -1, 'Corner placement handler must end before center placement.');
+const cornerPlacement = html.slice(cornerPlacementStart, cornerPlacementEnd);
+assert.match(cornerPlacement, /top-left.*top-right.*bottom-left.*bottom-right/s, 'All four room corners must be supported.');
+assert.match(cornerPlacement, /room\.clientWidth.*room\.clientHeight/s, 'Corner placement must use the current room dimensions.');
+assert.match(cornerPlacement, /autoSaveRoom\(\)/, 'Corner placement must persist the updated room.');
+assert.match(cornerPlacement, /保存できなかった.*元の位置に戻しました/s, 'Failed saves must restore the original furniture position.');
+assert.match(html, /placeSelectedAtCorner\('top-left'\)/, 'The top-left placement control must be available.');
+assert.match(html, /placeSelectedAtCorner\('top-right'\)/, 'The top-right placement control must be available.');
+assert.match(html, /placeSelectedAtCorner\('bottom-left'\)/, 'The bottom-left placement control must be available.');
+assert.match(html, /placeSelectedAtCorner\('bottom-right'\)/, 'The bottom-right placement control must be available.');
+console.log('Selected furniture corner placement checks passed.');
