@@ -587,3 +587,8 @@ assert.match(html,/loadCustomRoomPalettePart\(index,'floor'\)/,'Saved palettes m
 assert.match(html,/function loadCustomRoomPalettePart\(index,target\)/,'Partial palette application handler must exist.');
 assert.match(html,/target==='wall'\)room\.style\.backgroundColor=palette\.wall/,'Wall-only application must leave the floor unchanged.');
 assert.match(html,/else document\.getElementById\('floor'\)\.style\.backgroundColor=palette\.floor/,'Floor-only application must leave the wall unchanged.');
+assert.match(html,/renameCustomRoomPalette\(index,renameInput\.value\)/,'Saved palettes must expose a rename action.');
+assert.match(html,/function renameCustomRoomPalette\(index,newName\)/,'Saved palette rename handler must exist.');
+assert.match(html,/name\.length>16/,'Renamed palette names must be limited to 16 characters.');
+assert.match(html,/i!==index&&item\.name===name/,'Renaming must reject duplicate names without matching itself.');
+assert.match(html,/renameInput\.maxLength=16/,'Rename input must enforce the 16-character limit.');
