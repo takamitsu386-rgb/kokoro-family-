@@ -298,4 +298,17 @@ assert.ok(inventory.includes(".join('\\r\\n')"),'CSV export must use actual CRLF
 assert.match(inventory,/\^\[\\s\]\*\[=+@-\]/,'Inventory export must neutralize spreadsheet formula-leading values.');
 assert.match(inventory,/1000000/,'Inventory export must enforce a file size limit.');
 assert.match(inventory,/URL\.revokeObjectURL/,'Inventory export must release its object URL.');
-console.log('Saved room inventory CSV checks passed.');
+const comparisonExport=source.slice(source.indexOf('function exportSelectedRoomComparisonCsv()'),source.indexOf('function compareSelectedSavedRooms()'));
+assert.match(source,/exportButton\.textContent='📥 この2部屋の比較をCSV保存'/,'Room comparison must expose CSV export.');
+assert.match(comparisonExport,/selected\.length!==2/,'Comparison export must require exactly two valid selected rooms.');
+assert.match(comparisonExport,/家具の合計数/,'Comparison CSV must include total furniture counts.');
+assert.match(comparisonExport,/countsA\.get\(icon\)/,'Comparison CSV must include per-type furniture counts.');
+assert.match(comparisonExport,/prefs\.categories/,'Comparison CSV must include categories.');
+assert.match(comparisonExport,/prefs\.notes/,'Comparison CSV must include notes.');
+assert.match(comparisonExport,/replace\(/,'Comparison CSV must escape quotes.');
+assert.ok(comparisonExport.includes("if(/^[\\s]*[=+@-]/.test(text))"),'Comparison CSV must neutralize formula-like cells.');
+assert.ok(comparisonExport.includes("const csv='\\uFEFF'"),'Comparison CSV must include UTF-8 BOM.');
+assert.ok(comparisonExport.includes(".join('\\r\\n')"),'Comparison CSV must use CRLF line endings.');
+assert.match(comparisonExport,/1000000/,'Comparison CSV must enforce a size limit.');
+assert.match(comparisonExport,/URL\.revokeObjectURL/,'Comparison CSV must release its object URL.');
+console.log('Saved room comparison CSV checks passed.');
