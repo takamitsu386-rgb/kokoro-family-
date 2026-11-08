@@ -172,3 +172,17 @@ assert.match(clearSelection,/setAttribute\('aria-pressed','false'\)/,'Clearing s
 assert.match(html,/event\.key==='Escape'&&selectedFurniture/,'Escape must clear the active furniture selection.');
 assert.match(html,/event\.target===room\|\|event\.target\.id==='floor'/,'Clicking empty room space must clear selection.');
 console.log('Furniture selection clear and keyboard checks passed.');
+
+
+const removeMatchingStart=html.indexOf('function removeAllMatchingFurniture(){');
+assert.notEqual(removeMatchingStart,-1,'Bulk same-type furniture removal handler must exist.');
+const removeMatchingEnd=html.indexOf('function removeSelected(){',removeMatchingStart);
+assert.notEqual(removeMatchingEnd,-1,'Bulk removal handler must end before single-item removal.');
+const removeMatching=html.slice(removeMatchingStart,removeMatchingEnd);
+assert.match(html,/onclick="removeAllMatchingFurniture\(\)"/,'Bulk same-type removal button must exist.');
+assert.match(removeMatching,/filter\(item=>item\.dataset\.icon===icon\)/,'Bulk removal must target only the selected furniture type.');
+assert.match(removeMatching,/window\.confirm/,'Bulk removal must require confirmation.');
+assert.match(removeMatching,/if\(!autoSaveRoom\(\)\)/,'Bulk removal must handle save failure.');
+assert.match(removeMatching,/records\.slice\(\)\.reverse\(\)/,'Bulk removal must restore removed items on failure.');
+assert.match(removeMatching,/「1つ戻す」/,'Bulk removal must inform users about undo.');
+console.log('Bulk same-type furniture removal checks passed.');
