@@ -198,3 +198,19 @@ assert.match(arrangeMatching,/item\.dataset\.icon===icon/,'Same-type arrangement
 assert.match(arrangeMatching,/matches\.length<2/,'Same-type arrangement must handle fewer than two matches.');
 assert.match(arrangeMatching,/arrangeFurnitureItems\(matches/,'Same-type arrangement must reuse undoable arrangement routine.');
 console.log('Same-type furniture arrangement checks passed.');
+
+
+const duplicateBatchStart=html.indexOf('function duplicateSelectedBatch(){');
+assert.notEqual(duplicateBatchStart,-1,'Batch furniture duplication handler must exist.');
+const duplicateBatchEnd=html.indexOf('function duplicateSelected(){',duplicateBatchStart);
+assert.notEqual(duplicateBatchEnd,-1,'Batch duplication handler must end before single duplication.');
+const duplicateBatch=html.slice(duplicateBatchStart,duplicateBatchEnd);
+assert.match(html,/onclick="duplicateSelectedBatch\(\)"/,'Batch duplication button must exist.');
+assert.match(duplicateBatch,/Math\.min\(20,Math\.max\(1,count\)\)/,'Batch duplication count must be limited to 1–20.');
+assert.match(duplicateBatch,/existing\+count>300/,'Batch duplication must enforce room capacity.');
+assert.match(duplicateBatch,/cloneNode\(true\)/,'Batch duplication must clone selected furniture.');
+assert.match(duplicateBatch,/addEventListener\('click'/,'Cloned furniture must restore selection handlers.');
+assert.match(duplicateBatch,/if\(!autoSaveRoom\(\)\)/,'Batch duplication must save the completed batch once.');
+assert.match(duplicateBatch,/created\.forEach\(item=>item\.remove\(\)\)/,'Batch duplication must roll back on save failure.');
+assert.match(duplicateBatch,/selectFurniture\(created\[created\.length-1\]\)/,'Last duplicated item must become selected.');
+console.log('Batch furniture duplication checks passed.');
