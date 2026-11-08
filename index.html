@@ -2792,7 +2792,7 @@ function snsRenderAdminReports(reports) {
             snsAdminStatus.textContent = error.message || "更新できませんでした。";
             actions.querySelectorAll("button").forEach(action => { action.disabled = false; });
           } finally {
-            snsAdminUpdatingReports.delete(report.id);
+            if (snsAuthGeneration === authGeneration) snsAdminUpdatingReports.delete(report.id);
           }
         });
         actions.appendChild(button);
