@@ -178,6 +178,8 @@ jobs:
         run: node scripts/validate-room-templates.mjs
       - name: Validate public SNS timeline privacy and access
         run: node scripts/validate-public-timeline.mjs
+      - name: Validate friend request and comment report flows
+        run: node scripts/validate-friend-requests.mjs
       - name: Test Firestore rules in an isolated emulator
         run: npm run test:firestore
       - name: Validate JSON configuration
