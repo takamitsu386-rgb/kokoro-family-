@@ -164,6 +164,9 @@ exports.submitReport = onRequest({
     const decoded = await getAuth().verifyIdToken(match[1], true);
     const targetUid = typeof req.body?.targetUid === "string" ? req.body.targetUid.trim() : "";
     const category = typeof req.body?.category === "string" ? req.body.category : "";
+    const reportType = req.body?.reportType === "comment" ? "comment" : "user";
+    const targetPostId = typeof req.body?.targetPostId === "string" ? req.body.targetPostId : "";
+    const targetCommentId = typeof req.body?.targetCommentId === "string" ? req.body.targetCommentId : "";
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === decoded.uid) {
       return sendJson(res, 400, { error: "通報する相手のユーザーIDを確認してください。" });
     }
@@ -180,6 +183,22 @@ exports.submitReport = onRequest({
     }
 
     const db = getFirestore();
+    if (reportType === "comment") {
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetPostId) || !/^[A-Za-z0-9_-]{1,128}$/.test(targetCommentId)) {
+        return sendJson(res, 400, { error: "通報対象のコメントを確認できません。" });
+      }
+      const postRef = db.collection("posts").doc(targetPostId);
+      const [postSnap, commentSnap] = await Promise.all([
+        postRef.get(),
+        postRef.collection("comments").doc(targetCommentId).get()
+      ]);
+      const post = postSnap.data();
+      const comment = commentSnap.data();
+      if (!postSnap.exists || post?.visibility !== "public" || post?.status !== "active"
+        || !commentSnap.exists || comment?.status !== "active" || comment?.authorUid !== targetUid) {
+        return sendJson(res, 400, { error: "通報対象のコメントは確認できません。投稿が非公開・削除済みか、対象が変更されています。" });
+      }
+    }
     const now = new Date();
     const tokyoDate = new Intl.DateTimeFormat("en", {
       timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
@@ -201,6 +220,8 @@ exports.submitReport = onRequest({
         reporterUid: decoded.uid,
         targetUid,
         category,
+        reportType,
+        ...(reportType === "comment" ? { targetPostId, targetCommentId } : {}),
         status: "pending",
         createdAt: Timestamp.now()
       });
@@ -363,6 +384,8 @@ exports.adminListReports = onRequest({
         reporterUid: data.reporterUid,
         targetUid: data.targetUid,
         category: data.category,
+        reportType: data.reportType === "comment" ? "comment" : "user",
+        ...(data.reportType === "comment" ? { targetPostId: data.targetPostId, targetCommentId: data.targetCommentId } : {}),
         status: data.status,
         createdAtMs: data.createdAt?.toMillis?.() ?? null
       };
