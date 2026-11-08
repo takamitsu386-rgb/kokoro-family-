@@ -135,6 +135,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="snsTimelineList" aria-live="polite"></div>
 </div>
 <div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
+<h3>友達申請</h3>
+<p style="font-size:13px;color:#667085">公開プロフィールの相手に申請できます。相手が承認するまで友達にはなりません。個人情報や連絡先は送らないでください。</p>
+<label for="snsFriendUid">申請先のユーザーID</label>
+<input id="snsFriendUid" maxlength="128" autocomplete="off" spellcheck="false" placeholder="公開プロフィールのユーザーID" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" id="snsSendFriendRequest" style="margin-top:8px">友達申請を送る</button>
+<p id="snsFriendNotice" role="status" aria-live="polite">申請は相手の承認後に成立します。</p>
+<h4>届いた申請</h4>
+<div id="snsIncomingFriends" aria-live="polite"><p>ログインすると表示されます。</p></div>
+<h4>送った申請</h4>
+<div id="snsOutgoingFriends" aria-live="polite"><p>ログインすると表示されます。</p></div>
+<div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
 <h3>ユーザーを通報</h3>
 <p style="font-size:13px;color:#667085">困った行為や不適切な内容を運営に知らせます。通報は非公開で保存されます。個人情報や詳しい事情は入力しないでください。</p>
 <label for="snsReportUid">通報する相手のユーザーID</label>
@@ -2621,6 +2632,11 @@ const snsReportUid = document.getElementById("snsReportUid");
 const snsReportCategory = document.getElementById("snsReportCategory");
 const snsSubmitReport = document.getElementById("snsSubmitReport");
 const snsReportNotice = document.getElementById("snsReportNotice");
+const snsFriendUid = document.getElementById("snsFriendUid");
+const snsSendFriendRequest = document.getElementById("snsSendFriendRequest");
+const snsFriendNotice = document.getElementById("snsFriendNotice");
+const snsIncomingFriends = document.getElementById("snsIncomingFriends");
+const snsOutgoingFriends = document.getElementById("snsOutgoingFriends");
 const snsAdminPanel = document.getElementById("snsAdminPanel");
 const snsAdminRefresh = document.getElementById("snsAdminRefresh");
 const snsAdminFilter = document.getElementById("snsAdminFilter");
@@ -2804,7 +2820,19 @@ function snsRenderPublicTimeline(items) {
               } catch (error) { note.textContent = "コメントを削除できませんでした。"; }
             });
             row.append(text, remove);
-          } else row.appendChild(text);
+          } else {
+            const reportComment = document.createElement("button");
+            reportComment.type = "button";
+            reportComment.textContent = "コメント投稿者を通報";
+            reportComment.addEventListener("click", () => {
+              if (!snsUser || snsUser.uid !== user.uid) return;
+              snsReportUid.value = snap.data().authorUid;
+              snsReportCategory.focus();
+              snsReportNotice.textContent = "通報理由を選んで送信してください。コメント本文は送信されません。";
+              snsReportUid.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+            row.append(text, reportComment);
+          }
           list.appendChild(row);
         }
         if (!list.childNodes.length) {
@@ -2832,6 +2860,16 @@ function snsRenderPublicTimeline(items) {
       try { await renderComments(); } catch (error) { note.textContent = "コメントを読み込めませんでした。"; }
     });
     if (snsUser && item.authorUid !== snsUser.uid) {
+      const friendButton = document.createElement("button");
+      friendButton.type = "button";
+      friendButton.textContent = "友達申請";
+      friendButton.addEventListener("click", () => {
+        if (!snsUser) return;
+        snsFriendUid.value = item.authorUid;
+        snsFriendNotice.textContent = "申請先を設定しました。内容を確認して申請してください。";
+        snsFriendUid.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      article.appendChild(friendButton);
       const report = document.createElement("button");
       report.type = "button";
       report.textContent = "この投稿者を通報";
@@ -2889,6 +2927,68 @@ async function snsLoadPosts(user, authGeneration = snsAuthGeneration) {
     .filter(post => post.status === "active")
     .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   snsRenderPosts(posts);
+}
+async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
+  const [incoming, outgoing] = await Promise.all([
+    getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid), where("status", "==", "pending"))),
+    getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
+  ]);
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  snsIncomingFriends.replaceChildren();
+  snsOutgoingFriends.replaceChildren();
+  const addEmpty = (container, message) => {
+    const p = document.createElement("p"); p.textContent = message; container.appendChild(p);
+  };
+  if (incoming.empty) addEmpty(snsIncomingFriends, "届いている申請はありません。");
+  for (const snap of incoming.docs) {
+    const data = snap.data();
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0";
+    const label = document.createElement("span"); label.textContent = "申請者：" + data.fromUid;
+    const accept = document.createElement("button"); accept.type = "button"; accept.textContent = "承認";
+    const decline = document.createElement("button"); decline.type = "button"; decline.textContent = "辞退";
+    accept.addEventListener("click", () => snsDecideFriendRequest(snap.id, "accepted"));
+    decline.addEventListener("click", () => snsDecideFriendRequest(snap.id, "declined"));
+    row.append(label, accept, decline); snsIncomingFriends.appendChild(row);
+  }
+  const pendingOutgoing = outgoing.docs.filter(snap => snap.data().status === "pending");
+  const accepted = outgoing.docs.filter(snap => snap.data().status === "accepted");
+  if (!pendingOutgoing.length && !accepted.length) addEmpty(snsOutgoingFriends, "送った申請はありません。");
+  for (const snap of [...accepted, ...pendingOutgoing]) {
+    const data = snap.data();
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0";
+    const label = document.createElement("span");
+    label.textContent = data.toUid + (data.status === "accepted" ? "（友達）" : "（返事待ち）");
+    row.appendChild(label);
+    if (data.status === "pending") {
+      const cancel = document.createElement("button"); cancel.type = "button"; cancel.textContent = "申請を取り消す";
+      cancel.addEventListener("click", async () => {
+        const active = snsUser; if (!active || active.uid !== user.uid) return;
+        try { await deleteDoc(doc(snsDb, "friendRequests", snap.id)); if (snsUser?.uid === active.uid) await snsLoadFriendRequests(active); }
+        catch (error) { if (snsUser?.uid === active.uid) snsFriendNotice.textContent = "申請を取り消せませんでした。"; }
+      });
+      row.appendChild(cancel);
+    }
+    snsOutgoingFriends.appendChild(row);
+  }
+  for (const snap of incoming.docs) {
+    if (snap.data().status === "accepted") continue;
+  }
+}
+async function snsDecideFriendRequest(requestId, status) {
+  const user = snsUser;
+  if (!user || snsBusy || !["accepted", "declined"].includes(status)) return;
+  const operationGeneration = snsSetBusy(true);
+  try {
+    await updateDoc(doc(snsDb, "friendRequests", requestId), { status, updatedAt: serverTimestamp() });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsFriendNotice.textContent = status === "accepted" ? "友達申請を承認しました。" : "申請を辞退しました。";
+    await snsLoadFriendRequests(user);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsFriendNotice.textContent = "申請を処理できませんでした。相手とのブロック状態を確認してください。";
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
 }
 async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
   const result = await getDocs(collection(snsDb, "users", user.uid, "blocks"));
@@ -3103,6 +3203,9 @@ if (snsApp) {
       snsBlockUid.value = "";
       snsReportUid.value = "";
       snsReportCategory.value = "";
+      snsFriendUid.value = "";
+      snsIncomingFriends.replaceChildren();
+      snsOutgoingFriends.replaceChildren();
     }
     snsUser = user;
     snsSignedOut.hidden = !!user;
@@ -3135,6 +3238,8 @@ if (snsApp) {
       await snsLoadPosts(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadBlocks(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsLoadFriendRequests(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadPublicTimeline(user, authGeneration);
     } catch (error) {
@@ -3171,6 +3276,36 @@ snsAddBlock.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
+  } finally { snsReleaseBusyFor(user, operationGeneration); }
+});
+snsSendFriendRequest.addEventListener("click", async () => {
+  const user = snsUser;
+  const targetUid = snsFriendUid.value.trim();
+  if (!user || snsBusy) return;
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === user.uid) {
+    snsFriendNotice.textContent = "公開プロフィールの相手のユーザーIDを確認してください。";
+    return;
+  }
+  const requestId = user.uid + "_" + targetUid;
+  const operationGeneration = snsSetBusy(true);
+  try {
+    const [existing, reverse] = await Promise.all([
+      getDoc(doc(snsDb, "friendRequests", requestId)),
+      getDoc(doc(snsDb, "friendRequests", targetUid + "_" + user.uid))
+    ]);
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (existing.exists() || reverse.exists()) throw new Error("申請済み、または相手から申請が届いています。申請一覧を確認してください。");
+    await setDoc(doc(snsDb, "friendRequests", requestId), {
+      fromUid: user.uid, toUid: targetUid, status: "pending",
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    });
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsFriendUid.value = "";
+    snsFriendNotice.textContent = "申請を送りました。相手が承認するまで友達にはなりません。";
+    await snsLoadFriendRequests(user);
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid) return;
+    snsFriendNotice.textContent = error.message || "申請できませんでした。公開プロフィールとブロック状態を確認してください。";
   } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
 snsSubmitReport.addEventListener("click", async () => {
