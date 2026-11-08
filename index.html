@@ -3630,7 +3630,7 @@ snsAddBlock.addEventListener("click", async () => {
     await Promise.all([snsLoadBlocks(user), snsLoadSharedRooms(user, authGeneration)]);
     snsMessage("ブロックしました。相手の公開プロフィールや投稿に加え、お部屋の共有も解除しました。");
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
   } finally { snsReleaseBusyFor(user, operationGeneration); }
