@@ -2972,9 +2972,21 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     if (data.status === "pending") {
       const cancel = document.createElement("button"); cancel.type = "button"; cancel.textContent = "申請を取り消す";
       cancel.addEventListener("click", async () => {
-        const active = snsUser; if (!active || active.uid !== user.uid) return;
-        try { await deleteDoc(doc(snsDb, "friendRequests", snap.id)); if (snsUser?.uid === active.uid) await snsLoadFriendRequests(active); }
-        catch (error) { if (snsUser?.uid === active.uid) snsFriendNotice.textContent = "申請を取り消せませんでした。"; }
+        const active = snsUser;
+        if (!active || active.uid !== user.uid || snsBusy) return;
+        const operationGeneration = snsSetBusy(true);
+        try {
+          await deleteDoc(doc(snsDb, "friendRequests", snap.id));
+          if (!snsUser || snsUser.uid !== active.uid) return;
+          snsFriendNotice.textContent = "友達申請を取り消しました。";
+          await snsLoadFriendRequests(active);
+        } catch (error) {
+          if (!snsUser || snsUser.uid !== active.uid) return;
+          console.error("Friend request cancellation failed", error);
+          snsFriendNotice.textContent = "申請を取り消せませんでした。";
+        } finally {
+          snsReleaseBusyFor(active, operationGeneration);
+        }
       });
       row.appendChild(cancel);
     }
