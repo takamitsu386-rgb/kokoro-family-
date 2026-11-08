@@ -313,6 +313,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="distributeFurnitureEvenly('vertical')">↕️ 縦方向に均等配置</button>
 <button type="button" onclick="mirrorFurnitureLayout('horizontal')">↔️ 左右反転</button>
 <button type="button" onclick="mirrorFurnitureLayout('vertical')">↕️ 上下反転</button>
+<button type="button" onclick="checkFurnitureOverlaps()">🔎 家具の重なりをチェック</button>
+<div id="furnitureOverlapReport" role="status" aria-live="polite" style="display:none;margin:8px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc"></div>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
@@ -1063,6 +1065,49 @@ function mirrorFurnitureLayout(axis){
     return;
   }
   status.textContent=items.length+'個の家具を'+(axis==='horizontal'?'左右':'上下')+'反転しました。「1つ戻す」で元に戻せます。';
+}
+
+
+function checkFurnitureOverlaps(){
+  const root=document.getElementById('furnitureOverlapReport');
+  root.replaceChildren();
+  root.style.display='block';
+  const items=[...room.querySelectorAll('.furniture')];
+  const heading=document.createElement('strong');
+  heading.textContent='🔎 家具の重なりチェック';
+  root.appendChild(heading);
+  if(items.length<2){
+    const p=document.createElement('p');p.textContent='家具が2個以上あると重なりを確認できます。';root.appendChild(p);return;
+  }
+  const roomRect=room.getBoundingClientRect();
+  const rects=items.map(item=>{
+    const rect=item.getBoundingClientRect();
+    return {item,left:rect.left-roomRect.left,right:rect.right-roomRect.left,top:rect.top-roomRect.top,bottom:rect.bottom-roomRect.top};
+  });
+  const overlaps=[];
+  for(let i=0;i<rects.length;i++){
+    for(let j=i+1;j<rects.length;j++){
+      const a=rects[i],b=rects[j];
+      const width=Math.min(a.right,b.right)-Math.max(a.left,b.left);
+      const height=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
+      if(width>2&&height>2)overlaps.push({a,b,area:width*height});
+    }
+  }
+  const summary=document.createElement('p');
+  summary.textContent=overlaps.length?'重なりが '+overlaps.length+' 組見つかりました。':'家具同士の重なりは見つかりませんでした。';
+  root.appendChild(summary);
+  overlaps.sort((a,b)=>b.area-a.area).slice(0,20).forEach(({a,b})=>{
+    const line=document.createElement('p');
+    line.textContent=(a.item.dataset.icon||'家具')+' と '+(b.item.dataset.icon||'家具');
+    line.style.margin='4px 0';
+    root.appendChild(line);
+  });
+  if(overlaps.length>20){
+    const more=document.createElement('p');more.textContent='ほか '+(overlaps.length-20)+' 組';root.appendChild(more);
+  }
+  const note=document.createElement('small');
+  note.textContent='このチェックは見た目の重なりを調べるだけで、お部屋の配置や保存データは変更しません。回転した家具は外接範囲で判定します。';
+  root.appendChild(note);
 }
 
 function autoArrangeFurniture(spacingScale=1){
