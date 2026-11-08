@@ -21,7 +21,7 @@ assert.match(html,/steps\.length<=1000/);
 assert.match(html,/Family recipes rollback failed/);
 assert.match(html,/上書きせず保護しました/);
 assert.match(html,/クラウド同期・家族間共有には未対応です/);
-assert.match(sw,/kokoro-family-v214/);
+assert.match(sw,/kokoro-family-v227/);
 console.log("Family recipe notebook source checks passed.");
 
 assert.match(html,/familyRecipesShoppingStatus/);
@@ -30,11 +30,18 @@ assert.match(html,/kokoroFamilyShoppingV1/);
 assert.match(html,/new Set\(current\.map\(x=>x\.id\)\)/);
 assert.match(html,/上限100件に達しています/);
 assert.match(html,/Recipe shopping import rollback failed/);
-assert.match(sw,/kokoro-family-v214/);
+assert.match(sw,/kokoro-family-v227/);
 
 assert.match(html,/id="familyRecipesMealStatus"/);
 assert.match(html,/addToMeal\.textContent="献立に追加"/);
 assert.match(html,/familyMealsForm/);
 assert.match(html,/レシピノートから追加/);
 assert.match(html,/actions\.append\(edit,addToMeal,addIngredients,remove\)/);
-assert.match(sw,/kokoro-family-v214/);
+assert.match(sw,/kokoro-family-v227/);
+
+assert.match(html, /option value="favorites">お気に入り/);
+assert.match(html, /const FAVORITES_KEY="kokoroFamilyRecipeFavoritesV1"/);
+assert.match(html, /favorites\.has\(x\.id\)/);
+assert.match(html, /aria-pressed/);
+assert.match(html, /Recipe favorite save failed/);
+assert.match(sw, /kokoro-family-v227/);
