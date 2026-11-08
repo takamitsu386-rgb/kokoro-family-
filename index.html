@@ -3392,8 +3392,8 @@ if (snsApp) {
 }
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
   const [owned, received] = await Promise.all([
-    getDocs(query(collection(snsDb, "sharedRooms"), where("ownerUid", "==", user.uid), limit(50))),
-    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(50)))
+    getDocs(query(collection(snsDb, "sharedRooms"), where("ownerUid", "==", user.uid), where("recipientUid", "!=", ""), limit(50))),
+    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "!=", ""), limit(50)))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   snsSharedRoomList.replaceChildren();
