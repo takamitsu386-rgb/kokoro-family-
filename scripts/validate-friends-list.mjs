@@ -5,6 +5,8 @@ const html = readFileSync('index.html', 'utf8');
 const rules = readFileSync('firestore.rules', 'utf8');
 
 assert.match(html, /id="snsFriendList"/, 'A dedicated accepted-friends list must exist.');
+assert.match(html, /id="snsRefreshFriends"/, "A manual friend and request refresh control must exist.");
+assert.match(html, /snsRefreshFriends\.addEventListener\("click"/, "The refresh control must reload the current user friend data.");
 assert.match(html, /const snsFriendList = document\.getElementById\("snsFriendList"\)/, 'The friends list must be wired to the UI.');
 assert.match(html, /const acceptedRequests = \[/, 'Accepted requests from both directions must be combined.');
 assert.match(html, /const friendRows = new Map\(acceptedRequests\.map\(item => \[item\.peerUid, item\]\)\)/, 'Friend entries must be deduplicated by peer UID.');
