@@ -13,6 +13,9 @@ assert.ok(html.includes('result.replaceChildren(fragment)'),'Results must be ren
 assert.ok(html.includes('達成 '),'Completion progress must be displayed.');
 assert.ok(html.includes('あと'),'Missing furniture guidance must be displayed.');
 assert.ok(html.includes("label==='植物を2つ以上'?2:1"),'Green goal must require multiple plants.');
+assert.ok(html.includes('let activeRoomGoal=null;'),'Selected goal must be tracked.');
+assert.ok(html.includes('if(activeRoomGoal)checkRoomGoal(activeRoomGoal);'),'Saving room edits must refresh the active goal.');
+assert.ok(html.includes('if(goal)activeRoomGoal=goalKey;'),'Selecting a valid goal must activate live progress.');
 console.log('Room goal planner checks passed.');
 
 assert.ok(html.includes("accepted.filter(icon=>furnitureList.includes(icon)"),'Suggestions must use available furniture only.');
