@@ -124,9 +124,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
-<button type="button" id="familyCalendarClearDone">完了した予定を整理</button>
+<button type="button" id="familyCalendarClearDone">完了した予定を整理</button><button type="button" id="familyCalendarExport">CSVを書き出す</button>
 </div>
 <p id="familyCalendarSummary" role="status" aria-live="polite">予定を読み込んでいます。</p>
+<p id="familyCalendarExportStatus" role="status" aria-live="polite"></p>
 <p id="familyCalendarTaskStatus" role="status" aria-live="polite"></p>
 <ul id="familyCalendarList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
@@ -6265,6 +6266,31 @@ snsRefreshPosts.addEventListener("click", async () => {
   const clearButton = document.getElementById("familyCalendarClearDone");
   const submitButton = document.getElementById("familyCalendarSubmit");
   const cancelButton = document.getElementById("familyCalendarCancel");
+  const exportButton=document.getElementById("familyCalendarExport");
+  const exportStatus=document.getElementById("familyCalendarExportStatus");
+  const csvCell=value=>{
+    let text=String(value??"");
+    if(/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text))text="'"+text;
+    return '"'+text.replace(/"/g,'""')+'"';
+  };
+  exportButton.addEventListener("click",()=>{
+    try{
+      const header=["予定","日付","時刻","場所・メモ","完了状態","登録日時"];
+      const rows=entries.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))
+        .map(item=>[item.title,item.date,item.time,item.place,item.done?"完了":"未完了",new Date(item.createdAt).toISOString()]);
+      const csv="\\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\\r\\n");
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      const stamp=today().replaceAll("-","");
+      link.href=url;link.download="kokoro-family-calendar-"+stamp+".csv";
+      document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      exportStatus.textContent=entries.length+"件の予定をCSVに書き出しました。";
+    }catch(error){
+      console.error("Family calendar CSV export failed",error);
+      exportStatus.textContent="CSVを書き出せませんでした。";
+    }
+  });
+
   const today = () => {
     const now = new Date();
     return now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
