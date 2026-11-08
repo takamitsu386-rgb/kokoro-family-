@@ -174,7 +174,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label>数量・メモ（20文字以内）<input id="familyShoppingQuantity" maxlength="20" placeholder="例：2本"></label>
 <label>分類<select id="familyShoppingCategory"><option value="food">食べもの</option><option value="daily">日用品</option><option value="stationery">文房具</option><option value="other">その他</option></select></label>
 </div>
-<button class="primary" type="submit">買い物リストに追加</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyShoppingSubmit">買い物リストに追加</button><button type="button" id="familyShoppingCancel" hidden>編集をやめる</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyShoppingFilter">表示</label><select id="familyShoppingFilter"><option value="all">すべて</option><option value="needed">買うもの</option><option value="bought">購入済み</option></select>
@@ -5952,8 +5952,11 @@ snsRefreshPosts.addEventListener("click", async () => {
   const listEl = document.getElementById("familyShoppingList");
   const summaryEl = document.getElementById("familyShoppingSummary");
   const clearButton = document.getElementById("familyShoppingClearBought");
+  const submitButton = document.getElementById("familyShoppingSubmit");
+  const cancelButton = document.getElementById("familyShoppingCancel");
   const categories = {food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
-  let entries = [], ready = false;
+  let entries = [], ready = false, editingId = null;
+  function resetEditor(){editingId=null;form.reset();submitButton.textContent="買い物リストに追加";cancelButton.hidden=true;render();}
   function validEntry(item) {
     return !!item && typeof item === "object" &&
       typeof item.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(item.id) &&
@@ -6010,13 +6013,16 @@ snsRefreshPosts.addEventListener("click", async () => {
       row.append(checkbox,name);
       const meta=document.createElement("small");meta.style.color="#667085";
       meta.textContent=categories[item.category]+(item.quantity?"・"+item.quantity:"");
+      const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
+      edit.addEventListener("click",()=>{editingId=item.id;nameInput.value=item.name;quantityInput.value=item.quantity;categoryInput.value=item.category;submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」を削除しますか？"))save(entries.filter(entry=>entry.id!==item.id));});
-      li.append(row,meta,remove);listEl.append(li);
+      actions.append(edit,remove);li.append(row,meta,actions);listEl.append(li);
     }
     clearButton.disabled=bought===0;
-    nameInput.disabled=entries.length>=LIMIT;
-    form.querySelector('button[type="submit"]').disabled=entries.length>=LIMIT;
+    const full=entries.length>=LIMIT&&!editingId;
+    nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;submitButton.disabled=full;
   }
   try { entries=readEntries();ready=true;render(); }
   catch(error) {
@@ -6028,12 +6034,18 @@ snsRefreshPosts.addEventListener("click", async () => {
   form.addEventListener("submit",event=>{
     event.preventDefault();
     const name=nameInput.value.trim(),quantity=quantityInput.value.trim();
-    if(!name||name.length>60||quantity.length>20||entries.length>=LIMIT)return;
-    const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
-    if(save([...entries,{id,name,quantity,category:categoryInput.value,bought:false,createdAt:Date.now()}])) {
-      nameInput.value="";quantityInput.value="";nameInput.focus();
+    if(!name||name.length>60||quantity.length>20||!Object.hasOwn(categories,categoryInput.value))return;
+    if(editingId){
+      const current=entries.find(item=>item.id===editingId);if(!current)return;
+      const next=entries.map(item=>item.id===editingId?{...item,name,quantity,category:categoryInput.value}:item);
+      if(save(next))resetEditor();
+    }else{
+      if(entries.length>=LIMIT)return;
+      const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+      if(save([...entries,{id,name,quantity,category:categoryInput.value,bought:false,createdAt:Date.now()}])){nameInput.value="";quantityInput.value="";nameInput.focus();}
     }
   });
+  cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.bought).length;
