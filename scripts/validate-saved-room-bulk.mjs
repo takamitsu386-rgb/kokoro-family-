@@ -472,3 +472,18 @@ assert.match(bulkLockFunction,/changed\.forEach/,'Bulk locking must update only 
 assert.match(bulkLockFunction,/if\(!autoSaveRoom\(\)\)/,'Bulk locking must persist as one operation.');
 assert.match(bulkLockFunction,/previous\.forEach/,'Bulk locking must restore all prior states if saving fails.');
 assert.match(bulkLockFunction,/updateHandle\(el,wasLocked\)/,'Bulk rollback must restore accessible drag-handle state.');
+
+const opacityStart=source.indexOf('function setSelectedFurnitureOpacity(){');
+const opacityEnd=source.indexOf('function setSelectedFurnitureSize(){',opacityStart);
+const opacityFunction=source.slice(opacityStart,opacityEnd);
+assert.notEqual(opacityStart,-1,'Room editor must provide a furniture opacity control.');
+assert.match(source,/id="furnitureOpacity"[^>]*min="20"[^>]*max="100"[^>]*step="1"/,'Opacity input must be constrained to 20–100 percent.');
+assert.match(source,/setSelectedFurnitureOpacity\(\)/,'Room editor must expose opacity application.');
+assert.match(opacityFunction,/Number\.isInteger\(percent\)/,'Opacity percentage must be an integer.');
+assert.match(opacityFunction,/percent<20\|\|percent>100/,'Opacity must reject values outside 20–100 percent.');
+assert.match(opacityFunction,/selectedFurniture\.style\.opacity=next/,'Opacity control must update the selected furniture.');
+assert.match(opacityFunction,/if\(!autoSaveRoom\(\)\)/,'Opacity change must persist and roll back on failure.');
+assert.match(source,/resetSelectedFurnitureOpacity\(\)/,'Room editor must expose opacity reset.');
+assert.match(source,/opacity:el\.style\.opacity/,'Room snapshots must preserve opacity.');
+assert.match(source,/item\.opacity===undefined\|\|\(typeof item\.opacity==='string'/,'Room validation must validate saved opacity.');
+assert.match(source,/if\(v\.opacity\)el\.style\.opacity=v\.opacity/,'Room restoration must restore opacity.');
