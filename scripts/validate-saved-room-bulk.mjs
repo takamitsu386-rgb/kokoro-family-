@@ -387,4 +387,14 @@ assert.match(gridSizeFunction,/overlay\.style\.backgroundSize=next\+'px '\+next\
 assert.match(gridSizeFunction,/FURNITURE_GRID_SIZE=next/,'Selected grid spacing must update the snap interval.');
 assert.match(source,/background-size:var\(--furniture-grid-size,20px\)/,'The grid overlay must use the selected spacing.');
 assert.match(source,/家具を'\+FURNITURE_GRID_SIZE\+'px間隔/,'The status message must announce the active grid spacing.');
+
+const snapSelectedFunction=source.slice(source.indexOf('function snapSelectedFurnitureToGrid('),source.indexOf('function setFurnitureGridSize('));
+assert.match(source,/snapSelectedFurnitureToGrid\(\)/,'Room editor must expose selected furniture grid alignment.');
+assert.match(snapSelectedFunction,/Math\.round\(currentX\/FURNITURE_GRID_SIZE\)/,'Selected furniture X position must snap to the active grid interval.');
+assert.match(snapSelectedFunction,/Math\.round\(currentY\/FURNITURE_GRID_SIZE\)/,'Selected furniture Y position must snap to the active grid interval.');
+assert.match(snapSelectedFunction,/Math\.min\(maxX/,'Snapped X position must remain inside the room.');
+assert.match(snapSelectedFunction,/Math\.min\(maxY/,'Snapped Y position must remain inside the room.');
+assert.match(snapSelectedFunction,/if\(!autoSaveRoom\(\)\)/,'Grid alignment must persist and roll back on save failure.');
+assert.match(snapSelectedFunction,/previous\.left/,'Grid alignment must restore the previous X position on save failure.');
+assert.match(snapSelectedFunction,/previous\.top/,'Grid alignment must restore the previous Y position on save failure.');
 console.log('Saved room comparison CSV checks passed.');
