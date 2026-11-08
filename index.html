@@ -6990,7 +6990,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const checklist=document.createElement("details");checklist.style.cssText="border:1px solid #e4e7ef;border-radius:8px;padding:8px";
       const checklistTitle=document.createElement("summary");checklistTitle.textContent="材料チェック（料理中に確認）";
       const checklistItems=document.createElement("div");checklistItems.style.cssText="display:grid;gap:6px;margin-top:8px";
-      recipe.ingredients.split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean).forEach(line=>{
+      recipe.ingredients.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).forEach(line=>{
         const label=document.createElement("label");label.style.cssText="display:flex;gap:8px;align-items:flex-start";
         const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.setAttribute("aria-label",line+"を準備済みにする");
         const text=document.createElement("span");text.textContent=line;
