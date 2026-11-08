@@ -137,7 +137,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyMealsName">メニュー（80文字以内）<input id="familyMealsName" maxlength="80" required placeholder="例：野菜たっぷりスープ"></label>
 </div>
 <label for="familyMealsNote">メモ（60文字以内・任意）</label><input id="familyMealsNote" maxlength="60" placeholder="例：材料を買っておく">
-<button class="primary" type="submit">献立を追加</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyMealsSubmit">献立を追加</button><button type="button" id="familyMealsCancel" hidden>編集をキャンセル</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyMealsFilter">表示</label><select id="familyMealsFilter"><option value="week">今日から7日間</option><option value="all">すべて</option></select>
@@ -6177,6 +6177,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const listEl=document.getElementById("familyMealsList");
   const summaryEl=document.getElementById("familyMealsSummary");
   const clearButton=document.getElementById("familyMealsClearPast");
+  const submitButton=document.getElementById("familyMealsSubmit");
+  const cancelButton=document.getElementById("familyMealsCancel");
   const types={breakfast:"朝ごはん",lunch:"昼ごはん",dinner:"夜ごはん",snack:"おやつ"};
   const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
   const validDate=value=>{
@@ -6185,7 +6187,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     return !Number.isNaN(d.getTime())&&d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")===value;
   };
   dateInput.value=today();
-  let entries=[],ready=false;
+  let entries=[],ready=false,editingId=null;
   function validMeal(item){
     return !!item&&typeof item==="object"&&typeof item.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(item.id)&&
       validDate(item.date)&&Object.hasOwn(types,item.type)&&typeof item.name==="string"&&item.name.trim().length>=1&&item.name.length<=80&&
@@ -6209,6 +6211,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       summaryEl.textContent="保存できませんでした。端末の空き容量を確認してください。";return false;
     }
   }
+  function resetEditor(){editingId=null;form.reset();dateInput.value=today();submitButton.textContent="献立を追加";cancelButton.hidden=true;render();}
   function render(){
     const current=today(),end=new Date(current+"T00:00:00");end.setDate(end.getDate()+6);
     const last=end.getFullYear()+"-"+String(end.getMonth()+1).padStart(2,"0")+"-"+String(end.getDate()).padStart(2,"0");
@@ -6220,14 +6223,17 @@ snsRefreshPosts.addEventListener("click", async () => {
     for(const item of visible){
       const li=document.createElement("li");li.style.cssText="padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:7px";
       const title=document.createElement("strong");title.textContent=item.date.replaceAll("-","/")+"・"+types[item.type]+"： "+item.name;
+      const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+      const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
+      edit.addEventListener("click",()=>{editingId=item.id;dateInput.value=item.date;typeInput.value=item.type;nameInput.value=item.name;noteInput.value=item.note;submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
-      remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」の献立を削除しますか？"))save(entries.filter(x=>x.id!==item.id));});
-      li.append(title);
+      remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」の献立を削除しますか？")){if(editingId===item.id)resetEditor();save(entries.filter(x=>x.id!==item.id));}});
+      actions.append(edit,remove);li.append(title);
       if(item.note){const note=document.createElement("small");note.style.color="#667085";note.textContent=item.note;li.append(note);}
-      li.append(remove);listEl.append(li);
+      li.append(actions);listEl.append(li);
     }
     clearButton.disabled=!entries.some(x=>x.date<current);
-    nameInput.disabled=entries.length>=LIMIT;form.querySelector('button[type="submit"]').disabled=entries.length>=LIMIT;
+    nameInput.disabled=entries.length>=LIMIT&&!editingId;submitButton.disabled=entries.length>=LIMIT&&!editingId;
   }
   try{entries=readEntries();ready=true;render();}
   catch(error){
@@ -6236,10 +6242,18 @@ snsRefreshPosts.addEventListener("click", async () => {
   }
   form.addEventListener("submit",event=>{
     event.preventDefault();const date=dateInput.value,name=nameInput.value.trim(),note=noteInput.value.trim();
-    if(!validDate(date)||!name||name.length>80||note.length>60||!Object.hasOwn(types,typeInput.value)||entries.length>=LIMIT)return;
-    const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"meal_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
-    if(save([...entries,{id,date,type:typeInput.value,name,note,createdAt:Date.now()}])){nameInput.value="";noteInput.value="";nameInput.focus();}
+    if(!validDate(date)||!name||name.length>80||note.length>60||!Object.hasOwn(types,typeInput.value))return;
+    if(editingId){
+      const current=entries.find(x=>x.id===editingId);if(!current)return;
+      const next=entries.map(x=>x.id===editingId?{...x,date,type:typeInput.value,name,note}:x);
+      if(save(next))resetEditor();
+    }else{
+      if(entries.length>=LIMIT)return;
+      const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"meal_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+      if(save([...entries,{id,date,type:typeInput.value,name,note,createdAt:Date.now()}])){nameInput.value="";noteInput.value="";nameInput.focus();}
+    }
   });
+  cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(x=>x.date<today()).length;
