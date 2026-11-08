@@ -165,7 +165,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="snsAdminReportList" aria-live="polite"></div>
 </section>
 </div>
-<p style="font-size:13px;color:#667085">全体タイムライン、コメント、いいね、友達申請はまだ準備中です。通報確認画面は管理者権限を持つ運営担当者だけが利用できます。</p>
+<p style="font-size:13px;color:#667085">友達申請は準備中です。コメント・いいねは公開投稿で利用できます。通報確認画面は管理者権限を持つ運営担当者だけが利用できます。</p>
 </section>
 <section class="panel" id="cloud-sync">
 <h2>☁️ スマホ・PC同期</h2>
@@ -2696,6 +2696,141 @@ function snsRenderPublicTimeline(items) {
     body.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0";
     body.textContent = item.text;
     article.append(author, date, body);
+    const interactionBar = document.createElement("div");
+    interactionBar.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0";
+    const likeButton = document.createElement("button");
+    likeButton.type = "button";
+    likeButton.textContent = "♡ いいね";
+    const likeCount = document.createElement("small");
+    likeCount.textContent = "読み込み中…";
+    const commentToggle = document.createElement("button");
+    commentToggle.type = "button";
+    commentToggle.textContent = "コメントを見る";
+    interactionBar.append(likeButton, likeCount, commentToggle);
+    article.appendChild(interactionBar);
+    let liked = false;
+    let likeCountValue = 0;
+    let commentsLoaded = false;
+    let commentArea = null;
+    const activeUser = snsUser;
+    if (activeUser) {
+      const likeRef = doc(snsDb, "posts", item.id, "likes", activeUser.uid);
+      getDoc(likeRef).then(snapshot => {
+        if (!snsUser || snsUser.uid !== activeUser.uid || !article.isConnected) return;
+        liked = snapshot.exists();
+        likeButton.textContent = liked ? "♥ いいね済み" : "♡ いいね";
+      }).catch(() => { likeCount.textContent = "いいね数は未取得"; });
+      getDocs(collection(snsDb, "posts", item.id, "likes")).then(snapshot => {
+        if (!snsUser || snsUser.uid !== activeUser.uid || !article.isConnected) return;
+        likeCountValue = snapshot.size;
+        likeCount.textContent = likeCountValue + "件";
+      }).catch(() => { likeCount.textContent = "件数未取得"; });
+    } else {
+      likeButton.disabled = true;
+      commentToggle.disabled = true;
+      likeCount.textContent = "ログインすると参加できます";
+    }
+    likeButton.addEventListener("click", async () => {
+      const user = snsUser;
+      if (!user || user.uid !== activeUser?.uid || snsBusy) return;
+      likeButton.disabled = true;
+      try {
+        const likeRef = doc(snsDb, "posts", item.id, "likes", user.uid);
+        if (liked) {
+          await deleteDoc(likeRef);
+          liked = false;
+          likeCountValue = Math.max(0, likeCountValue - 1);
+        } else {
+          await setDoc(likeRef, { createdAt: serverTimestamp() });
+          liked = true;
+          likeCountValue += 1;
+        }
+        if (!snsUser || snsUser.uid !== user.uid) return;
+        likeButton.textContent = liked ? "♥ いいね済み" : "♡ いいね";
+        likeCount.textContent = likeCountValue + "件";
+      } catch (error) {
+        if (snsUser?.uid === user.uid) snsTimelineStatus.textContent = "いいねを更新できませんでした。公開範囲やブロック状態を確認してください。";
+      } finally {
+        if (snsUser?.uid === activeUser?.uid) likeButton.disabled = false;
+      }
+    });
+    commentToggle.addEventListener("click", async () => {
+      const user = snsUser;
+      if (!user || user.uid !== activeUser?.uid) return;
+      if (commentArea) {
+        commentArea.hidden = !commentArea.hidden;
+        commentToggle.textContent = commentArea.hidden ? "コメントを見る" : "コメントを閉じる";
+        return;
+      }
+      commentArea = document.createElement("div");
+      commentArea.style.cssText = "border-top:1px solid #e5e7eb;padding-top:10px;margin-top:8px";
+      const list = document.createElement("div");
+      const form = document.createElement("form");
+      const input = document.createElement("textarea");
+      input.maxLength = 300;
+      input.rows = 2;
+      input.placeholder = "コメント（300文字まで）";
+      input.setAttribute("aria-label", "コメント本文");
+      input.style.cssText = "width:100%;box-sizing:border-box;padding:9px;border:1px solid #cbd2e1;border-radius:8px;font:inherit";
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.textContent = "コメントを送る";
+      const note = document.createElement("p");
+      note.style.cssText = "font-size:12px;color:#667085";
+      note.textContent = "個人情報や連絡先は書かないでください。投稿者またはコメントした本人が削除できます。";
+      form.append(input, submit);
+      commentArea.append(list, form, note);
+      article.appendChild(commentArea);
+      commentsLoaded = true;
+      commentToggle.textContent = "コメントを閉じる";
+      const renderComments = async () => {
+        const result = await getDocs(query(collection(snsDb, "posts", item.id, "comments")));
+        if (!snsUser || snsUser.uid !== user.uid || !article.isConnected) return;
+        list.replaceChildren();
+        for (const snap of result.docs.filter(entry => entry.data().status === "active")) {
+          const row = document.createElement("div");
+          row.style.cssText = "padding:7px 0;border-bottom:1px solid #eee";
+          const text = document.createElement("p");
+          text.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 4px";
+          text.textContent = snap.data().text;
+          const remove = document.createElement("button");
+          if (snap.data().authorUid === user.uid || item.authorUid === user.uid) {
+            remove.type = "button";
+            remove.textContent = "削除";
+            remove.addEventListener("click", async () => {
+              try {
+                await deleteDoc(doc(snsDb, "posts", item.id, "comments", snap.id));
+                await renderComments();
+              } catch (error) { note.textContent = "コメントを削除できませんでした。"; }
+            });
+            row.append(text, remove);
+          } else row.appendChild(text);
+          list.appendChild(row);
+        }
+        if (!list.childNodes.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "コメントはまだありません。";
+          list.appendChild(empty);
+        }
+      };
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text || text.length > 300 || !snsUser || snsUser.uid !== user.uid) return;
+        submit.disabled = true;
+        try {
+          await setDoc(doc(collection(snsDb, "posts", item.id, "comments")), {
+            authorUid: user.uid, text, status: "active", createdAt: serverTimestamp()
+          });
+          if (!snsUser || snsUser.uid !== user.uid) return;
+          input.value = "";
+          await renderComments();
+        } catch (error) {
+          note.textContent = "コメントを送信できませんでした。公開範囲やブロック状態を確認してください。";
+        } finally { if (snsUser?.uid === user.uid) submit.disabled = false; }
+      });
+      try { await renderComments(); } catch (error) { note.textContent = "コメントを読み込めませんでした。"; }
+    });
     if (snsUser && item.authorUid !== snsUser.uid) {
       const report = document.createElement("button");
       report.type = "button";
