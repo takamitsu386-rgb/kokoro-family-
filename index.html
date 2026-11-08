@@ -309,6 +309,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
 <button onclick="duplicateSelected()">📑 選んだ家具をコピー</button>
+<button type="button" onclick="duplicateSelectedBatch()">選んだ家具をまとめてコピー</button>
 <button onclick="layerSelected(1)">⬆️ 前に表示</button>
 <button onclick="layerSelected(-1)">⬇️ 後ろに表示</button>
 <button class="primary" onclick="saveRoom()">💾 今のお部屋を保存</button>
@@ -757,6 +758,48 @@ document.getElementById('selectedMessage').textContent='保存できなかった
 return;
 }
 document.getElementById('selectedMessage').textContent=direction>0?'家具を手前に表示したよ。かさなった家具も見やすくなるよ！':'家具を後ろに表示したよ。';
+}
+function duplicateSelectedBatch(){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にコピーしたい家具をタップしてね。';return;}
+const field=document.getElementById('furnitureAddCount');
+const requested=Number(field?.value);
+const count=Number.isInteger(requested)?Math.min(20,Math.max(1,requested)):1;
+if(field)field.value=String(count);
+const original=selectedFurniture;
+const existing=room.querySelectorAll('.furniture').length;
+if(existing+count>300){document.getElementById('selectedMessage').textContent='家具は300個までです。追加できるのは'+Math.max(0,300-existing)+'個までです。';return;}
+const created=[];
+for(let index=0;index<count;index++){
+const copy=original.cloneNode(true);
+copy.style.outline='none';
+const iconButton=copy.querySelector('.item-icon');
+if(!iconButton){created.forEach(item=>item.remove());document.getElementById('selectedMessage').textContent='家具のコピーに失敗しました。';return;}
+iconButton.setAttribute('role','button');
+iconButton.setAttribute('tabindex','0');
+iconButton.setAttribute('aria-label',copy.dataset.icon+' を選択');
+iconButton.setAttribute('aria-pressed','false');
+iconButton.addEventListener('click',()=>selectFurniture(copy));
+iconButton.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectFurniture(copy);}});
+room.appendChild(copy);
+const offset=(index+1)*18;
+const left=Math.min(Math.max(0,room.clientWidth-copy.offsetWidth),original.offsetLeft+offset);
+const top=Math.min(Math.max(0,room.clientHeight-copy.offsetHeight),original.offsetTop+offset);
+copy.style.left=left+'px';
+copy.style.top=top+'px';
+drag(copy);
+created.push(copy);
+}
+if(!autoSaveRoom()){
+created.forEach(item=>item.remove());
+selectFurniture(original);
+updateFurnitureCount();
+document.getElementById('selectedMessage').textContent='保存できなかったため、コピーをすべて取り消しました。';
+return;
+}
+selectFurniture(created[created.length-1]);
+updateFurnitureCount();
+created[created.length-1].querySelector('.drag-handle')?.focus();
+document.getElementById('selectedMessage').textContent=original.dataset.icon+' を'+count+'個まとめてコピーしました。';
 }
 function duplicateSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にコピーしたい家具をタップしてね。';return;}
