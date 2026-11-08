@@ -11,6 +11,8 @@ assert.match(html, /id="familyTaskSubmit"/, "task edit submit button exists");
 assert.match(html, /id="familyTaskCancel"/, "task edit cancel button exists");
 assert.match(html, /maxlength="80"/, "task title length is limited");
 assert.match(html, /const LIMIT = 100/, "task count is bounded");
+assert.match(html, /date\\.getUTCFullYear\(\)!==year/, "CSV due dates reject impossible calendar dates");
+assert.match(html, /date\\.getUTCMonth\(\)!==month-1/, "CSV due month is checked strictly");
 assert.match(html, /function validTask\(task\)/, "task schema is validated");
 assert.match(html, /Object\.hasOwn\(categories, task\.category\)/, "task category is allowlisted");
 assert.match(html, /Object\.hasOwn\(priorities, task\.priority\)/, "task priority is allowlisted");
@@ -26,7 +28,7 @@ assert.match(html, /familyTaskClearDone/, "completed tasks can be cleared");
 assert.match(html, /Task storage rollback failed/, "failed writes attempt rollback");
 assert.match(html, /保存データに問題があるため、上書きせず保護しました/, "invalid stored data fails closed");
 assert.match(html, /クラウド同期・家族間共有にはまだ対応していません/, "local-only scope is disclosed");
-assert.match(sw, /kokoro-family-v203/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v216/, "service worker cache is refreshed");
 
 console.log("Family task list source checks passed.");
 
