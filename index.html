@@ -310,6 +310,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="resetSelectedFurnitureIconBackground()">背景色を解除</button>
 <h3>家具の枠線</h3>
 <label for="furnitureBorderColor">枠線の色</label>
+<label for="furnitureBorderWidth">枠線の太さ（1〜6px）</label>
+<input id="furnitureBorderWidth" type="number" min="1" max="6" step="1" value="2" inputmode="numeric" style="width:80px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
 <input id="furnitureBorderColor" type="color" value="#6759d8" aria-label="家具の枠線の色">
 <button type="button" onclick="setSelectedFurnitureBorder('solid')">実線</button>
 <button type="button" onclick="setSelectedFurnitureBorder('dashed')">破線</button>
@@ -1662,18 +1664,24 @@ function setSelectedFurnitureBorder(style){
  const icon=selectedFurniture.querySelector('.item-icon');
  const colorInput=document.getElementById('furnitureBorderColor');
  const color=colorInput?colorInput.value:'';
- if(!icon||!/^#[0-9a-fA-F]{6}$/.test(color)){status.textContent='枠線の色を確認してください。';return;}
+ const widthInput=document.getElementById('furnitureBorderWidth');
+ const widthRaw=widthInput?widthInput.value:'2';
+ const width=Number(widthRaw);
+ if(!icon||!/^#[0-9a-fA-F]{6}$/.test(color)||widthRaw.trim()===''||!Number.isInteger(width)||width<1||width>6){status.textContent='枠線の色と太さ（1〜6px）を確認してください。';return;}
  const previousStyle=selectedFurniture.dataset.borderStyle||'';
  const previousColor=selectedFurniture.dataset.borderColor||'';
+ const previousWidth=selectedFurniture.dataset.borderWidth||'2';
  const previousBorder=icon.style.border,previousRadius=icon.style.borderRadius;
- if(previousStyle===style&&previousColor===color){status.textContent='同じ枠線が設定されています。';return;}
+ if(previousStyle===style&&previousColor===color&&Number(previousWidth)===width){status.textContent='同じ枠線が設定されています。';return;}
  selectedFurniture.dataset.borderStyle=style;
  selectedFurniture.dataset.borderColor=color;
- icon.style.border='2px '+style+' '+color;
+ selectedFurniture.dataset.borderWidth=String(width);
+ icon.style.border=width+'px '+style+' '+color;
  icon.style.borderRadius='12px';
  if(!autoSaveRoom()){
   if(previousStyle)selectedFurniture.dataset.borderStyle=previousStyle;else delete selectedFurniture.dataset.borderStyle;
   if(previousColor)selectedFurniture.dataset.borderColor=previousColor;else delete selectedFurniture.dataset.borderColor;
+  if(previousWidth!=='2')selectedFurniture.dataset.borderWidth=previousWidth;else delete selectedFurniture.dataset.borderWidth;
   icon.style.border=previousBorder;icon.style.borderRadius=previousRadius;
   status.textContent='保存できなかったため、枠線を元に戻しました。';return;
  }
@@ -1686,13 +1694,15 @@ function resetSelectedFurnitureBorder(){
  if(!icon){status.textContent='家具の表示を確認できません。';return;}
  const previousStyle=selectedFurniture.dataset.borderStyle||'';
  const previousColor=selectedFurniture.dataset.borderColor||'';
- if(!previousStyle&&!previousColor){status.textContent='この家具には枠線が設定されていません。';return;}
+ const previousWidth=selectedFurniture.dataset.borderWidth||'';
+ if(!previousStyle&&!previousColor&&!previousWidth){status.textContent='この家具には枠線が設定されていません。';return;}
  const previousBorder=icon.style.border,previousRadius=icon.style.borderRadius;
- delete selectedFurniture.dataset.borderStyle;delete selectedFurniture.dataset.borderColor;
+ delete selectedFurniture.dataset.borderStyle;delete selectedFurniture.dataset.borderColor;delete selectedFurniture.dataset.borderWidth;
  icon.style.border='';icon.style.borderRadius='';
  if(!autoSaveRoom()){
   if(previousStyle)selectedFurniture.dataset.borderStyle=previousStyle;
   if(previousColor)selectedFurniture.dataset.borderColor=previousColor;
+  if(previousWidth)selectedFurniture.dataset.borderWidth=previousWidth;
   icon.style.border=previousBorder;icon.style.borderRadius=previousRadius;
   status.textContent='保存できなかったため、枠線を元に戻しました。';return;
  }
@@ -2059,6 +2069,7 @@ validPosition(item.left)&&validPosition(item.top)&&
  (item.shadow===undefined||['soft','strong','glow'].includes(item.shadow))&&
  (item.borderStyle===undefined||['solid','dashed','dotted'].includes(item.borderStyle))&&
  (item.borderColor===undefined||(typeof item.borderColor==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.borderColor)))&&
+ (item.borderWidth===undefined||(typeof item.borderWidth==='string'&&/^[1-6]$/.test(item.borderWidth)))&&
  (item.label===undefined||(typeof item.label==='string'&&item.label.length<=20&&!/[\u0000-\u001f\u007f]/.test(item.label))));
 }
 function validSavedRooms(value){
@@ -2076,7 +2087,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',shadow:el.dataset.shadow||'',borderStyle:el.dataset.borderStyle||'',borderColor:el.dataset.borderColor||'',label:el.dataset.label||''
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',shadow:el.dataset.shadow||'',borderStyle:el.dataset.borderStyle||'',borderColor:el.dataset.borderColor||'',borderWidth:el.dataset.borderWidth||'',label:el.dataset.label||''
 }))
 };
 }
@@ -2108,7 +2119,7 @@ if(v.opacity)el.style.opacity=v.opacity;
  if(typeof v.label==='string'&&v.label){el.dataset.label=v.label;const labelNode=document.createElement('span');labelNode.className='item-label';labelNode.textContent=v.label;el.appendChild(labelNode);el.title=v.label+'（手のマークで移動）';if(restoredIcon)restoredIcon.setAttribute('aria-label',v.icon+'：'+v.label+' を選択');}
  if(restoredIcon&&v.iconBackground){el.dataset.iconBackground=v.iconBackground;restoredIcon.style.backgroundColor=v.iconBackground;restoredIcon.style.borderRadius='12px';restoredIcon.style.padding='2px 6px';}
  if(restoredIcon&&v.shadow){el.dataset.shadow=v.shadow;restoredIcon.style.boxShadow=({soft:'0 2px 7px #00000030',strong:'0 4px 10px #00000070',glow:'0 0 12px #f5c542'})[v.shadow];}
- if(restoredIcon&&v.borderStyle&&v.borderColor){el.dataset.borderStyle=v.borderStyle;el.dataset.borderColor=v.borderColor;restoredIcon.style.border='2px '+v.borderStyle+' '+v.borderColor;restoredIcon.style.borderRadius='12px';}
+ if(restoredIcon&&v.borderStyle&&v.borderColor){el.dataset.borderStyle=v.borderStyle;el.dataset.borderColor=v.borderColor;restoredIcon.style.border=(v.borderWidth||'2')+'px '+v.borderStyle+' '+v.borderColor; if(v.borderWidth)el.dataset.borderWidth=v.borderWidth;restoredIcon.style.borderRadius='12px';}
  if(restoredIcon&&(v.flipX===true||v.flipY===true))restoredIcon.style.transform='scale('+(v.flipX===true?-1:1)+', '+(v.flipY===true?-1:1)+')';
 if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
