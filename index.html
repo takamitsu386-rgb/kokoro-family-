@@ -7012,7 +7012,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const cookingTitle=document.createElement("summary");cookingTitle.textContent="調理ステップチェック";
       const cookingProgress=document.createElement("p");cookingProgress.setAttribute("aria-live","polite");cookingProgress.style.cssText="margin:6px 0;font-size:0.9em;color:#667085";
       const cookingItems=document.createElement("div");cookingItems.style.cssText="display:grid;gap:8px;margin-top:8px";
-      const cookingLines=recipe.steps.split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean);
+      const cookingLines=recipe.steps.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
       const updateCookingProgress=()=>{
         const boxes=[...cookingItems.querySelectorAll('input[type="checkbox"]')];
         cookingProgress.textContent="完了 "+boxes.filter(input=>input.checked).length+"/"+boxes.length+" ステップ";
