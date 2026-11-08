@@ -136,7 +136,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <div class="divider" style="height:1px;background:#e5e7eb;margin:18px 0"></div>
 <h3>友達申請</h3>
-<p style="font-size:13px;color:#667085">公開プロフィールの相手に申請できます。相手が承認するまで友達にはなりません。個人情報や連絡先は送らないでください。</p>
+<p style="font-size:13px;color:#667085">公開プロフィールをニックネームで検索できます。非公開プロフィールは検索結果に表示されません。相手が承認するまで友達にはなりません。</p>
+<label for="snsProfileSearchInput">公開プロフィールを検索（2〜24文字）</label>
+<input id="snsProfileSearchInput" maxlength="24" autocomplete="off" placeholder="ニックネームの先頭を入力" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" id="snsProfileSearchButton" style="margin-top:8px">公開プロフィールを検索</button>
+<p id="snsProfileSearchStatus" role="status" aria-live="polite">検索結果は公開プロフィールのみです。</p>
+<div id="snsProfileSearchResults" aria-live="polite"></div>
 <label for="snsFriendUid">申請先のユーザーID</label>
 <input id="snsFriendUid" maxlength="128" autocomplete="off" spellcheck="false" placeholder="公開プロフィールのユーザーID" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
 <button type="button" id="snsSendFriendRequest" style="margin-top:8px">友達申請を送る</button>
@@ -2632,6 +2637,10 @@ const snsReportUid = document.getElementById("snsReportUid");
 const snsReportCategory = document.getElementById("snsReportCategory");
 const snsSubmitReport = document.getElementById("snsSubmitReport");
 const snsReportNotice = document.getElementById("snsReportNotice");
+const snsProfileSearchInput = document.getElementById("snsProfileSearchInput");
+const snsProfileSearchButton = document.getElementById("snsProfileSearchButton");
+const snsProfileSearchStatus = document.getElementById("snsProfileSearchStatus");
+const snsProfileSearchResults = document.getElementById("snsProfileSearchResults");
 const snsFriendUid = document.getElementById("snsFriendUid");
 const snsSendFriendRequest = document.getElementById("snsSendFriendRequest");
 const snsFriendNotice = document.getElementById("snsFriendNotice");
@@ -2656,7 +2665,7 @@ function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
   snsBusyGeneration += 1;
   snsBusy = value;
-  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
+  [snsSaveProfile, snsCreatePost, snsRefreshPosts, snsRefreshTimeline, snsAddBlock, snsSubmitReport, snsProfileSearchButton, ...snsPostList.querySelectorAll("button"), ...snsTimelineList.querySelectorAll("button"), ...snsBlockList.querySelectorAll("button")].forEach(button => { button.disabled = value || !snsUser; });
   return snsBusyGeneration;
 }
 function snsReleaseBusyFor(user, operationGeneration) {
@@ -3291,6 +3300,8 @@ if (snsApp) {
       snsRenderPosts([]);
       snsTimelineList.replaceChildren();
       snsTimelineStatus.textContent = "ログインすると公開投稿を読み込みます。";
+      snsProfileSearchResults.replaceChildren();
+      snsProfileSearchStatus.textContent = "検索結果は公開プロフィールのみです。";
       return;
     }
     try {
@@ -3350,6 +3361,60 @@ snsAddBlock.addEventListener("click", async () => {
     console.error("SNS block failed", error);
     snsMessage("ブロックできませんでした。ログイン状態を確認してください。");
   } finally { snsReleaseBusyFor(user, operationGeneration); }
+});
+snsProfileSearchButton.addEventListener("click", async () => {
+  const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  if (!user || snsBusy) return;
+  const prefix = snsProfileSearchInput.value.trim();
+  if (prefix.length < 2 || prefix.length > 24) {
+    snsProfileSearchStatus.textContent = "ニックネームを2〜24文字で入力してください。";
+    return;
+  }
+  const operationGeneration = snsSetBusy(true);
+  snsProfileSearchStatus.textContent = "公開プロフィールを検索しています…";
+  snsProfileSearchResults.replaceChildren();
+  try {
+    const token = await user.getIdToken();
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const response = await fetch("/api/sns-search-profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ prefix })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    if (!response.ok) throw new Error(data.error || "プロフィールを検索できませんでした。");
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) {
+      snsProfileSearchStatus.textContent = "一致する公開プロフィールはありません。";
+      return;
+    }
+    for (const item of items) {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #eee";
+      const name = document.createElement("strong");
+      const avatar = { "avatar-01":"🌷", "avatar-02":"🐱", "avatar-03":"🐻", "avatar-04":"⭐", "avatar-05":"🐰" };
+      name.textContent = (avatar[item.avatarId] || "🌷") + " " + String(item.nickname || "ユーザー").slice(0, 24);
+      const choose = document.createElement("button");
+      choose.type = "button";
+      choose.textContent = "この人に申請";
+      choose.addEventListener("click", () => {
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+        snsFriendUid.value = item.uid;
+        snsFriendNotice.textContent = "申請先を設定しました。相手を確認してから申請してください。";
+        snsFriendUid.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      row.append(name, choose);
+      snsProfileSearchResults.appendChild(row);
+    }
+    snsProfileSearchStatus.textContent = items.length + "件の公開プロフィールが見つかりました。";
+  } catch (error) {
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    snsProfileSearchStatus.textContent = error.message || "検索できませんでした。";
+  } finally {
+    snsReleaseBusyFor(user, operationGeneration);
+  }
 });
 snsSendFriendRequest.addEventListener("click", async () => {
   const user = snsUser;
