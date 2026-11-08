@@ -194,3 +194,5 @@ Firestore Emulator と Rules Unit Testing を使ったテストをCIに追加し
 
 
 - Friend removal now also removes the shared room snapshots exchanged between those two accounts from both owner and recipient lists. The cleanup is bounded to the up to 124 shares in each direction.
+
+- Blocking a user and revoking up to 124 shared rooms in each direction now happen in one Firestore batch, avoiding a block record being saved while the matching share cleanup fails. The operation is bounded to stay below the Firestore 500-write batch ceiling.
