@@ -25,10 +25,16 @@ assert.match(html, /cancelButton\.addEventListener\("click", resetEditor\)/, "ta
 assert.match(html, /tasks\.length >= LIMIT && editingId === null/, "existing tasks remain editable at the item limit");
 assert.match(html, /confirm\("「" \+ task\.title/, "task deletion is confirmed");
 assert.match(html, /familyTaskClearDone/, "completed tasks can be cleared");
+assert.match(html, /option value="overdue"/, "overdue task filter exists");
+assert.match(html, /option value="today"/, "today task filter exists");
+assert.match(html, /option value="upcoming"/, "upcoming task filter exists");
+assert.match(html, /const isOverdue = task => !task\.completed/, "overdue counts exclude completed tasks");
+assert.match(html, /const dueToday = tasks\.filter\(isToday\)/, "today due count is summarized");
+assert.match(html, /（期限切れ）/, "overdue tasks are visibly labeled");
 assert.match(html, /Task storage rollback failed/, "failed writes attempt rollback");
 assert.match(html, /保存データに問題があるため、上書きせず保護しました/, "invalid stored data fails closed");
 assert.match(html, /クラウド同期・家族間共有にはまだ対応していません/, "local-only scope is disclosed");
-assert.match(sw, /kokoro-family-v216/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v217/, "service worker cache is refreshed");
 
 console.log("Family task list source checks passed.");
 
@@ -40,4 +46,4 @@ assert.match(html,/categoryMap/);
 assert.match(html,/priorityMap/);
 assert.match(html,/Task CSV import failed/);
 assert.match(html,/Task CSV export failed/);
-assert.match(sw,/kokoro-family-v209/);
+assert.match(sw,/kokoro-family-v217/);
