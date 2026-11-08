@@ -6444,7 +6444,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const exportStatus=document.getElementById("familyMealsExportStatus");
   const csvCell=value=>{
     let text=String(value??"");
-    if(/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text))text="'"+text;
+    if(/^[\s\u0000-\u001f]*[=+@-]/.test(text))text="'"+text;
     return '"'+text.replace(/"/g,'""')+'"';
   };
   exportButton.addEventListener("click",()=>{
@@ -6453,7 +6453,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const labels={breakfast:"朝ごはん",lunch:"昼ごはん",dinner:"夜ごはん",snack:"おやつ"};
       const rows=entries.slice().sort((a,b)=>a.date.localeCompare(b.date)||["breakfast","lunch","dinner","snack"].indexOf(a.type)-["breakfast","lunch","dinner","snack"].indexOf(b.type))
         .map(item=>[item.date,labels[item.type],item.name,item.note,new Date(item.createdAt).toISOString()]);
-      const csv="\\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\\r\\n");
+      const csv="\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\r\n");
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       link.href=url;link.download="kokoro-family-meals-"+today().replaceAll("-","")+".csv";
