@@ -311,7 +311,7 @@ assert.ok(adminFilterHandler.includes('const user = snsUser;') &&
   adminFilterHandler.includes('if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;') &&
   adminFilterHandler.includes('snsLoadAdminReports(user, snsAdminFilter.value || "pending", authGeneration)'),
   'Admin report filter failures and results must be scoped to the exact auth generation that started the request.');
-const adminActionStart = sns.indexOf('snsAdminRequest("/api/admin/update-report"');
+const adminActionStart = sns.indexOf('if (report.status === "pending")');
 const adminActionEnd = sns.indexOf('actions.appendChild(button)', adminActionStart);
 assert.ok(adminActionStart >= 0 && adminActionEnd > adminActionStart,
   'Admin report action handler must exist.');
