@@ -161,6 +161,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" id="familyMealsClearPast">過去の献立を整理</button><button type="button" id="familyMealsExport">CSVを書き出す</button><button type="button" id="familyMealsWeeklyShopping">7日分の買い物メモをまとめて追加</button><label for="familyMealsImportFile" class="button">CSVを読み込む</label><input id="familyMealsImportFile" type="file" accept=".csv,text/csv" hidden>
 </div>
 <p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
+<h3>今週の献立一覧</h3>
+<div id="familyMealsWeekOverview" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"></div>
 <p id="familyMealsExportStatus" role="status" aria-live="polite"></p>
 <p id="familyMealsImportStatus" role="status" aria-live="polite"></p>
 <p id="familyMealsShoppingStatus" role="status" aria-live="polite"></p>
@@ -6716,6 +6718,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const resetFiltersButton=document.getElementById("familyMealsResetFilters");
   const listEl=document.getElementById("familyMealsList");
   const summaryEl=document.getElementById("familyMealsSummary");
+  const weekOverview=document.getElementById("familyMealsWeekOverview");
   const clearButton=document.getElementById("familyMealsClearPast");
   const submitButton=document.getElementById("familyMealsSubmit");
   const cancelButton=document.getElementById("familyMealsCancel");
@@ -6764,6 +6767,25 @@ snsRefreshPosts.addEventListener("click", async () => {
         return a.date.localeCompare(b.date)||["breakfast","lunch","dinner","snack"].indexOf(a.type)-["breakfast","lunch","dinner","snack"].indexOf(b.type)||a.createdAt-b.createdAt;
       });
     summaryEl.textContent="登録 "+entries.length+"件・今日から7日間 "+entries.filter(x=>x.date>=current&&x.date<=last).length+"件・表示 "+visible.length+"件";
+    weekOverview.replaceChildren();
+    const mealOrder=["breakfast","lunch","dinner","snack"];
+    const mealLabels={breakfast:"朝",lunch:"昼",dinner:"夜",snack:"おやつ"};
+    for(let offset=0;offset<7;offset++){
+      const day=new Date(current+"T00:00:00");day.setDate(day.getDate()+offset);
+      const date=day.getFullYear()+"-"+String(day.getMonth()+1).padStart(2,"0")+"-"+String(day.getDate()).padStart(2,"0");
+      const card=document.createElement("section");card.style.cssText="padding:10px;border:1px solid #e4e7ef;border-radius:10px;background:#fff;display:grid;gap:6px";
+      const heading=document.createElement("strong");heading.textContent=(offset===0?"今日・":"")+date.replaceAll("-","/")+"（"+["日","月","火","水","木","金","土"][day.getDay()]+"）";
+      card.append(heading);
+      const dayMeals=entries.filter(item=>item.date===date).sort((a,b)=>mealOrder.indexOf(a.type)-mealOrder.indexOf(b.type)||a.createdAt-b.createdAt);
+      if(!dayMeals.length){const empty=document.createElement("small");empty.textContent="献立未登録";empty.style.color="#667085";card.append(empty);}
+      dayMeals.forEach(item=>{
+        const line=document.createElement("p");line.style.cssText="margin:0;font-size:0.92em";
+        const label=document.createElement("span");label.style.fontWeight="600";label.textContent=mealLabels[item.type]+"：";
+        const name=document.createElement("span");name.textContent=item.name;line.append(label,name);card.append(line);
+      });
+      const addDay=document.createElement("button");addDay.type="button";addDay.textContent="この日に献立を追加";addDay.addEventListener("click",()=>{dateInput.value=date;typeInput.value="dinner";nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
+      card.append(addDay);weekOverview.append(card);
+    }
     listEl.replaceChildren();
     if(!visible.length){const empty=document.createElement("li");empty.textContent=entries.length?"この期間の献立はありません。":"まだ献立がありません。日付とメニューを入力して追加できます。";listEl.append(empty);}
     for(const item of visible){
