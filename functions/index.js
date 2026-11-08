@@ -219,6 +219,88 @@ exports.submitReport = onRequest({
 });
 
 
+
+// Return only public, active posts whose authors are visible and not blocked in either direction.
+exports.publicTimeline = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 3,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = setReportCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const authHeader = req.get("authorization") || "";
+    const match = authHeader.match(/^Bearer (.+)$/);
+    if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
+    const decoded = await getAuth().verifyIdToken(match[1], true);
+    const db = getFirestore();
+
+    const [postsSnapshot, viewerBlocksSnapshot] = await Promise.all([
+      db.collection("posts")
+        .where("visibility", "==", "public")
+        .where("status", "==", "active")
+        .orderBy("createdAt", "desc")
+        .limit(50)
+        .get(),
+      db.collection("users").doc(decoded.uid).collection("blocks").get()
+    ]);
+
+    const viewerBlocks = new Set(viewerBlocksSnapshot.docs.map(item => item.id));
+    const authorUids = [...new Set(postsSnapshot.docs
+      .map(item => item.data().authorUid)
+      .filter(uid => typeof uid === "string" && uid.length > 0))];
+    const authorRefs = authorUids.flatMap(uid => [
+      db.doc(`profiles/${uid}`),
+      db.doc(`users/${uid}/blocks/${decoded.uid}`)
+    ]);
+    const authorSnapshots = authorRefs.length ? await db.getAll(...authorRefs) : [];
+    const authors = new Map();
+    authorUids.forEach((uid, index) => {
+      authors.set(uid, {
+        profile: authorSnapshots[index * 2],
+        blocksViewer: authorSnapshots[index * 2 + 1]
+      });
+    });
+
+    const items = [];
+    for (const snapshot of postsSnapshot.docs) {
+      const post = snapshot.data();
+      const authorUid = post.authorUid;
+      if (typeof post.text !== "string" || !post.text.trim() || post.text.length > 500) continue;
+      const author = authors.get(authorUid);
+      if (!author) continue;
+      const isSelf = authorUid === decoded.uid;
+      if (!isSelf && (viewerBlocks.has(authorUid) || author.blocksViewer.exists)) continue;
+      const profile = author.profile.exists ? author.profile.data() : null;
+      if (!isSelf && (!profile || profile.visibility !== "public")) continue;
+      const avatarId = ["avatar-01", "avatar-02", "avatar-03", "avatar-04", "avatar-05"].includes(profile?.avatarId)
+        ? profile.avatarId : "avatar-01";
+      items.push({
+        id: snapshot.id,
+        authorUid,
+        nickname: typeof profile?.nickname === "string" && profile.nickname.trim()
+          ? profile.nickname.trim().slice(0, 24) : (isSelf ? "あなた" : "ユーザー"),
+        avatarId,
+        text: post.text,
+        createdAtMs: post.createdAt?.toMillis?.() ?? null
+      });
+    }
+
+    return sendJson(res, 200, { items });
+  } catch (error) {
+    console.error("Public SNS timeline error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "公開投稿を読み込めませんでした。" });
+  }
+});
+
+
 const reportReviewStatuses = new Set(["reviewed", "actioned", "dismissed"]);
 
 async function verifyAdminRequest(req, res) {
