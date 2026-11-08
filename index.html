@@ -276,6 +276,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
+<button type="button" onclick="autoArrangeFurniture()">🧩 家具を自動で整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
@@ -731,6 +732,34 @@ return;
 const deleteButton=document.querySelector('button[onclick="removeSelected()"]');
 if(deleteButton)deleteButton.focus();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
+}
+function autoArrangeFurniture(){
+  const items=[...room.querySelectorAll('.furniture')];
+  const status=document.getElementById('selectedMessage');
+  if(!items.length){status.textContent='整列する家具がまだありません。';return;}
+  const roomWidth=room.clientWidth,roomHeight=room.clientHeight;
+  if(roomWidth<1||roomHeight<1){status.textContent='お部屋の大きさを確認できません。';return;}
+  const ratio=roomWidth/roomHeight;
+  const columns=Math.max(1,Math.ceil(Math.sqrt(items.length*ratio)));
+  const rows=Math.ceil(items.length/columns);
+  const gapX=roomWidth/columns,gapY=roomHeight/rows;
+  const previous=items.map(item=>({item,left:item.style.left,top:item.style.top}));
+  items.forEach((item,index)=>{
+    const column=index%columns,row=Math.floor(index/columns);
+    const maxLeft=Math.max(0,roomWidth-item.offsetWidth);
+    const maxTop=Math.max(0,roomHeight-item.offsetHeight);
+    const left=Math.max(0,Math.min(maxLeft,(column+.5)*gapX-item.offsetWidth/2));
+    const top=Math.max(0,Math.min(maxTop,(row+.5)*gapY-item.offsetHeight/2));
+    item.style.left=left+'px';
+    item.style.top=top+'px';
+  });
+  if(!autoSaveRoom()){
+    previous.forEach(({item,left,top})=>{item.style.left=left;item.style.top=top;});
+    status.textContent='保存できなかったため、家具を元の配置に戻しました。';
+    return;
+  }
+  selectedFurniture=null;
+  status.textContent=items.length+'個の家具を見やすく整列しました。「1つ戻す」で元の配置に戻せます。';
 }
 function centerSelected(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具をタップして選んでね。';return;}
