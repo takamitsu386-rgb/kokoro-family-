@@ -53,3 +53,6 @@ assert.match(html, /snsFriendNotice\.textContent = "友達関係を解除し、�
 assert.match(html, /receivedShares\.docs\.filter\(snap => snap\.data\(\)\.ownerUid === peerUid\)/);
 
 assert.match(html, /const batch = writeBatch\(snsDb\);\s*batch\.delete\(doc\(snsDb, "friendRequests", requestId\)\);[\s\S]*?await batch\.commit\(\);/, "Friendship and shared-room removal must commit atomically.");
+
+assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\), limit\(124\)/);
+assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(124\)/);
