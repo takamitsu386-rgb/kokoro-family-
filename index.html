@@ -6600,7 +6600,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const exportStatus=document.getElementById("familyRecipesExportStatus");
   const csvCell=value=>{
     let text=String(value??"");
-    if(/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text))text="'"+text;
+    if(/^[\s\u0000-\u001f]*[=+@-]/.test(text))text="'"+text;
     return '"'+text.replace(/"/g,'""')+'"';
   };
   exportButton.addEventListener("click",()=>{
@@ -6608,7 +6608,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const header=["料理名","分類","材料","作り方・コツ","登録日時","更新日時"];
       const rows=recipes.slice().sort((a,b)=>a.title.localeCompare(b.title,"ja"))
         .map(item=>[item.title,categories[item.category],item.ingredients,item.steps,new Date(item.createdAt).toISOString(),new Date(item.updatedAt).toISOString()]);
-      const csv="\\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\\r\\n");
+      const csv="\uFEFF"+[header,...rows].map(row=>row.map(csvCell).join(",")).join("\r\n");
       const now=new Date(),stamp=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0");
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob),link=document.createElement("a");
