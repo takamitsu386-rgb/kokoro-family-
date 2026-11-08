@@ -303,6 +303,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="bulkSavedRoomCategory">選択したお部屋に付けるカテゴリ</label>
 <input id="bulkSavedRoomCategory" type="text" maxlength="24" placeholder="カテゴリ名">
 <button type="button" onclick="applyBulkSavedRoomCategory()">選択したお部屋を一括分類</button>
+<button type="button" onclick="setBulkSavedRoomFavorites(true)">選択したお部屋をお気に入り登録</button>
+<button type="button" onclick="setBulkSavedRoomFavorites(false)">選択したお部屋のお気に入り解除</button>
 <button type="button" onclick="deleteBulkSavedRooms()">選択したお部屋を一括削除</button>
 </div>
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
@@ -1028,6 +1030,18 @@ bulkSavedRoomSelection=new Set(selected);
 const filter=document.getElementById('savedRoomCategoryFilter');if(filter)filter.value='';
 refreshSavedRooms();
 document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋を「'+category+'」に分類しました。';
+}
+function setBulkSavedRoomFavorites(enabled){
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データまたはお気に入り設定を読み取れません。';return;}
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name));
+if(!selected.length){document.getElementById('message').textContent='お気に入りを変更するお部屋を選んでください。';return;}
+const favorites=new Set(prefs.favorites);
+selected.forEach(name=>{if(enabled)favorites.add(name);else favorites.delete(name);});
+prefs.favorites=[...favorites];
+if(!writeSavedRoomPrefs(prefs))return;
+refreshSavedRooms();
+document.getElementById('message').textContent='選択した'+selected.length+'個のお部屋のお気に入りを'+(enabled?'登録':'解除')+'しました。';
 }
 function deleteBulkSavedRooms(){
 const rooms=savedRoomData();
