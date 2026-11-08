@@ -151,6 +151,8 @@ assert.match(html, /snsAdminUpdatingReports\\.has\\(report\\.id\\)/,
   'Repeated review clicks for the same report must be blocked while its update is pending.');
 assert.match(html, /snsAdminUpdatingReports\\.add\\(report\\.id\\)/,
   'A report must be locked before sending its review update.');
+assert.match(html, /if \(snsAuthGeneration === authGeneration\) snsAdminUpdatingReports\.delete\(report\.id\)/,
+  'An old auth session must not release a newer session report lock.');
 assert.match(html, /snsAdminUpdatingReports\\.delete\\(report\\.id\\)/,
   'A report review lock must always be released after the request.');
 assert.match(html, /snsAdminUpdatingReports\\.clear\\(\\)/,
