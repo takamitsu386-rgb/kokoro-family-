@@ -358,6 +358,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button type="button" onclick="previewSavedRoom()">👀 選んだお部屋をプレビュー</button>
 <button type="button" onclick="showSavedRoomSummary()">📋 選んだお部屋の内容をまとめる</button>
+<button type="button" onclick="downloadSavedRoomSummary()">⬇️ お部屋の内容をテキスト保存</button>
 <div id="savedRoomSummary" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:12px;background:#fafaff"></div>
 <button type="button" onclick="exportCurrentRoomImage()">🖼️ 今のお部屋を画像保存</button>
 <button type="button" onclick="exportSavedRoomImage()">🖼️ 選んだお部屋を画像保存</button>
@@ -2072,6 +2073,31 @@ const name=document.getElementById('savedRooms').value,rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
 if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='画像にするお部屋を選んでね。';return;}
 exportRoomImage(rooms[name],name);
+}
+function downloadSavedRoomSummary(){
+const name=document.getElementById('savedRooms').value;
+const rooms=savedRoomData();
+if(rooms===null||!name||!Object.prototype.hasOwnProperty.call(rooms,name)||!validRoomData(rooms[name])){
+document.getElementById('message').textContent='テキスト保存するお部屋を選んでください。保存データに問題がある場合は変更しません。';return;
+}
+const data=rooms[name],prefs=readSavedRoomPrefs();
+const counts=new Map();
+data.items.forEach(item=>counts.set(item.icon,(counts.get(item.icon)||0)+1));
+const details=[...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([icon,count])=>icon+' '+count+'個').join('、');
+const lines=['お部屋の内容','名前：'+name,'家具の数：'+data.items.length+'個','壁の色：'+(data.wallColor||data.wall||'未設定'),'床の色：'+(data.floor||'未設定'),'家具の内訳：'+(details||'家具なし')];
+if(prefs&&prefs.categories[name])lines.push('カテゴリ：'+prefs.categories[name]);
+if(prefs&&prefs.notes[name])lines.push('メモ：'+prefs.notes[name]);
+lines.push('','こころファミリー');
+try{
+const blob=new Blob(['\\uFEFF'+lines.join('\\n')],{type:'text/plain;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const link=document.createElement('a');
+const safeName=name.replace(/[\\\\/:*?"<>|]/g,'_').slice(0,60)||'room';
+link.href=url;link.download=safeName+'-room-summary.txt';
+document.body.appendChild(link);link.click();link.remove();
+setTimeout(()=>URL.revokeObjectURL(url),1000);
+document.getElementById('message').textContent='📄「'+name+'」のお部屋まとめをテキスト保存しました。';
+}catch(error){document.getElementById('message').textContent='テキスト保存に失敗しました。もう一度試してください。';}
 }
 function showSavedRoomSummary(){
 const name=document.getElementById('savedRooms').value;
