@@ -359,4 +359,18 @@ assert.match(alignFunction,/selectedFurniture\.offsetHeight/,'Alignment must acc
 assert.match(alignFunction,/Math\.max\(0,Math\.min\(roomSize-itemSize,next\)\)/,'Alignment must keep furniture within room bounds.');
 assert.match(alignFunction,/autoSaveRoom\(\)/,'Alignment must persist through the existing save path.');
 assert.match(alignFunction,/selectedFurniture\.style\[property\]=previous/,'Alignment must roll back if saving fails.');
+
+const gridSnapStart=source.indexOf('let furnitureGridSnapEnabled=false;');
+const gridSnapEnd=source.indexOf("function buttons(",gridSnapStart);
+const gridSnapCode=source.slice(gridSnapStart,gridSnapEnd);
+const dragStart=source.indexOf('function drag(el){');
+const dragEnd=source.indexOf('function keepFurnitureInsideRoom()',dragStart);
+const dragCode=source.slice(dragStart,dragEnd);
+assert.match(source,/id="furnitureGridSnapToggle"/,'Room editor must expose the grid snap toggle.');
+assert.match(gridSnapCode,/FURNITURE_GRID_SIZE=20/,'Grid snapping must use a consistent 20px interval.');
+assert.match(gridSnapCode,/aria-pressed/,'Grid snap state must be announced accessibly.');
+assert.match(dragCode,/Math\.round\(x\/FURNITURE_GRID_SIZE\)/,'Pointer movement must snap horizontally to the grid.');
+assert.match(dragCode,/Math\.round\(y\/FURNITURE_GRID_SIZE\)/,'Pointer movement must snap vertically to the grid.');
+assert.match(dragCode,/furnitureGridSnapEnabled\?\(e\.shiftKey\?40:FURNITURE_GRID_SIZE\)/,'Keyboard movement must respect grid snap mode.');
+assert.match(dragCode,/autoSaveRoom\(\)/,'Snapped movement must use the existing save path.');
 console.log('Saved room comparison CSV checks passed.');
