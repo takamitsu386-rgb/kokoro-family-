@@ -35,6 +35,12 @@ assert.match(rules, /function\s+canInteractWithPost\(postId\)/,
   'Interactions must validate parent post visibility and block status.');
 assert.match(rules, /function\s+validComment\(data\)/,
   'Comment field and length validation is required.');
+assert.match(rules, /match\s+\/friendRequests\/\{requestId\}/,
+  'Friend request rules must be explicit.');
+assert.match(rules, /resource\.data\.toUid\s*==\s*request\.auth\.uid/,
+  'Only the recipient may decide a friend request.');
+assert.match(rules, /request\.resource\.data\.status\s+in\s+\['accepted',\s*'declined'\]/,
+  'Friend request state transitions must be limited.');
 assert.match(rules, /match\s+\/comments\/\{commentId\}/,
   'Comment rules must be explicit.');
 assert.match(rules, /match\s+\/likes\/\{likerUid\}/,
