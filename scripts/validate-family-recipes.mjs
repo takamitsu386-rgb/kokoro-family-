@@ -72,4 +72,4 @@ assert.match(html, /updateCookingProgress/);
 assert.match(html, /完了 \+boxes\.filter\(input=>input\.checked\)\.length/);
 assert.match(html, /ステップをすべて解除/);
 assert.match(html, /cookingChecklist,actions/);
-assert.match(sw, /kokoro-family-v237/);
+assert.match(sw, /kokoro-family-v238/);
