@@ -278,6 +278,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" data-category="other" aria-pressed="false" onclick="showFurnitureCategory('other')">🎁 その他</button>
 </div>
 <h2>🛋️ 家具を追加</h2>
+<label for="furnitureSearch">家具を名前・絵文字で検索</label>
+<input id="furnitureSearch" type="search" maxlength="40" autocomplete="off" placeholder="例：ねこ、植物、🛋️" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit;margin:6px 0">
 <div class="items" id="furniture"></div>
 <p id="furnitureCategoryStatus" role="status" aria-live="polite" style="font-size:13px;color:#667085;margin:6px 2px">家具を70種類表示中</p>
 <h2>📊 お部屋の家具バランス</h2>
@@ -479,6 +481,7 @@ root.appendChild(b);
 }
 patternButtons('wallPatterns',wallPatterns,room);
 patternButtons('floorPatterns',floorPatterns,document.getElementById('floor'));
+let activeFurnitureCategory='all';
 function showFurnitureCategory(category){
 const groups={
 room:['🛏️','🛋️','🪑','🪞','🖥️','📚','🛁','🚪','🪟','💡','🧺','🖼️','🕯️','🪜','🧹','🧴','🧼','🛒','📺','⌚','🧦','👒','👜','🎒','🕰️','🪔','🗄️','🗃️','🛎️','🧯','🪭','🪮','🪥'],
@@ -487,19 +490,32 @@ animal:['🧸','🐱','🐶','🐰'],
 food:['🍓','🧁','🍰','🍉','🍊','🥛','☕','🫖'],
 other:['🎀','🧩','🎨','🖌️','🎻','🎸','🧿','🪅','🎁','🎹','🧶','🧵','🪡','🧷','🪬']
 };
-const list=category==='all'?furnitureList:groups[category]||furnitureList;
+if(!['all','room','plant','animal','food','other'].includes(category))category='all';
+activeFurnitureCategory=category;
+const list=category==='all'?furnitureList:groups[category];
 document.querySelectorAll('#furnitureCategories [data-category]').forEach(button=>{
 const active=button.dataset.category===category;
 button.setAttribute('aria-pressed',String(active));
 button.classList.toggle('primary',active);
 });
-const root=document.getElementById('furniture');root.innerHTML='';
-document.getElementById('furnitureCategoryStatus').textContent=(category==='all'?'ぜんぶ':document.querySelector('#furnitureCategories [data-category="'+category+'"]').textContent.trim())+'：'+list.length+'種類';
-list.forEach(icon=>{
+renderFurnitureChoices(list);
+}
+function renderFurnitureChoices(list){
+const query=(document.getElementById('furnitureSearch')?.value||'').trim().toLocaleLowerCase('ja-JP');
+const filtered=list.filter(icon=>!query||icon.toLocaleLowerCase('ja-JP').includes(query)||({ '🛏️':'ベッド 寝室','🛋️':'ソファ リビング','🪑':'いす 椅子','🪴':'植物 グリーン','🌷':'花 はな','🧸':'くま ぬいぐるみ','🐱':'ねこ 猫','🐶':'いぬ 犬','🐰':'うさぎ','🖥️':'パソコン 机 勉強','📚':'本 ほん','💡':'ライト 電気','🍓':'いちご','🧁':'ケーキ スイーツ','☕':'コーヒー カフェ','🎀':'リボン','🧺':'かご' }[icon]||'').toLocaleLowerCase('ja-JP').includes(query));
+const root=document.getElementById('furniture');root.replaceChildren();
+const status=document.getElementById('furnitureCategoryStatus');
+status.textContent='表示：'+filtered.length+'種類（全'+list.length+'種類）'+(query?'／検索「'+query+'」':'');
+filtered.forEach(icon=>{
 const b=document.createElement('button');b.type='button';b.textContent=icon;b.title=icon+' を追加';b.setAttribute('aria-label',icon+' をお部屋に追加');
 b.onclick=()=>addFurniture(icon);root.appendChild(b);
 });
+if(!filtered.length){const empty=document.createElement('p');empty.textContent='見つかりませんでした。別の言葉や絵文字で検索してください。';status.appendChild(empty);}
 }
+document.getElementById('furnitureSearch').addEventListener('input',()=>renderFurnitureChoices(activeFurnitureCategory==='all'?furnitureList:({
+room:['🛏️','🛋️','🪑','🪞','🖥️','📚','🛁','🚪','🪟','💡','🧺','🖼️','🕯️','🪜','🧹','🧴','🧼','🛒','📺','⌚','🧦','👒','👜','🎒','🕰️','🪔','🗄️','🗃️','🛎️','🧯','🪭','🪮','🪥'],
+plant:['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷','🪺','🦋'],animal:['🧸','🐱','🐶','🐰'],food:['🍓','🧁','🍰','🍉','🍊','🥛','☕','🫖'],other:['🎀','🧩','🎨','🖌️','🎻','🎸','🧿','🪅','🎁','🎹','🧶','🧵','🪡','🧷','🪬']
+})[activeFurnitureCategory]));
 showFurnitureCategory('all');
 function setDotWallpaper(){
 if(commitStyleChange(()=>{
