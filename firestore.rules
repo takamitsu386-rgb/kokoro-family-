@@ -34,6 +34,31 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function canInteractWithPost(postId) {
+      let post = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return signedIn()
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && post.visibility == 'public'
+        && post.status == 'active'
+        && !blockedBetween(request.auth.uid, post.authorUid)
+        && (
+          post.authorUid == request.auth.uid
+          || get(/databases/$(database)/documents/profiles/$(post.authorUid)).data.visibility == 'public'
+        );
+    }
+
+    function validComment(data) {
+      return data.keys().hasAll(['authorUid', 'text', 'status', 'createdAt'])
+        && data.keys().hasOnly(['authorUid', 'text', 'status', 'createdAt'])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 300
+        && data.text.matches('.*\\S.*')
+        && data.status == 'active'
+        && data.createdAt is timestamp;
+    }
+
     function validPost(data) {
       return data.keys().hasAll([
           'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
@@ -128,12 +153,31 @@ service cloud.firestore {
       // Use status='deleted' so deleted posts disappear from all read paths.
       allow delete: if false;
 
-      // Comments and likes remain denied until their own rules and tests are ready.
+      // Interactions are available only on active public posts with visible authors,
+      // and are blocked immediately in either direction.
       match /comments/{commentId} {
-        allow read, write: if false;
+        allow get, list: if canInteractWithPost(postId);
+        allow create: if canInteractWithPost(postId)
+          && request.resource.data.authorUid == request.auth.uid
+          && validComment(request.resource.data)
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if signedIn()
+          && exists(/databases/$(database)/documents/posts/$(postId))
+          && (
+            resource.data.authorUid == request.auth.uid
+            || get(/databases/$(database)/documents/posts/$(postId)).data.authorUid == request.auth.uid
+          );
       }
       match /likes/{likerUid} {
-        allow read, write: if false;
+        allow get, list: if canInteractWithPost(postId);
+        allow create: if canInteractWithPost(postId)
+          && likerUid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.keys().hasAll(['createdAt'])
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if signedIn() && likerUid == request.auth.uid;
       }
     }
 
