@@ -323,6 +323,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="alignSelectedFurniture('centerY')">↕️ 縦中央</button>
 <button type="button" onclick="alignSelectedFurniture('bottom')">⬇️ 下端</button>
 <button type="button" id="furnitureGridSnapToggle" aria-pressed="false" onclick="toggleFurnitureGridSnap()">🧲 グリッド吸着：OFF</button>
+<button type="button" onclick="snapSelectedFurnitureToGrid()">選択した家具をマス目に揃える</button>
 <label for="furnitureGridSize">マス目の間隔</label>
 <select id="furnitureGridSize" aria-label="家具グリッドの間隔" onchange="setFurnitureGridSize(this.value)"><option value="10">細かい（10px）</option><option value="20" selected>標準（20px）</option><option value="40">広い（40px）</option></select>
 <button type="button" onclick="checkFurnitureOverlaps()">🔎 家具の重なりをチェック</button>
@@ -528,6 +529,33 @@ const floorPatterns=[
 let selectedFurniture=null;
 let furnitureGridSnapEnabled=false;
 let FURNITURE_GRID_SIZE=20;
+function snapSelectedFurnitureToGrid(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先にマス目に揃えたい家具を選んでね。';return;
+ }
+ if(room.clientWidth<1||room.clientHeight<1){
+  status.textContent='お部屋の大きさを確認できません。';return;
+ }
+ const previous={left:selectedFurniture.style.left,top:selectedFurniture.style.top};
+ const maxX=Math.max(0,room.clientWidth-selectedFurniture.offsetWidth);
+ const maxY=Math.max(0,room.clientHeight-selectedFurniture.offsetHeight);
+ const currentX=Number.parseFloat(selectedFurniture.style.left)||0;
+ const currentY=Number.parseFloat(selectedFurniture.style.top)||0;
+ const nextX=Math.max(0,Math.min(maxX,Math.round(currentX/FURNITURE_GRID_SIZE)*FURNITURE_GRID_SIZE));
+ const nextY=Math.max(0,Math.min(maxY,Math.round(currentY/FURNITURE_GRID_SIZE)*FURNITURE_GRID_SIZE));
+ if(nextX===currentX&&nextY===currentY){
+  status.textContent='この家具はすでにマス目に揃っています。';return;
+ }
+ selectedFurniture.style.left=nextX+'px';
+ selectedFurniture.style.top=nextY+'px';
+ if(!autoSaveRoom()){
+  selectedFurniture.style.left=previous.left;
+  selectedFurniture.style.top=previous.top;
+  status.textContent='保存できなかったため、家具の位置を元に戻しました。';return;
+ }
+ status.textContent='選択した家具を'+FURNITURE_GRID_SIZE+'pxのマス目に揃えました。「1つ戻す」で元に戻せます。';
+}
 function setFurnitureGridSize(value){
  const next=Number(value);
  if(![10,20,40].includes(next)){
