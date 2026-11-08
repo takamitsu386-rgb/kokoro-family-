@@ -6310,8 +6310,8 @@ snsRefreshPosts.addEventListener("click", async () => {
         else cell+=ch;
       }else if(ch==='"'){if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");quoted=true;}
       else if(ch===","){row.push(cell);cell="";}
-      else if(ch==="\\n"){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(ch==="\\r"){if(source[i+1]==="\\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\r"){if(source[i+1]==="\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
       else cell+=ch;
     }
     if(quoted)throw new Error("CSVの引用符が閉じられていません。");
@@ -6322,7 +6322,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     const file=importFile.files?.[0];if(!file)return;
     try{
       if(file.size>2*1024*1024)throw new Error("CSVファイルは2MB以内にしてください。");
-      const rows=parseCalendarCsv((await file.text()).replace(/^\\uFEFF/,""));
+      const rows=parseCalendarCsv((await file.text()).replace(/^\uFEFF/,""));
       const header=["予定","日付","時刻","場所・メモ","完了状態","登録日時"];
       if(!rows.length||rows[0].length!==header.length||header.some((value,index)=>rows[0][index]!==value))
         throw new Error("CSVの見出しが一致しません。カレンダーCSVを書き出したファイルを選んでください。");
