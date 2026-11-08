@@ -180,6 +180,8 @@ jobs:
         run: node scripts/validate-public-timeline.mjs
       - name: Validate friend request and comment report flows
         run: node scripts/validate-friend-requests.mjs
+      - name: Validate accepted friends list
+        run: node scripts/validate-friends-list.mjs
       - name: Validate public profile search privacy
         run: node scripts/validate-profile-search.mjs
       - name: Test Firestore rules in an isolated emulator
