@@ -75,3 +75,14 @@ assert.match(searchLogic, /name,categories\[name\].*notes\[name\]/, 'Search must
 assert.match(searchLogic, /toLocaleLowerCase\('ja-JP'\)/, 'Search must be case-insensitive with Japanese locale handling.');
 assert.match(html, /searchQuery\?'・検索：'/, 'The active search query must be reflected in the result count.');
 console.log('Saved room search checks passed.');
+
+
+const compareFn = html.indexOf('function compareSelectedSavedRooms(){');
+assert.notEqual(compareFn, -1, 'Two-room comparison action must exist.');
+assert.match(html, /選択した2部屋を比較/, 'Comparison control must be available beside bulk room management.');
+assert.match(html, /selected\.length!==2/, 'Comparison must require exactly two selected rooms.');
+assert.match(html, /wallColor.*floor/s, 'Comparison must include wall and floor appearance.');
+assert.match(html, /data\.items\.length/, 'Comparison must include furniture counts.');
+assert.match(html, /prefs\.categories.*prefs\.notes/s, 'Comparison must include category and notes.');
+assert.match(html, /savedRoomCompare/, 'Comparison panel must be present in the room manager.');
+console.log('Saved room comparison checks passed.');
