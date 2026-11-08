@@ -239,9 +239,17 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
       allow delete: if signedIn()
-        && resource.data.fromUid == request.auth.uid
-        && resource.data.status == 'pending'
-        && !blockedBetween(resource.data.fromUid, resource.data.toUid);
+        && (
+          (
+            resource.data.status == 'pending'
+            && resource.data.fromUid == request.auth.uid
+            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+          )
+          || (
+            resource.data.status == 'accepted'
+            && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+          )
+        );
     }
 
     // Friend lists are derived from accepted requests; no client-managed duplicate graph.
