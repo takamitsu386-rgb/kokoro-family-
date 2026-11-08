@@ -611,3 +611,23 @@ assert.match(html,/kokoro-family-palettes/,'Palette-only backup must use a disti
 assert.match(html,/kokoroCustomRoomPalettesBeforePaletteImport/,'Palette import must preserve the previous palette set.');
 assert.match(html,/file\.size>16384/,'Palette import must enforce a bounded file size.');
 assert.match(html,/validCustomRoomPalettes\(data\.palettes\)/,'Palette import must validate all imported palettes.');
+
+const cloudValidationStart=html.indexOf('function validCloudData(data)');
+assert.notEqual(cloudValidationStart,-1,'Cloud data validation must exist.');
+const cloudValidationEnd=html.indexOf('function localPayload()',cloudValidationStart);
+const cloudValidation=html.slice(cloudValidationStart,cloudValidationEnd);
+assert.match(cloudValidation,/customRoomPalettes/,'Cloud validation must include saved custom palettes.');
+assert.match(cloudValidation,/validCustomRoomPalettes\(palettes\)/,'Cloud palettes must use the strict palette validator.');
+const localPayloadStart=html.indexOf('function localPayload()');
+const localPayloadEnd=html.indexOf('function cloudRef(',localPayloadStart);
+const localPayload=html.slice(localPayloadStart,localPayloadEnd);
+assert.match(localPayload,/CUSTOM_ROOM_PALETTE_KEY/,'Cloud uploads must read locally saved palettes.');
+assert.match(localPayload,/customRoomPalettes/,'Cloud uploads must include saved palettes.');
+const cloudStoreStart=html.indexOf('function storeCloudDataSafely(');
+const cloudStoreEnd=html.indexOf('let uploadQueue',cloudStoreStart);
+const cloudStore=html.slice(cloudStoreStart,cloudStoreEnd);
+assert.match(cloudStore,/incomingPalettes/,'Cloud downloads must validate incoming palettes.');
+assert.match(cloudStore,/kokoroCustomRoomPalettesBeforeCloudImport/,'Cloud downloads must back up previous palettes.');
+assert.match(cloudStore,/renderCustomRoomPalettes/,'Cloud downloads must refresh the palette list.');
+assert.match(cloudStore,/previousPalettes/,'Cloud import rollback must restore previous palettes.');
+console.log('Cloud custom palette sync and rollback checks passed.');
