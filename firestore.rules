@@ -275,12 +275,12 @@ service cloud.firestore {
     }
 
 
-    // Shared rooms are immutable snapshots. Only accepted, unblocked friends may receive them.
-    // A recipient can read and import a copy, but cannot edit or redistribute the original.
+    // Recipient snapshots are listed only through recipientUid-filtered queries.
+    // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
     match /sharedRooms/{shareId} {
-      allow get, list: if signedIn()
-        && !blockedBetween(resource.data.ownerUid, resource.data.recipientUid)
+      allow get: if signedIn()
         && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+      allow list: if signedIn() && resource.data.recipientUid == request.auth.uid;
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
         && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
@@ -301,7 +301,33 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.size() <= 750000;
       allow update: if false;
-      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow delete: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+    }
+
+    match /users/{userId}/sharedRooms/{shareId} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.ownerUid == userId
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid.size() >= 1
+        && request.resource.data.recipientUid.size() <= 128
+        && request.resource.data.recipientUid != userId
+        && acceptedFriend(userId, request.resource.data.recipientUid)
+        && !blockedBetween(userId, request.resource.data.recipientUid)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 40
+        && request.resource.data.currentRoom is map
+        && request.resource.data.currentRoom.keys().hasAll(['wall', 'items'])
+        && request.resource.data.currentRoom.items is list
+        && request.resource.data.currentRoom.items.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && request.resource.size() <= 750000;
+      allow update: if false;
+      allow delete: if owns(userId);
     }
 
     // Friend lists are derived from accepted requests; no client-managed duplicate graph.
