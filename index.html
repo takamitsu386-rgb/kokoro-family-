@@ -328,6 +328,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="savedRoomSearch">お部屋を名前・カテゴリ・メモで検索</label>
 <input id="savedRoomSearch" type="search" maxlength="80" placeholder="例：寝室、春、模様替えメモ" oninput="refreshSavedRooms()" autocomplete="off" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit;margin:6px 0">
 <button type="button" onclick="showSavedRoomLibraryStats()">📊 保存したお部屋の全体統計</button>
+<button type="button" onclick="exportSavedRoomInventoryCsv()">📥 保存したお部屋一覧をCSV保存</button>
 <div id="savedRoomLibraryStats" role="status" aria-live="polite" style="display:none;padding:10px;margin:8px 0;border:1px solid #d8d2eb;border-radius:10px;background:#faf9ff"></div>
 <label for="savedRoomSort">お部屋の並び順</label>
 <select id="savedRoomSort" onchange="refreshSavedRooms()" aria-label="保存したお部屋の並び順">
@@ -2086,6 +2087,33 @@ const name=document.getElementById('savedRooms').value,rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
 if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='画像にするお部屋を選んでね。';return;}
 exportRoomImage(rooms[name],name);
+}
+function exportSavedRoomInventoryCsv(){
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
+const rows=[['お部屋名','カテゴリ','家具数','壁の色','床の色','お気に入り','メモ']];
+const favorites=new Set(prefs.favorites||[]);
+Object.keys(rooms).sort((a,b)=>a.localeCompare(b,'ja')).forEach(name=>{
+const data=rooms[name];if(!validRoomData(data))return;
+rows.push([name,prefs.categories[name]||'',String(data.items.length),data.wallColor||data.wall||'未設定',data.floor||'未設定',favorites.has(name)?'はい':'いいえ',prefs.notes[name]||'']);
+});
+const safeCell=value=>{
+let text=String(value??'');
+if(/^[\\s]*[=+@-]/.test(text))text="'"+text;
+return '"'+text.replace(/"/g,'""')+'"';
+};
+const csv='\\uFEFF'+rows.map(row=>row.map(safeCell).join(',')).join('\\r\\n');
+const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+if(blob.size>1000000){document.getElementById('message').textContent='CSVの容量が1MBを超えています。';return;}
+let url;
+try{
+url=URL.createObjectURL(blob);
+const link=document.createElement('a');
+link.href=url;link.download='kokoro-family-saved-rooms-'+new Date().toISOString().slice(0,10)+'.csv';
+document.body.appendChild(link);link.click();link.remove();
+document.getElementById('message').textContent='保存したお部屋 '+(rows.length-1)+'件の一覧をCSV保存しました。';
+}catch(error){document.getElementById('message').textContent='CSV保存に失敗しました。もう一度試してください。';}
+finally{if(url)URL.revokeObjectURL(url);}
 }
 function showSavedRoomLibraryStats(){
 const root=document.getElementById('savedRoomLibraryStats');
