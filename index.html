@@ -127,7 +127,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyCalendarSubmit">予定を追加</button><button type="button" id="familyCalendarCancel" hidden>編集をキャンセル</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
-<label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="month">選択した月</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
+<label for="familyCalendarFilter">表示</label><select id="familyCalendarFilter"><option value="upcoming">これからの予定</option><option value="week">今日から7日間</option><option value="month">選択した月</option><option value="all">すべて</option><option value="done">完了した予定</option></select>
 <label for="familyCalendarMonth">対象月</label><input id="familyCalendarMonth" type="month" aria-label="表示する年月">
 <label for="familyCalendarSearch">予定検索</label><input id="familyCalendarSearch" type="search" maxlength="80" placeholder="予定名・場所・メモを検索">
 <button type="button" id="familyCalendarResetFilters">検索を解除</button>
@@ -6513,7 +6513,8 @@ snsRefreshPosts.addEventListener("click", async () => {
     const filter=filterInput.value, current=today();
     const query=searchInput.value.trim().toLocaleLowerCase();
     const selectedMonth=monthInput.value;
-    const visible=entries.filter(item=>(filter==="all"||(filter==="done"?item.done:filter==="month"?(!!selectedMonth&&item.date.startsWith(selectedMonth)):!item.done&&item.date>=current))&&(!query||(item.title+" "+item.place).toLocaleLowerCase().includes(query)))
+    const weekEnd=(()=>{const [y,m,d]=current.split("-").map(Number);const end=new Date(y,m-1,d+6);return end.getFullYear()+"-"+String(end.getMonth()+1).padStart(2,"0")+"-"+String(end.getDate()).padStart(2,"0");})();
+    const visible=entries.filter(item=>(filter==="all"||(filter==="done"?item.done:filter==="month"?(!!selectedMonth&&item.date.startsWith(selectedMonth)):filter==="week"?!item.done&&item.date>=current&&item.date<=weekEnd:!item.done&&item.date>=current))&&(!query||(item.title+" "+item.place).toLocaleLowerCase().includes(query)))
       .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)||a.createdAt-b.createdAt);
     const done=entries.filter(item=>item.done).length;
     summaryEl.textContent="全"+entries.length+"件・これからの予定"+entries.filter(item=>!item.done&&item.date>=current).length+"件・完了"+done+"件・表示"+visible.length+"件";
