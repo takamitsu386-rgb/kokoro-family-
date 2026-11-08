@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const sw = await readFile(new URL("../sw.js", import.meta.url), "utf8");
+assert.match(html, /id="family-calendar"/);
+assert.match(html, /href="#family-calendar"/);
+assert.match(html, /id="familyCalendarForm"/);
+assert.match(html, /id="familyCalendarDate" type="date"/);
+assert.match(html, /const KEY = "kokoroFamilyCalendarV1", LIMIT = 100/);
+assert.match(html, /function validDate\(value\)/);
+assert.match(html, /function validEvent\(item\)/);
+assert.match(html, /validDate\(item\.date\)/);
+assert.match(html, /checkbox\.addEventListener\("change"/);
+assert.match(html, /Family calendar rollback failed/);
+assert.match(html, /上書きせず保護しました/);
+assert.match(html, /クラウド同期・家族間共有には未対応です/);
+assert.match(sw, /kokoro-family-v196/);
+console.log("Family calendar source checks passed.");
