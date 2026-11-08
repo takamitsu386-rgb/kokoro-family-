@@ -485,6 +485,7 @@ assert.match(opacityFunction,/selectedFurniture\.style\.opacity=next/,'Opacity c
 assert.match(opacityFunction,/if\(!autoSaveRoom\(\)\)/,'Opacity change must persist and roll back on failure.');
 assert.match(source,/resetSelectedFurnitureOpacity\(\)/,'Room editor must expose opacity reset.');
 assert.match(source,/opacity:el\.style\.opacity/,'Room snapshots must preserve opacity.');
+assert.match(source,/items:\[\.\.\.room\.querySelectorAll\('\.furniture'\)\]\.map\(el=>\(\{[\s\S]*?opacity:el\.style\.opacity/,'Room data must include each furniture opacity value in its actual snapshot.');
 assert.match(source,/item\.opacity===undefined\|\|\(typeof item\.opacity==='string'/,'Room validation must validate saved opacity.');
 assert.match(source,/if\(v\.opacity\)el\.style\.opacity=v\.opacity/,'Room restoration must restore opacity.');
 
