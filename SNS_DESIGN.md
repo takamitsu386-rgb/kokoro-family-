@@ -191,3 +191,6 @@ Firestore Emulator と Rules Unit Testing を使ったテストをCIに追加し
 - Shared-room lists are bounded to 50 entries per direction. Snapshot uploads are limited to 700 KB client-side, 300 furniture items, and 40-character titles.
 - Emulator coverage verifies recipient-only listing, owner mirror privacy, accepted-friend creation, immutable snapshots, and removal permissions.
 - Live Firebase deployment and device testing are still outstanding.
+
+
+- Friend removal now also removes the shared room snapshots exchanged between those two accounts from both owner and recipient lists. The cleanup is bounded to the most recent 200 shares in each direction.
