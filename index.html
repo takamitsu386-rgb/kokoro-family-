@@ -2574,6 +2574,7 @@ let snsDb = null;
 let snsUser = null;
 let snsBusy = false;
 let snsBusyGeneration = 0;
+let snsAuthGeneration = 0;
 
 function snsMessage(message) { snsStatus.textContent = message; }
 function snsSetBusy(value) {
@@ -2615,9 +2616,9 @@ function snsRenderPosts(items) {
     snsPostList.appendChild(article);
   }
 }
-async function snsLoadProfile(user) {
+async function snsLoadProfile(user, authGeneration = snsAuthGeneration) {
   const snapshot = await getDoc(doc(snsDb, "profiles", user.uid));
-  if (!snsUser || snsUser.uid !== user.uid) return;
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   if (!snapshot.exists()) {
     snsNickname.value = "";
     snsAvatar.value = "avatar-01";
@@ -2633,17 +2634,17 @@ async function snsLoadProfile(user) {
   snsUpdateProfilePreview();
   snsMessage("ログイン中です。プロフィールと自分の投稿を管理できます。");
 }
-async function snsLoadPosts(user) {
+async function snsLoadPosts(user, authGeneration = snsAuthGeneration) {
   const result = await getDocs(query(collection(snsDb, "posts"), where("authorUid", "==", user.uid)));
-  if (!snsUser || snsUser.uid !== user.uid) return;
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   const posts = result.docs.map(snapshot => ({ id: snapshot.id, ...snapshot.data() }))
     .filter(post => post.status === "active")
     .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   snsRenderPosts(posts);
 }
-async function snsLoadBlocks(user) {
+async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
   const result = await getDocs(collection(snsDb, "users", user.uid, "blocks"));
-  if (!snsUser || snsUser.uid !== user.uid) return;
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   snsBlockList.replaceChildren();
   if (result.empty) {
     const empty = document.createElement("p");
@@ -2830,6 +2831,7 @@ snsAdminFilter.addEventListener("change", async () => {
 if (snsApp) {
   snsDb = getFirestore(snsApp);
   onAuthStateChanged(getAuth(snsApp), async user => {
+    const authGeneration = ++snsAuthGeneration;
     const accountChanged = snsUser?.uid !== user?.uid;
     if (accountChanged) {
       // Never leave the previous account's private profile, posts, or block list visible.
@@ -2856,7 +2858,7 @@ if (snsApp) {
     }
     try {
       const tokenInfo = await user.getIdTokenResult(true);
-      if (tokenInfo.claims?.admin === true && snsUser?.uid === user.uid) {
+      if (tokenInfo.claims?.admin === true && snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) {
         snsAdminPanel.hidden = false;
         snsAdminStatus.textContent = "管理者権限を確認しました。";
       }
@@ -2867,11 +2869,13 @@ if (snsApp) {
     if (!snsUser || snsUser.uid !== user.uid) return;
     snsMessage("プロフィールを読み込んでいます…");
     try {
-      await snsLoadProfile(user);
-      await snsLoadPosts(user);
-      await snsLoadBlocks(user);
+      await snsLoadProfile(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsLoadPosts(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsLoadBlocks(user, authGeneration);
     } catch (error) {
-      if (!snsUser || snsUser.uid !== user.uid) return;
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       console.error("SNS initial load failed", error);
       snsMessage("読み込みに失敗しました。Firebaseのログイン設定と通信状態を確認してください。");
     }
