@@ -178,3 +178,16 @@ Firestore Emulator と Rules Unit Testing を使ったテストをCIに追加し
 - 検索はログイン必須、1日30回まで。検索語は保存しない。
 - 自分自身と双方向ブロック中の相手を除外し、UID・ニックネーム・選択式アイコンだけを返す。
 - 結果から申請先をセットし、申請送信はユーザーが別途実行する。
+
+
+## 2026-11-08: friend room snapshot sharing
+
+- Accepted friends can receive a snapshot of the current room from the SNS friends panel.
+- Shared content is limited to validated room design data and furniture placement; profile details and SNS content are not copied.
+- Recipients can import a snapshot as their own editable room. The original remains unchanged; this is not live collaborative editing.
+- Recipient snapshots are stored in `sharedRooms`; the owner's private mirror is stored in `users/{ownerUid}/sharedRooms` so Firestore queries remain scoped and rule-compatible.
+- Both copies are written and removed with a Firestore batch. Only accepted, unblocked friends can receive a new share.
+- Recipients can remove their received copy; owners can revoke a share. Blocking a user removes up to 200 matching shared snapshots from both sides.
+- Shared-room lists are bounded to 50 entries per direction. Snapshot uploads are limited to 700 KB client-side, 300 furniture items, and 40-character titles.
+- Emulator coverage verifies recipient-only listing, owner mirror privacy, accepted-friend creation, immutable snapshots, and removal permissions.
+- Live Firebase deployment and device testing are still outstanding.
