@@ -738,7 +738,7 @@ status.textContent='保存できなかったため、色を入れ替えません
 const wallPicker=document.querySelector('input[aria-label="壁の色を自由に選ぶ"]');
 const floorPicker=document.querySelector('input[aria-label="床の色を自由に選ぶ"]');
 const toHex=value=>{
-const match=value.match(/^rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/i);
+const match=value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
 return match?'#'+match.slice(1,4).map(n=>Number(n).toString(16).padStart(2,'0')).join(''):null;
 };
 if(wallPicker){const hex=toHex(floorColor);if(hex)wallPicker.value=hex;}
