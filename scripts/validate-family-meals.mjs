@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const sw = await readFile(new URL("../sw.js", import.meta.url), "utf8");
+assert.match(html, /id="family-meals"/);
+assert.match(html, /href="#family-meals"/);
+assert.match(html, /id="familyMealsForm"/);
+assert.match(html, /id="familyMealsDate" type="date"/);
+assert.match(html, /const KEY = "kokoroFamilyMealsV1", LIMIT = 200/);
+assert.match(html, /function validMeal\(item\)/);
+assert.match(html, /Object\.hasOwn\(types,item\.type\)/);
+assert.match(html, /Meal plan rollback failed/);
+assert.match(html, /過去の献立/);
+assert.match(html, /上書きせず保護しました/);
+assert.match(html, /クラウド同期・家族間共有には未対応です/);
+assert.match(sw, /kokoro-family-v197/);
+console.log("Family meal planner source checks passed.");
