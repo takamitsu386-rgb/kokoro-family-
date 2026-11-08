@@ -140,3 +140,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 友達限定プロフィールの表示は承認済み友達に限定。自分のみの投稿、部屋データ、連絡先は友達へ自動共有しない。
 
 - 友達申請先を探す公開プロフィール検索を追加。ニックネーム先頭一致・最大10件・1日30回制限・双方向ブロック除外で、非公開プロフィールや連絡先は返さない。Service Worker cache v118。
+
+
+## 2026-11-08 development update
+
+- Added accepted-friend room snapshot sharing in the SNS panel.
+- Owner and recipient views use separate Firestore paths so list queries can be restricted without broad collection access.
+- Shared snapshots can be imported as a separate editable copy; they do not provide real-time collaborative editing.
+- Recipient removal, owner revocation, and block-triggered cleanup remove both snapshot records.
+- Firestore emulator tests and a dedicated source regression validator were added. CI status is tracked by the current GitHub Actions run; no production deployment or live Firebase test has been performed.
