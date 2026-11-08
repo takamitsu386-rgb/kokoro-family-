@@ -263,3 +263,14 @@ assert.match(downloadSummary,/text\/plain;charset=utf-8/,'Text export must use U
 assert.match(downloadSummary,/URL\.revokeObjectURL/,'Text export must release its temporary object URL.');
 assert.match(downloadSummary,/prefs\.notes\[name\]/,'Text export must include saved notes.');
 console.log('Saved room text export checks passed.');
+
+const sortUi=source.slice(source.indexOf('id="savedRoomSort"')-80,source.indexOf('id="savedRoomSort"')+360);
+assert.match(sortUi,/count-desc/,'Saved room sort must offer most-furniture-first order.');
+assert.match(sortUi,/count-asc/,'Saved room sort must offer fewest-furniture-first order.');
+assert.match(sortUi,/value="name"/,'Saved room sort must offer name order.');
+const refresh=source.slice(source.indexOf('function refreshSavedRooms()'),source.indexOf('function loadSavedRoomNote()'));
+assert.match(refresh,/const sortMode=.*savedRoomSort/,'Refresh must read the selected sort mode.');
+assert.match(refresh,/rooms\[b\]\.items\.length-rooms\[a\]\.items\.length/,'Furniture-descending sort must use item count.');
+assert.match(refresh,/rooms\[a\]\.items\.length-rooms\[b\]\.items\.length/,'Furniture-ascending sort must use item count.');
+assert.match(refresh,/a\.localeCompare\(b,'ja'\)/,'Name sort must use Japanese locale.');
+console.log('Saved room sorting checks passed.');
