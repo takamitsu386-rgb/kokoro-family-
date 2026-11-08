@@ -2649,6 +2649,7 @@ let snsBusy = false;
 let snsBusyGeneration = 0;
 let snsAuthGeneration = 0;
 let snsAdminLoadGeneration = 0;
+let snsReportContext = null;
 const snsAdminUpdatingReports = new Set();
 
 function snsMessage(message) { snsStatus.textContent = message; }
@@ -2829,6 +2830,7 @@ function snsRenderPublicTimeline(items) {
             reportComment.addEventListener("click", () => {
               if (!snsUser || snsUser.uid !== user.uid) return;
               snsReportUid.value = snap.data().authorUid;
+              snsReportContext = { reportType: "comment", targetPostId: item.id, targetCommentId: snap.id, targetUid: snap.data().authorUid };
               snsReportCategory.focus();
               snsReportNotice.textContent = "通報理由を選んで送信してください。コメント本文は送信されません。";
               snsReportUid.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -3176,7 +3178,10 @@ function snsRenderAdminReports(reports) {
     const detail = document.createElement("p");
     detail.style.cssText = "font-size:13px;overflow-wrap:anywhere";
     const date = report.createdAtMs ? new Date(report.createdAtMs).toLocaleString("ja-JP") : "日時不明";
-    detail.textContent = "通報者ID：" + report.reporterUid + " / 対象ID：" + report.targetUid + " / 受付：" + date;
+    const reportTarget = report.reportType === "comment"
+      ? "コメント通報（投稿ID：" + report.targetPostId + " / コメントID：" + report.targetCommentId + "）"
+      : "ユーザー通報";
+    detail.textContent = reportTarget + " / 通報者ID：" + report.reporterUid + " / 対象ID：" + report.targetUid + " / 受付：" + date;
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
     if (report.status === "pending") {
@@ -3375,6 +3380,12 @@ snsSubmitReport.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
   const targetUid = snsReportUid.value.trim();
   const category = snsReportCategory.value;
+  const reportContext = snsReportContext && snsReportContext.targetUid === targetUid ? snsReportContext : null;
+  if (snsReportContext && !reportContext) {
+    snsReportContext = null;
+    snsReportNotice.textContent = "通報対象が変更されました。コメント一覧から通報対象を選び直してください。";
+    return;
+  }
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === snsUser.uid) {
     snsReportNotice.textContent = "相手のユーザーIDを確認してください。自分自身は通報できません。";
     return;
@@ -3392,7 +3403,10 @@ snsSubmitReport.addEventListener("click", async () => {
     const response = await fetch("/api/submit-report", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: JSON.stringify({ targetUid, category })
+      body: JSON.stringify({
+        targetUid, category,
+        ...(reportContext ? { reportType: "comment", targetPostId: reportContext.targetPostId, targetCommentId: reportContext.targetCommentId } : { reportType: "user" })
+      })
     });
     if (!snsUser || snsUser.uid !== user.uid) return;
     const data = await response.json().catch(() => ({}));
@@ -3400,7 +3414,10 @@ snsSubmitReport.addEventListener("click", async () => {
     if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
     snsReportUid.value = "";
     snsReportCategory.value = "";
-    snsReportNotice.textContent = "通報を受け付けました。内容は非公開で保存されます。";
+    snsReportContext = null;
+    snsReportNotice.textContent = reportContext
+      ? "コメントに関する通報を受け付けました。コメント本文は送信していません。"
+      : "通報を受け付けました。内容は非公開で保存されます。";
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid) return;
     snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
