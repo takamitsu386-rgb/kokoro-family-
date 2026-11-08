@@ -357,6 +357,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="undoSavedRoomChange()">↩️ お部屋一覧の変更を取り消す</button>
 <button onclick="openSavedRoom()">このお部屋を開く</button>
 <button type="button" onclick="previewSavedRoom()">👀 選んだお部屋をプレビュー</button>
+<button type="button" onclick="showSavedRoomSummary()">📋 選んだお部屋の内容をまとめる</button>
+<div id="savedRoomSummary" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:12px;background:#fafaff"></div>
 <button type="button" onclick="exportCurrentRoomImage()">🖼️ 今のお部屋を画像保存</button>
 <button type="button" onclick="exportSavedRoomImage()">🖼️ 選んだお部屋を画像保存</button>
 <button type="button" onclick="shareCurrentRoomFile()">📤 今のお部屋を共有</button>
@@ -2070,6 +2072,42 @@ const name=document.getElementById('savedRooms').value,rooms=savedRoomData();
 if(rooms===null){document.getElementById('message').textContent='保存データを読み取れません。元データは変更していません。';return;}
 if(!name||!Object.prototype.hasOwnProperty.call(rooms,name)){document.getElementById('message').textContent='画像にするお部屋を選んでね。';return;}
 exportRoomImage(rooms[name],name);
+}
+function showSavedRoomSummary(){
+const name=document.getElementById('savedRooms').value;
+const root=document.getElementById('savedRoomSummary');
+const rooms=savedRoomData();
+root.replaceChildren();
+root.style.display='block';
+const heading=document.createElement('strong');
+heading.textContent='📋 お部屋の内容';
+root.appendChild(heading);
+if(rooms===null||!name||!Object.prototype.hasOwnProperty.call(rooms,name)||!validRoomData(rooms[name])){
+const message=document.createElement('p');
+message.textContent='内容をまとめるお部屋を選んでください。保存データに問題がある場合は変更しません。';
+root.appendChild(message);return;
+}
+const data=rooms[name];
+const prefs=readSavedRoomPrefs();
+const addLine=(label,value)=>{
+const line=document.createElement('p');
+line.textContent=label+'：'+value;
+line.style.margin='6px 0';
+root.appendChild(line);
+};
+addLine('名前',name);
+addLine('家具の数',data.items.length+'個');
+addLine('壁の色',data.wallColor||data.wall||'未設定');
+addLine('床の色',data.floor||'未設定');
+if(prefs&&prefs.categories[name])addLine('カテゴリ',prefs.categories[name]);
+if(prefs&&prefs.notes[name])addLine('メモ',prefs.notes[name]);
+const counts=new Map();
+data.items.forEach(item=>counts.set(item.icon,(counts.get(item.icon)||0)+1));
+const details=[...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([icon,count])=>icon+' '+count+'個').join('、');
+addLine('家具の内訳',details||'家具なし');
+const footer=document.createElement('small');
+footer.textContent='このまとめは保存データを読み取って表示しています。元のお部屋は変更しません。';
+root.appendChild(footer);
 }
 function previewSavedRoom(){
 const name=document.getElementById('savedRooms').value;
