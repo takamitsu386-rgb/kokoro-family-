@@ -664,6 +664,34 @@ describe('comments and likes', () => {
     await assertSucceeds(deleteDoc(doc(postAuthor, 'posts/interaction-post/comments/comment-by-other')));
   });
 
+  it('allows comments and likes only for accepted friends on friends-only posts', async () => {
+    await seed('friendRequests/interaction-author_interaction-viewer-friend', {
+      fromUid: 'interaction-author', toUid: 'interaction-viewer-friend', status: 'accepted',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('posts/interaction-friends-only', {
+      authorUid: 'interaction-author', text: 'Friends only', visibility: 'friends',
+      status: 'active', createdAt: new Date(), updatedAt: new Date()
+    });
+    const friend = testEnv.authenticatedContext('interaction-viewer-friend').firestore();
+    await assertSucceeds(getDoc(doc(friend, 'posts/interaction-friends-only')));
+    await assertSucceeds(setDoc(doc(friend, 'posts/interaction-friends-only/likes/interaction-viewer-friend'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertSucceeds(setDoc(doc(friend, 'posts/interaction-friends-only/comments/friend-comment'), {
+      authorUid: 'interaction-viewer-friend', text: '友達限定コメント', status: 'active',
+      createdAt: serverTimestamp()
+    }));
+    const stranger = testEnv.authenticatedContext('interaction-stranger').firestore();
+    await assertFails(getDoc(doc(stranger, 'posts/interaction-friends-only')));
+    await assertFails(setDoc(doc(stranger, 'posts/interaction-friends-only/likes/interaction-stranger'), {
+      createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(stranger, 'posts/interaction-friends-only/comments/stranger-comment'), {
+      authorUid: 'interaction-stranger', text: '閲覧不可', status: 'active', createdAt: serverTimestamp()
+    }));
+  });
+
   it('denies comments and likes for private, deleted, hidden-profile, or blocked posts', async () => {
     await seed('posts/interaction-private', {
       authorUid: 'interaction-author', text: 'Private', visibility: 'private',
