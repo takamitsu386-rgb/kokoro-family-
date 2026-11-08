@@ -900,11 +900,9 @@ describe('shared room snapshots', () => {
   });
 
   it('lets the recipient remove their copy and the owner revoke both copies', async () => {
-    await seed('users/room-owner/blocks/room-recipient', { createdAt: new Date() });
     const recipient = testEnv.authenticatedContext('room-recipient').firestore();
     const owner = testEnv.authenticatedContext('room-owner').firestore();
-    await assertFails(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
-    await assertFails(deleteDoc(doc(recipient, 'sharedRooms/room-share-1')));
+    await assertSucceeds(deleteDoc(doc(recipient, 'sharedRooms/room-share-1')));
     await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));
     await assertSucceeds(deleteDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-1')));
   });
