@@ -2059,6 +2059,9 @@ async function downloadCloud() {
   applyCloudDataSafely(data);
   initializedSyncForUid = uid;
   markCloudSync(uid);
+  clearTimeout(syncRetryTimer);
+  syncRetryTimer = null;
+  syncRetryCount = 0;
   status("クラウドから読み込みました。端末内にも保存済みです。");
   return true;
   } finally {
@@ -2115,6 +2118,9 @@ async function syncNow() {
     if (!isCurrentAccount()) throw new Error("同期中にGoogleアカウントが切り替わりました。もう一度お試しください。");
     initializedSyncForUid = uid;
     markCloudSync(uid);
+    clearTimeout(syncRetryTimer);
+    syncRetryTimer = null;
+    syncRetryCount = 0;
   } catch (error) {
     if (!isCurrentAccount()) return;
     console.error(error);
