@@ -300,6 +300,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <h2>🔎 選んだ家具の大きさ</h2>
 <button onclick="resizeSelected(0.8)">小さく</button>
 <button onclick="resizeSelected(1.25)">大きく</button>
+<label for="furnitureExactSize">家具サイズを指定（20〜80px）</label>
+<input id="furnitureExactSize" type="number" min="20" max="80" step="1" value="38" inputmode="numeric" style="width:100px;padding:8px;border:1px solid #cbd2e1;border-radius:8px;font:inherit">
+<button type="button" onclick="setSelectedFurnitureSize()">指定サイズにする</button>
 <button type="button" onclick="rotateSelected(-90)">↶ 左に90°回転</button>
 <button type="button" onclick="rotateSelected(90)">↷ 右に90°回転</button>
 <button type="button" onclick="rotateSelected(-15)">↶ 左に15°微調整</button>
@@ -1464,6 +1467,35 @@ document.getElementById('selectedMessage').textContent='保存できなかった
 return;
 }
 document.getElementById('selectedMessage').textContent='選択した家具の向きを0°に戻しました。「1つ戻す」で元に戻せます。';
+}
+function setSelectedFurnitureSize(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に大きさを変えたい家具をタップしてね。';return;
+ }
+ const input=document.getElementById('furnitureExactSize');
+ const size=Number(input.value);
+ if(!Number.isInteger(size)||size<20||size>80){
+  status.textContent='家具サイズは20〜80pxの整数で指定してください。';return;
+ }
+ const previous=selectedFurniture.style.fontSize;
+ const previousLeft=selectedFurniture.style.left,previousTop=selectedFurniture.style.top;
+ const current=parseFloat(previous)||38;
+ if(current===size){
+  status.textContent='この家具はすでに指定した大きさです。';return;
+ }
+ selectedFurniture.style.fontSize=size+'px';
+ const maxLeft=Math.max(0,room.clientWidth-selectedFurniture.offsetWidth);
+ const maxTop=Math.max(0,room.clientHeight-selectedFurniture.offsetHeight);
+ selectedFurniture.style.left=Math.min(maxLeft,Math.max(0,selectedFurniture.offsetLeft))+'px';
+ selectedFurniture.style.top=Math.min(maxTop,Math.max(0,selectedFurniture.offsetTop))+'px';
+ if(!autoSaveRoom()){
+  selectedFurniture.style.fontSize=previous;
+  selectedFurniture.style.left=previousLeft;
+  selectedFurniture.style.top=previousTop;
+  status.textContent='保存できなかったため、家具の大きさと位置を元に戻しました。';return;
+ }
+ status.textContent='選択した家具を'+size+'pxに設定しました。「1つ戻す」で元に戻せます。';
 }
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
