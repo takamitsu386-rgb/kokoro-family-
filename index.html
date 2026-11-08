@@ -177,7 +177,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyRecipesSearch">検索</label><input id="familyRecipesSearch" maxlength="60" placeholder="料理名・材料で検索">
 <button type="button" id="familyRecipesExport">CSVを書き出す</button><label for="familyRecipesImportFile" class="button">CSVを読み込む</label><input id="familyRecipesImportFile" type="file" accept=".csv,text/csv" hidden>
-<label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="favorites">お気に入り</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
+<label for="familyRecipesSort">並び順</label><select id="familyRecipesSort"><option value="updated">更新が新しい順</option><option value="title">料理名順</option><option value="category">分類順</option><option value="oldest">登録が古い順</option></select><label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="favorites">お気に入り</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
 </div>
 <p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
 <p id="familyRecipesExportStatus" role="status" aria-live="polite"></p>
@@ -6354,6 +6354,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   });
   cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
+  sortInput.addEventListener("change",render);
   monthInput.value=today().slice(0,7);
   monthInput.addEventListener("change",()=>{filterInput.value="month";render();});
   searchInput.addEventListener("input",render);
@@ -6825,6 +6826,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const stepsInput=document.getElementById("familyRecipesSteps");
   const searchInput=document.getElementById("familyRecipesSearch");
   const filterInput=document.getElementById("familyRecipesFilter");
+  const sortInput=document.getElementById("familyRecipesSort");
   const FAVORITES_KEY="kokoroFamilyRecipeFavoritesV1";
   let favorites=new Set();
   try{
@@ -6954,7 +6956,12 @@ snsRefreshPosts.addEventListener("click", async () => {
     const query=searchInput.value.trim().toLocaleLowerCase();
     const visible=recipes.filter(x=>(filterInput.value==="all"||(filterInput.value==="favorites"?favorites.has(x.id):x.category===filterInput.value))&&
       (!query||(x.title+" "+x.ingredients+" "+x.steps).toLocaleLowerCase().includes(query)))
-      .sort((a,b)=>b.updatedAt-a.updatedAt);
+      .sort((a,b)=>{
+        if(sortInput.value==="title")return a.title.localeCompare(b.title,"ja")||b.updatedAt-a.updatedAt;
+        if(sortInput.value==="category")return categories[a.category].localeCompare(categories[b.category],"ja")||a.title.localeCompare(b.title,"ja");
+        if(sortInput.value==="oldest")return a.createdAt-b.createdAt;
+        return b.updatedAt-a.updatedAt;
+      });
     summaryEl.textContent="保存 "+recipes.length+"/"+LIMIT+"件・表示 "+visible.length+"件";
     listEl.replaceChildren();
     if(!visible.length){const empty=document.createElement("li");empty.textContent=recipes.length?"条件に合うレシピはありません。":"まだレシピがありません。上のフォームから登録できます。";listEl.append(empty);}
