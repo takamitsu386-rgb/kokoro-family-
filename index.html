@@ -311,6 +311,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="autoArrangeFurniture(1.22)">↔️ ゆったり整列</button>
 <button type="button" onclick="distributeFurnitureEvenly('horizontal')">↔️ 横方向に均等配置</button>
 <button type="button" onclick="distributeFurnitureEvenly('vertical')">↕️ 縦方向に均等配置</button>
+<button type="button" onclick="mirrorFurnitureLayout('horizontal')">↔️ 左右反転</button>
+<button type="button" onclick="mirrorFurnitureLayout('vertical')">↕️ 上下反転</button>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
@@ -1037,6 +1039,30 @@ function distributeFurnitureEvenly(axis){
     return;
   }
   status.textContent=ordered.length+'個の家具を'+(axis==='horizontal'?'横':'縦')+'方向に均等配置しました。「1つ戻す」で元に戻せます。';
+}
+
+
+function mirrorFurnitureLayout(axis){
+  const status=document.getElementById('selectedMessage');
+  if(!['horizontal','vertical'].includes(axis)){status.textContent='反転方向を確認できません。';return;}
+  const items=[...room.querySelectorAll('.furniture')];
+  if(items.length<1){status.textContent='反転する家具がありません。';return;}
+  const roomSize=axis==='horizontal'?room.clientWidth:room.clientHeight;
+  if(roomSize<1){status.textContent='お部屋の大きさを確認できません。';return;}
+  const position=axis==='horizontal'?'left':'top';
+  const dimension=axis==='horizontal'?'offsetWidth':'offsetHeight';
+  const previous=items.map(item=>({item,value:item.style[position]}));
+  items.forEach(item=>{
+    const current=Number.parseFloat(item.style[position])||0;
+    const mirrored=roomSize-current-item[dimension];
+    item.style[position]=Math.max(0,Math.min(roomSize-item[dimension],mirrored))+'px';
+  });
+  if(!autoSaveRoom()){
+    previous.forEach(({item,value})=>{item.style[position]=value;});
+    status.textContent='保存できなかったため、家具を元の位置に戻しました。';
+    return;
+  }
+  status.textContent=items.length+'個の家具を'+(axis==='horizontal'?'左右':'上下')+'反転しました。「1つ戻す」で元に戻せます。';
 }
 
 function autoArrangeFurniture(spacingScale=1){
