@@ -150,6 +150,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyMealsFilter">表示</label><select id="familyMealsFilter"><option value="week">今日から7日間</option><option value="all">すべて</option></select>
+<label for="familyMealsTypeFilter">食事</label><select id="familyMealsTypeFilter"><option value="all">すべて</option><option value="breakfast">朝ごはん</option><option value="lunch">昼ごはん</option><option value="dinner">夜ごはん</option><option value="snack">おやつ</option></select>
+<label for="familyMealsSearch">メニュー検索</label><input id="familyMealsSearch" type="search" maxlength="80" placeholder="メニュー・メモを検索">
+<button type="button" id="familyMealsResetFilters">絞り込みを解除</button>
 <button type="button" id="familyMealsClearPast">過去の献立を整理</button><button type="button" id="familyMealsExport">CSVを書き出す</button><button type="button" id="familyMealsWeeklyShopping">7日分の買い物メモをまとめて追加</button><label for="familyMealsImportFile" class="button">CSVを読み込む</label><input id="familyMealsImportFile" type="file" accept=".csv,text/csv" hidden>
 </div>
 <p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
@@ -6348,6 +6351,9 @@ snsRefreshPosts.addEventListener("click", async () => {
   });
   cancelButton.addEventListener("click",resetEditor);
   filterInput.addEventListener("change",render);
+  typeFilterInput.addEventListener("change",render);
+  searchInput.addEventListener("input",render);
+  resetFiltersButton.addEventListener("click",()=>{filterInput.value="week";typeFilterInput.value="all";searchInput.value="";render();});
   categoryFilterInput.addEventListener("change",render);
   searchInput.addEventListener("input",render);
   sortInput.addEventListener("change",render);
@@ -6678,6 +6684,9 @@ snsRefreshPosts.addEventListener("click", async () => {
     }finally{importFile.value="";}
   });
   const filterInput=document.getElementById("familyMealsFilter");
+  const typeFilterInput=document.getElementById("familyMealsTypeFilter");
+  const searchInput=document.getElementById("familyMealsSearch");
+  const resetFiltersButton=document.getElementById("familyMealsResetFilters");
   const listEl=document.getElementById("familyMealsList");
   const summaryEl=document.getElementById("familyMealsSummary");
   const clearButton=document.getElementById("familyMealsClearPast");
@@ -6719,9 +6728,10 @@ snsRefreshPosts.addEventListener("click", async () => {
   function render(){
     const current=today(),end=new Date(current+"T00:00:00");end.setDate(end.getDate()+6);
     const last=end.getFullYear()+"-"+String(end.getMonth()+1).padStart(2,"0")+"-"+String(end.getDate()).padStart(2,"0");
-    const visible=entries.filter(x=>filterInput.value==="all"||(x.date>=current&&x.date<=last))
+    const query=searchInput.value.trim().toLocaleLowerCase();
+    const visible=entries.filter(x=>(filterInput.value==="all"||(x.date>=current&&x.date<=last))&&(typeFilterInput.value==="all"||x.type===typeFilterInput.value)&&(!query||(x.name+" "+x.note).toLocaleLowerCase().includes(query)))
       .sort((a,b)=>a.date.localeCompare(b.date)||["breakfast","lunch","dinner","snack"].indexOf(a.type)-["breakfast","lunch","dinner","snack"].indexOf(b.type)||a.createdAt-b.createdAt);
-    summaryEl.textContent="登録 "+entries.length+"件・今日から7日間 "+entries.filter(x=>x.date>=current&&x.date<=last).length+"件";
+    summaryEl.textContent="登録 "+entries.length+"件・今日から7日間 "+entries.filter(x=>x.date>=current&&x.date<=last).length+"件・表示 "+visible.length+"件";
     listEl.replaceChildren();
     if(!visible.length){const empty=document.createElement("li");empty.textContent=entries.length?"この期間の献立はありません。":"まだ献立がありません。日付とメニューを入力して追加できます。";listEl.append(empty);}
     for(const item of visible){
