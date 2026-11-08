@@ -200,8 +200,13 @@ service cloud.firestore {
     // The recipient alone may accept or decline. Blocking either direction closes access.
     match /friendRequests/{requestId} {
       allow get: if signedIn()
-        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
-        && !blockedBetween(resource.data.fromUid, resource.data.toUid);
+        && (
+          !exists(/databases/$(database)/documents/friendRequests/$(requestId))
+          || (
+            (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+          )
+        );
       allow list: if signedIn()
         && (
           resource.data.toUid == request.auth.uid
