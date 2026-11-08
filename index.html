@@ -1749,6 +1749,11 @@ const choice=document.createElement('select');choice.id='backupRoomChoice';choic
 const currentOption=document.createElement('option');currentOption.value='current';currentOption.textContent='共有元の今のお部屋（家具 '+data.currentRoom.items.length+' 個）';choice.appendChild(currentOption);
 names.forEach(name=>{const option=document.createElement('option');option.value='saved:'+name;option.textContent=name+'（家具 '+data.savedRooms[name].items.length+' 個）';choice.appendChild(option);});
 root.appendChild(choice);
+const bulkLabel=document.createElement('label');bulkLabel.htmlFor='backupBulkRoomChoice';bulkLabel.textContent='複数のお部屋をまとめて取り込む';root.appendChild(bulkLabel);
+const bulkChoice=document.createElement('select');bulkChoice.id='backupBulkRoomChoice';bulkChoice.multiple=true;bulkChoice.size=Math.min(Math.max(names.length,2),6);bulkChoice.style.display='block';bulkChoice.style.width='100%';bulkChoice.style.margin='6px 0 10px';
+names.forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;bulkChoice.appendChild(option);});
+root.appendChild(bulkChoice);
+const bulkButton=document.createElement('button');bulkButton.type='button';bulkButton.textContent='選択したお部屋をまとめて保存一覧に追加';bulkButton.onclick=importMultipleRoomsFromBackup;root.appendChild(bulkButton);
 const addButton=document.createElement('button');addButton.type='button';addButton.textContent='選んだお部屋だけ保存に追加';addButton.onclick=importSelectedRoomFromBackup;root.appendChild(addButton);
 const list=document.createElement('ul');
 names.slice(0,20).forEach(name=>{const li=document.createElement('li');li.textContent=name+'（家具 '+data.savedRooms[name].items.length+' 個）';list.appendChild(li);});
@@ -1792,6 +1797,34 @@ if(!saveSavedRoomsWithUndo(nextRooms))return;
 refreshSavedRooms();
 if(window.kokoroQueueSync)window.kokoroQueueSync();
 message.textContent='✅「'+newName+'」だけを保存一覧に追加しました。今のお部屋やほかの保存データは変更していません。';
+}
+function importMultipleRoomsFromBackup(){
+const data=pendingBackupPreviewData,choice=document.getElementById('backupBulkRoomChoice'),message=document.getElementById('backupMessage');
+if(!data||!choice){message.textContent='先に有効なバックアップファイルを選んでください。';return;}
+const selected=[...choice.selectedOptions].map(option=>option.value);
+if(!selected.length){message.textContent='まとめて取り込むお部屋を選んでください。';return;}
+const rooms=savedRoomData();
+if(rooms===null){message.textContent='現在の保存データを読み取れません。元データは変更していません。';return;}
+if(Object.keys(rooms).length+selected.length>100){message.textContent='保存できるお部屋は100個までです。先に不要なお部屋を整理してください。';return;}
+const nextRooms={...rooms},created=[];
+for(const sourceName of selected){
+if(!Object.prototype.hasOwnProperty.call(data.savedRooms,sourceName)||!validRoomData(data.savedRooms[sourceName])){message.textContent='ファイル内のお部屋データを確認できません。';return;}
+let base=sourceName.slice(0,80)||'共有したお部屋',newName=base,suffix=2;
+while(Object.prototype.hasOwnProperty.call(nextRooms,newName)){
+const tail='（共有 '+suffix+'）';
+newName=base.slice(0,80-tail.length)+tail;
+suffix+=1;
+if(suffix>200){message.textContent='お部屋の名前を決められませんでした。';return;}
+}
+nextRooms[newName]=data.savedRooms[sourceName];
+created.push(newName);
+}
+if(!saveSavedRoomsWithUndo(nextRooms))return;
+bulkSavedRoomSelection.clear();
+created.forEach(name=>bulkSavedRoomSelection.add(name));
+refreshSavedRooms();
+if(window.kokoroQueueSync)window.kokoroQueueSync();
+message.textContent='✅ '+created.length+'個のお部屋をまとめて保存一覧に追加しました。元のお部屋やほかの保存データは変更していません。';
 }
 function importRoomBackup(){
 const input=document.getElementById("backupFile");
