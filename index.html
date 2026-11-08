@@ -306,6 +306,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="rotateSelected(15)">↷ 右に15°微調整</button>
 <button type="button" onclick="rotateSelected(-45)">左に45°</button>
 <button type="button" onclick="rotateSelected(45)">右に45°</button>
+<button type="button" onclick="resetSelectedFurnitureRotation()">↩️ 回転を0°に戻す</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
 <div class="items" aria-label="選んだ家具の配置場所">
 <button type="button" onclick="placeSelectedAtCorner('top-left')">↖️ 左上</button>
@@ -1421,6 +1422,22 @@ document.getElementById('selectedMessage').textContent='保存できなかった
 return;
 }
 document.getElementById('selectedMessage').textContent='家具を'+(degrees>0?'右に':'左に')+Math.abs(degrees)+'°回転しました。';
+}
+function resetSelectedFurnitureRotation(){
+if(!selectedFurniture||!room.contains(selectedFurniture)){
+document.getElementById('selectedMessage').textContent='先に向きを戻したい家具をタップしてね。';return;
+}
+const previous=selectedFurniture.style.rotate;
+if(!previous||previous==='0deg'){
+document.getElementById('selectedMessage').textContent='この家具はすでに正面（0°）です。';return;
+}
+selectedFurniture.style.rotate='0deg';
+if(!autoSaveRoom()){
+selectedFurniture.style.rotate=previous;
+document.getElementById('selectedMessage').textContent='保存できなかったため、家具の向きを元に戻しました。';
+return;
+}
+document.getElementById('selectedMessage').textContent='選択した家具の向きを0°に戻しました。「1つ戻す」で元に戻せます。';
 }
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
