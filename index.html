@@ -300,6 +300,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <strong>複数のお部屋をまとめて整理</strong>
 <p id="bulkSavedRoomCount" role="status" aria-live="polite">選択中：0個</p>
 <div id="bulkSavedRoomList" style="max-height:240px;overflow:auto;padding:6px 0"></div>
+<button type="button" onclick="compareSelectedSavedRooms()">選択した2部屋を比較</button>
+<div id="savedRoomCompare" aria-live="polite" style="display:none;margin:12px 0;padding:12px;border:1px solid #c9c2e8;border-radius:12px;background:#fafaff"></div>
 <button type="button" onclick="selectVisibleSavedRooms(true)">表示中をすべて選択</button>
 <button type="button" onclick="selectVisibleSavedRooms(false)">表示中の選択を解除</button>
 <label for="bulkSavedRoomCategory">選択したお部屋に付けるカテゴリ</label>
@@ -1019,6 +1021,31 @@ refreshSavedRooms();
 function toggleBulkSavedRoom(name,checked){
 if(checked)bulkSavedRoomSelection.add(name);else bulkSavedRoomSelection.delete(name);
 updateBulkSavedRoomCount();
+}
+function compareSelectedSavedRooms(){
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データを読み取れません。';return;}
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)&&validRoomData(rooms[name]));
+if(selected.length!==2){document.getElementById('message').textContent='比較するお部屋を2つ選んでください。';return;}
+const panel=document.getElementById('savedRoomCompare');if(!panel)return;
+panel.replaceChildren();panel.style.display='block';
+const heading=document.createElement('strong');heading.textContent='お部屋の比較';panel.appendChild(heading);
+const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px';
+selected.forEach(name=>{
+const data=rooms[name],card=document.createElement('section');card.style.cssText='min-width:0;padding:10px;border:1px solid #e2def5;border-radius:10px;background:#fff';
+const title=document.createElement('h3');title.textContent=name;title.style.cssText='font-size:15px;overflow-wrap:anywhere;margin:0 0 8px';card.appendChild(title);
+const swatches=document.createElement('div');swatches.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+[['壁',data.wallColor||'#f5e9d8'],['床',data.floor||'#c89b72']].forEach(([label,color])=>{const item=document.createElement('span');item.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:12px';const chip=document.createElement('i');chip.style.cssText='display:inline-block;width:20px;height:20px;border:1px solid #999;border-radius:4px;background:'+color;item.append(chip,document.createTextNode(label));swatches.appendChild(item);});card.appendChild(swatches);
+const count=document.createElement('p');count.textContent='家具：'+data.items.length+'個';card.appendChild(count);
+const furniture=document.createElement('p');furniture.textContent='配置：'+(data.items.slice(0,24).map(item=>item.icon).join(' ')||'家具なし')+(data.items.length>24?' …':'');furniture.style.cssText='overflow-wrap:anywhere';card.appendChild(furniture);
+const category=document.createElement('p');category.textContent='カテゴリ：'+((prefs.categories&&prefs.categories[name])||'未設定');card.appendChild(category);
+const note=document.createElement('p');note.textContent='メモ：'+((prefs.notes&&prefs.notes[name])||'なし');note.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px';card.appendChild(note);
+grid.appendChild(card);
+});
+panel.appendChild(grid);
+const close=document.createElement('button');close.type='button';close.textContent='比較を閉じる';close.style.marginTop='10px';close.onclick=()=>{panel.style.display='none';panel.replaceChildren();};panel.appendChild(close);
+panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+document.getElementById('message').textContent='選択した2つのお部屋を比較表示しました。';
 }
 function applyBulkSavedRoomCategory(){
 const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
