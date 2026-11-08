@@ -182,6 +182,8 @@ jobs:
         run: node scripts/validate-friend-requests.mjs
       - name: Validate accepted friends list
         run: node scripts/validate-friends-list.mjs
+      - name: Validate shared room snapshots
+        run: node scripts/validate-shared-rooms.mjs
       - name: Validate public profile search privacy
         run: node scripts/validate-profile-search.mjs
       - name: Test Firestore rules in an isolated emulator
