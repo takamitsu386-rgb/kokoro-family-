@@ -752,12 +752,15 @@ if(floorPicker){const hex=toHex(wall);if(hex)floorPicker.value=hex;}
 status.textContent='壁と床の色を入れ替えました。模様や家具はそのままです。';
 }
 const CUSTOM_ROOM_PALETTE_KEY='kokoroCustomRoomPalettes';
+function validCustomRoomPalettes(list){
+return Array.isArray(list)&&list.length<=8&&list.every(item=>item&&typeof item==='object'&&!Array.isArray(item)&&typeof item.name==='string'&&item.name.length>0&&item.name.length<=16&&/^#[0-9a-fA-F]{6}$/.test(item.wall)&&/^#[0-9a-fA-F]{6}$/.test(item.floor))&&new Set(list.map(item=>item.name)).size===list.length;
+}
 function readCustomRoomPalettes(){
 try{
 const raw=localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
 if(raw===null)return [];
 const list=JSON.parse(raw);
-if(!Array.isArray(list)||list.length>8||!list.every(item=>item&&typeof item.name==='string'&&item.name.length>0&&item.name.length<=16&&/^#[0-9a-fA-F]{6}$/.test(item.wall)&&/^#[0-9a-fA-F]{6}$/.test(item.floor)))throw new Error('invalid palette list');
+if(!validCustomRoomPalettes(list))throw new Error('invalid palette list');
 return list;
 }catch(error){
 console.warn('Custom room palettes could not be read',error);
@@ -3257,7 +3260,8 @@ try{
 const currentRoom=roomData();
 const savedRooms=savedRoomData();
 const savedRoomPrefs=readSavedRoomPrefs();
-if(savedRooms===null||!validRoomData(currentRoom)||!validSavedRooms(savedRooms)||!validSavedRoomPrefs(savedRoomPrefs)){
+const customRoomPalettes=readCustomRoomPalettes();
+if(savedRooms===null||!validRoomData(currentRoom)||!validSavedRooms(savedRooms)||!validSavedRoomPrefs(savedRoomPrefs)||!validCustomRoomPalettes(customRoomPalettes)){
 throw new Error("invalid local backup data");
 }
 const payload={
@@ -3266,7 +3270,8 @@ version:1,
 exportedAt:new Date().toISOString(),
 currentRoom,
 savedRooms,
-savedRoomPrefs
+savedRoomPrefs,
+customRoomPalettes
 };
 const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
 if(blob.size>MAX_BACKUP_BYTES){
@@ -3308,12 +3313,14 @@ if(request!==backupPreviewRequest)return;
 try{
 const data=JSON.parse(reader.result);
 const previewPrefs=data&&data.savedRoomPrefs===undefined?defaultSavedRoomPrefs():data.savedRoomPrefs;
-if(!data||data.app!=='kokoro-family'||data.version!==1||!validRoomData(data.currentRoom)||!validSavedRooms(data.savedRooms)||!validSavedRoomPrefs(previewPrefs))throw new Error('invalid backup');
+const previewPalettes=data&&data.customRoomPalettes===undefined?[]:data.customRoomPalettes;
+if(!data||data.app!=='kokoro-family'||data.version!==1||!validRoomData(data.currentRoom)||!validSavedRooms(data.savedRooms)||!validSavedRoomPrefs(previewPrefs)||!validCustomRoomPalettes(previewPalettes))throw new Error('invalid backup');
 data.savedRoomPrefs=previewPrefs;
+data.customRoomPalettes=previewPalettes;
 pendingBackupPreviewData=data;
 const names=Object.keys(data.savedRooms);
 const summary=document.createElement('p');
-summary.textContent='今のお部屋：家具 '+data.currentRoom.items.length+' 個 ／ 保存したお部屋：'+names.length+' 個';
+summary.textContent='今のお部屋：家具 '+data.currentRoom.items.length+' 個 ／ 保存したお部屋：'+names.length+' 個 ／ お気に入り配色：'+data.customRoomPalettes.length+' 件';
 root.appendChild(summary);
 const choiceLabel=document.createElement('label');choiceLabel.htmlFor='backupRoomChoice';choiceLabel.textContent='取り込みたいお部屋を選択';root.appendChild(choiceLabel);
 const choice=document.createElement('select');choice.id='backupRoomChoice';choice.style.display='block';choice.style.width='100%';choice.style.margin='6px 0 10px';
@@ -3415,8 +3422,9 @@ let rollbackFailed=false;
 try{
 const data=JSON.parse(reader.result);
 const incomingPrefs=data&&data.savedRoomPrefs===undefined?defaultSavedRoomPrefs():data.savedRoomPrefs;
+const incomingPalettes=data&&data.customRoomPalettes===undefined?[]:data.customRoomPalettes;
 if(!data||data.app!=="kokoro-family"||data.version!==1||!validRoomData(data.currentRoom)||
-!validSavedRooms(data.savedRooms)||!validSavedRoomPrefs(incomingPrefs)){
+!validSavedRooms(data.savedRooms)||!validSavedRoomPrefs(incomingPrefs)||!validCustomRoomPalettes(incomingPalettes)){
 throw new Error("invalid backup");
 }
 if(!confirm("現在のお部屋データをバックアップの内容に置き換えます。続けますか？"))return;
@@ -3424,27 +3432,34 @@ if(!confirm("現在のお部屋データをバックアップの内容に置き�
 const previousRoom=localStorage.getItem("kokoroRoom");
 const previousSavedRooms=localStorage.getItem("kokoroSavedRooms");
 const previousPrefs=localStorage.getItem("kokoroSavedRoomPrefs");
+const previousPalettes=localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
 const previousDisplayRoom=roomData();
 const previousDisplayPrefs=readSavedRoomPrefs();
-if(!validRoomData(previousDisplayRoom)||previousDisplayPrefs===null)throw new Error("current display or preferences cannot be safely backed up");
+const previousDisplayPalettes=readCustomRoomPalettes();
+if(!validRoomData(previousDisplayRoom)||previousDisplayPrefs===null||!validCustomRoomPalettes(previousDisplayPalettes))throw new Error("current display or preferences cannot be safely backed up");
 let importCommitted=false;
 try{
 localStorage.setItem("kokoroRoomBeforeImport",previousRoom===null?JSON.stringify(previousDisplayRoom):previousRoom);
 localStorage.setItem("kokoroSavedRoomsBeforeImport",previousSavedRooms===null?"{}":previousSavedRooms);
 localStorage.setItem("kokoroSavedRoomPrefsBeforeImport",previousPrefs===null?JSON.stringify(previousDisplayPrefs):previousPrefs);
+localStorage.setItem("kokoroCustomRoomPalettesBeforeImport",previousPalettes===null?JSON.stringify(previousDisplayPalettes):previousPalettes);
 localStorage.setItem("kokoroRoom",JSON.stringify(data.currentRoom));
 localStorage.setItem("kokoroSavedRooms",JSON.stringify(data.savedRooms));
 localStorage.setItem("kokoroSavedRoomPrefs",JSON.stringify(incomingPrefs));
+localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(incomingPalettes));
 if(applyRoom(data.currentRoom,false)!==true)throw new Error("room restore failed");
 refreshSavedRooms();
+renderCustomRoomPalettes();
 importCommitted=true;
 }catch(importError){
 try{
 if(previousRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",previousRoom);
 if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",previousSavedRooms);
 if(previousPrefs===null)localStorage.removeItem("kokoroSavedRoomPrefs");else localStorage.setItem("kokoroSavedRoomPrefs",previousPrefs);
+if(previousPalettes===null)localStorage.removeItem(CUSTOM_ROOM_PALETTE_KEY);else localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,previousPalettes);
 if(applyRoom(previousDisplayRoom,false)!==true)throw new Error("previous room display restore failed");
 refreshSavedRooms();
+renderCustomRoomPalettes();
 }catch(rollbackError){
 console.error("Backup import rollback failed",rollbackError);
 rollbackFailed=true;
@@ -3455,7 +3470,7 @@ throw importError;
 }
 if(importCommitted){
 if(window.kokoroQueueSync)window.kokoroQueueSync();
-message.textContent="✅ バックアップを読み込みました。読み込み直前のデータも端末内に退避しました。";
+message.textContent="✅ バックアップを読み込みました。お気に入り配色も復元し、読み込み直前のデータを端末内に退避しました。";
 }
 }catch(e){
 console.error("Backup import failed",e);
