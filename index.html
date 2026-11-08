@@ -161,6 +161,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyRecipesFilter">分類</label><select id="familyRecipesFilter"><option value="all">すべて</option><option value="main">主食・メイン</option><option value="side">副菜</option><option value="soup">汁もの</option><option value="snack">おやつ・デザート</option><option value="other">その他</option></select>
 </div>
 <p id="familyRecipesSummary" role="status" aria-live="polite">レシピを読み込んでいます。</p>
+<p id="familyRecipesShoppingStatus" role="status" aria-live="polite"></p>
 <ul id="familyRecipesList" style="list-style:none;padding:0;display:grid;gap:10px"></ul>
 </section>
 <section class="panel" id="family-shopping">
@@ -6301,7 +6302,27 @@ snsRefreshPosts.addEventListener("click", async () => {
       });
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+recipe.title+"」を削除しますか？")){if(save(recipes.filter(x=>x.id!==recipe.id))&&editingId===recipe.id)resetEditor();}});
-      actions.append(edit,remove);li.append(title,ingredients,steps,actions);listEl.append(li);
+      const addIngredients=document.createElement("button");addIngredients.type="button";addIngredients.textContent="材料を買い物リストへ";
+      addIngredients.addEventListener("click",()=>{
+        const status=document.getElementById("familyRecipesShoppingStatus");
+        try{
+          const key="kokoroFamilyShoppingV1",raw=localStorage.getItem(key);
+          const current=raw===null?[]:JSON.parse(raw);
+          const categories={food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
+          const valid=current=>Array.isArray(current)&&current.length<=100&&current.every(x=>x&&typeof x==="object"&&typeof x.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(x.id)&&typeof x.name==="string"&&x.name.trim().length>=1&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&Object.hasOwn(categories,x.category)&&typeof x.bought==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0)&&new Set(current.map(x=>x.id)).size===current.length;
+          if(!valid(current))throw new Error("invalid shopping data");
+          const existing=new Set(current.map(x=>x.name.trim().toLocaleLowerCase()));
+          const candidates=recipe.ingredients.split(/\\r?\\n/).map(x=>x.trim().replace(/^[・•*\\-]+\\s*/,"")).filter(x=>x.length>0&&x.length<=60&&!existing.has(x.toLocaleLowerCase()));
+          const remaining=100-current.length,added=candidates.slice(0,remaining);
+          if(!added.length){status.textContent=candidates.length?"買い物リストの上限100件に達しています。":"追加できる新しい材料がありません（登録済み・空欄・文字数超過）。";return;}
+          if(!confirm("「"+recipe.title+"」の材料から"+added.length+"件を買い物リストに追加しますか？"+(candidates.length>added.length?"\\n上限のため"+(candidates.length-added.length)+"件は追加されません。":"")))return;
+          const next=[...current,...added.map(name=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10),name,quantity:"",category:"food",bought:false,createdAt:Date.now()}))];
+          const previous=raw;
+          try{localStorage.setItem(key,JSON.stringify(next));status.textContent=added.length+"件の材料を買い物リストに追加しました。"; }
+          catch(error){try{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);}catch(rollbackError){console.error("Recipe shopping import rollback failed",rollbackError);}throw error;}
+        }catch(error){console.error("Recipe shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
+      });
+      actions.append(edit,addIngredients,remove);li.append(title,ingredients,steps,actions);listEl.append(li);
     }
     const full=recipes.length>=LIMIT&&!editingId;
     titleInput.disabled=full;categoryInput.disabled=full;ingredientsInput.disabled=full;stepsInput.disabled=full;submitButton.disabled=full;
