@@ -784,7 +784,6 @@ describe('friend requests', () => {
 describe('SNS features not yet implemented remain denied', () => {
   const deniedPaths = [
     'users/alice/following/bob',
-    'friendRequests/request-1',
     'reports/report-1',
     'users/alice/reportUsage/2026-11-07',
     'users/alice/aiUsage/2026-11-07'
