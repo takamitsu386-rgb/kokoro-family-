@@ -274,3 +274,13 @@ assert.match(refresh,/rooms\[b\]\.items\.length-rooms\[a\]\.items\.length/,'Furn
 assert.match(refresh,/rooms\[a\]\.items\.length-rooms\[b\]\.items\.length/,'Furniture-ascending sort must use item count.');
 assert.match(refresh,/a\.localeCompare\(b,'ja'\)/,'Name sort must use Japanese locale.');
 console.log('Saved room sorting checks passed.');
+
+const libraryStats=source.slice(source.indexOf('function showSavedRoomLibraryStats()'),source.indexOf('function downloadSavedRoomSummary()'));
+assert.match(source,/onclick="showSavedRoomLibraryStats\(\)"/,'Saved room library statistics action must exist.');
+assert.match(source,/id="savedRoomLibraryStats"/,'Saved room statistics panel must exist.');
+assert.match(libraryStats,/validRoomData\(data\)/,'Statistics must exclude invalid room data.');
+assert.match(libraryStats,/data\.items\.length/,'Statistics must aggregate furniture count.');
+assert.match(libraryStats,/categoryCounts/,'Statistics must count saved room categories.');
+assert.match(libraryStats,/toFixed\(1\)/,'Statistics must show average furniture count.');
+assert.match(libraryStats,/textContent=/,'Statistics must render text safely.');
+console.log('Saved room library statistics checks passed.');
