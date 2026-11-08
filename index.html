@@ -831,9 +831,9 @@ function arrangeFurnitureByUse(){
 }
 function checkRoomGoal(goalKey){
   const goals={
-    family:{title:'家族団らん',requirements:[['座って話せる場所',['🛋️','🪑','🛏️']],['テーブルや飲み物',['🪑','☕','🫖','🥛']],['くつろげる飾り',['🪴','🖼️','🧸','🌷']]]},
-    study:{title:'集中できる部屋',requirements:[['机・作業場所',['🖥️','🪑','📚']],['本や学習用品',['📚','📖','✏️','🎒']],['明かり・時計',['💡','🕰️','🪔']]]},
-    green:{title:'緑いっぱいの部屋',requirements:[['植物を2つ以上',['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷']],['自然を感じる飾り',['🦋','🪺','🖼️']],['くつろげる家具',['🛋️','🪑','🧸']]]},
+    family:{title:'家族団らん',requirements:[['座って話せる場所',['🛋️','🪑']],['飲み物',['☕','🫖','🥛']],['くつろげる飾り',['🪴','🖼️','🧸','🌷']]]},
+    study:{title:'集中できる部屋',requirements:[['机・作業場所',['🖥️']],['本や学習用品',['📚','🎒','🧩']],['明かり・時計',['💡','🕰️','🪔']]]},
+    green:{title:'緑いっぱいの部屋',requirements:[['植物を2つ以上',['🪴','🌷','🪻','🌵','🌻','🌼','🌹','🪷']],['自然を感じる飾り',['🦋','🪺','🖼️']],['くつろげる家具',['🛋️','🪑']]]},
     cafe:{title:'おうちカフェ',requirements:[['座れる場所',['🪑','🛋️']],['飲み物',['☕','🫖','🥛']],['おやつ',['🍓','🧁','🍰','🍉','🍊']],['雰囲気づくり',['💡','🪴','🕯️','🌷']]]}
   };
   const goal=goals[goalKey];
@@ -860,8 +860,29 @@ function checkRoomGoal(goalKey){
   summary.textContent='達成 '+completed+' / '+goal.requirements.length+' 項目';
   fragment.appendChild(summary);
   const advice=document.createElement('p');
-  advice.textContent=completed===goal.requirements.length?'すてきなお部屋になっています！家具の位置や色も自由に整えてみよう。':'足りない項目の家具を下の一覧から追加して、もう一度確認してみよう。';
+  advice.textContent=completed===goal.requirements.length?'すてきなお部屋になっています！家具の位置や色も自由に整えてみよう。':'下のおすすめボタンから家具を追加して、達成度を上げてみよう。';
   fragment.appendChild(advice);
+  if(completed!==goal.requirements.length){
+    const suggestions=document.createElement('div');
+    suggestions.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px';
+    const suggested=new Set();
+    goal.requirements.forEach(([label,accepted])=>{
+      const count=icons.filter(icon=>accepted.includes(icon)).length;
+      const needed=goalKey==='green'&&label==='植物を2つ以上'?2:1;
+      if(count>=needed)return;
+      accepted.filter(icon=>furnitureList.includes(icon)&&!suggested.has(icon)).slice(0,3).forEach(icon=>{
+        suggested.add(icon);
+        const button=document.createElement('button');
+        button.type='button';
+        button.textContent=icon+' を追加';
+        button.addEventListener('click',()=>{
+          if(addFurniture(icon))checkRoomGoal(goalKey);
+        });
+        suggestions.appendChild(button);
+      });
+    });
+    if(suggestions.childElementCount)fragment.appendChild(suggestions);
+  }
   result.replaceChildren(fragment);
 }
 function centerSelected(){
