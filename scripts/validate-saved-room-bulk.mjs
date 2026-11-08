@@ -541,3 +541,5 @@ assert.match(source,/badge\.textContent=label/,'Furniture labels must be rendere
 assert.match(source,/label:el\.dataset\.label\|\|''/,'Furniture labels must be saved in room snapshots.');
 assert.match(source,/item\.label===undefined\|\|\(typeof item\.label==='string'/,'Saved furniture labels must be validated.');
 assert.match(source,/labelNode\.textContent=v\.label/,'Furniture labels must be restored safely as text.');
+
+assert.match(source,/label\\.length<=20&&!\/\[\\u0000-\\u001f\\u007f\]\/\.test\(label\)/,'Furniture labels must reject control characters.');
