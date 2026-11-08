@@ -65,5 +65,7 @@ assert.match(html, /snsTimelineList\.replaceChildren\(\)/,
   'Timeline rendering must clear stale content before displaying new results.');
 assert.match(html, /この投稿者を通報/,
   'Timeline cards must provide a direct reporting path for other users.');
+assert.match(html, /コメント投稿者を通報/,
+  'Comments must provide a direct reporting path to the existing report form.');
 
 console.log('Validated authenticated public timeline, two-way block filtering, public profile gating, routing, index, and client generation guards.');
