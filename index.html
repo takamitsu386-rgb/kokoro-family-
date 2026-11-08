@@ -798,11 +798,19 @@ renameInput.placeholder='新しい名前';
 const rename=document.createElement('button');
 rename.type='button';rename.textContent='名前変更';
 rename.addEventListener('click',()=>renameCustomRoomPalette(index,renameInput.value));
+const moveUp=document.createElement('button');
+moveUp.type='button';moveUp.textContent='↑ 上へ';moveUp.disabled=index===0;
+moveUp.setAttribute('aria-label',palette.name+' を1つ上へ移動');
+moveUp.addEventListener('click',()=>moveCustomRoomPalette(index,-1));
+const moveDown=document.createElement('button');
+moveDown.type='button';moveDown.textContent='↓ 下へ';moveDown.disabled=index===palettes.length-1;
+moveDown.setAttribute('aria-label',palette.name+' を1つ下へ移動');
+moveDown.addEventListener('click',()=>moveCustomRoomPalette(index,1));
 const remove=document.createElement('button');
 remove.type='button';remove.textContent='削除';
 remove.setAttribute('aria-label',palette.name+' の配色を削除');
 remove.addEventListener('click',()=>deleteCustomRoomPalette(index));
-group.append(apply,wallOnly,floorOnly,renameInput,rename,remove);root.appendChild(group);
+group.append(apply,wallOnly,floorOnly,renameInput,rename,moveUp,moveDown,remove);root.appendChild(group);
 });
 }
 function saveCustomRoomPalette(){
@@ -856,6 +864,17 @@ list[index].name=name;
 try{localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(list));}
 catch(error){status.textContent='保存できなかったため、名前を変更しませんでした。';return;}
 renderCustomRoomPalettes();status.textContent='「'+previous+'」を「'+name+'」に変更しました。';
+}
+function moveCustomRoomPalette(index,direction){
+const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
+if(!Array.isArray(list)){status.textContent='保存済み配色を読み込めません。';return;}
+if(!Number.isInteger(index)||index<0||index>=list.length||![-1,1].includes(direction)){status.textContent='移動する配色を確認できません。';return;}
+const next=index+direction;
+if(next<0||next>=list.length){status.textContent='これ以上移動できません。';return;}
+[list[index],list[next]]=[list[next],list[index]];
+try{localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(list));}
+catch(error){status.textContent='保存できなかったため、順番を変更しませんでした。';return;}
+renderCustomRoomPalettes();status.textContent='お気に入り配色の順番を変更しました。';
 }
 function deleteCustomRoomPalette(index){
 const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
