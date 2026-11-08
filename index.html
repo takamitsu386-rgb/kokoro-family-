@@ -324,6 +324,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="setSelectedFurnitureLabelStyle()">文字・背景色を設定</button>
 <button type="button" onclick="resetSelectedFurnitureLabelStyle()">文字・背景色を初期化</button>
 <button type="button" onclick="applySelectedFurnitureLabelStyleToAll()">この色を全家具のメモに適用</button>
+<label for="furnitureLabelFontSize">名前・メモの文字サイズ</label>
+<select id="furnitureLabelFontSize"><option value="9">小さめ（9px）</option><option value="11" selected>標準（11px）</option><option value="13">少し大きめ（13px）</option><option value="15">大きめ（15px）</option><option value="18">特大（18px）</option></select>
+<button type="button" onclick="setSelectedFurnitureLabelFontSize()">文字サイズを設定</button>
+<button type="button" onclick="resetSelectedFurnitureLabelFontSize()">文字サイズを初期化</button>
 <h3>家具アイコンの背景色</h3>
 <label for="furnitureIconBackground">選択した家具の背景色</label>
 <input id="furnitureIconBackground" type="color" value="#ffffff" aria-label="家具アイコンの背景色">
@@ -1825,6 +1829,36 @@ function setSelectedFurnitureLabelStyle(){
  }
  status.textContent='名前・メモの文字色と背景色を保存しました。';
 }
+function setSelectedFurnitureLabelFontSize(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に家具を選んでね。';return;}
+ const badge=selectedFurniture.querySelector('.item-label');
+ if(!badge){status.textContent='先に家具へ名前・メモを設定してください。';return;}
+ const size=document.getElementById('furnitureLabelFontSize').value;
+ if(!['9','11','13','15','18'].includes(size)){status.textContent='文字サイズを選び直してください。';return;}
+ const previous=selectedFurniture.dataset.labelFontSize||'';
+ selectedFurniture.dataset.labelFontSize=size;badge.style.fontSize=size+'px';
+ if(!autoSaveRoom()){
+  if(previous)selectedFurniture.dataset.labelFontSize=previous;else delete selectedFurniture.dataset.labelFontSize;
+  badge.style.fontSize=previous?previous+'px':'';
+  status.textContent='保存できなかったため、文字サイズを元に戻しました。';return;
+ }
+ status.textContent='名前・メモの文字サイズを'+size+'pxに設定しました。';
+}
+function resetSelectedFurnitureLabelFontSize(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に家具を選んでね。';return;}
+ const badge=selectedFurniture.querySelector('.item-label');
+ if(!badge){status.textContent='この家具には名前・メモがありません。';return;}
+ const previous=selectedFurniture.dataset.labelFontSize||'';
+ if(!previous){status.textContent='すでに標準サイズです。';return;}
+ delete selectedFurniture.dataset.labelFontSize;badge.style.fontSize='';
+ if(!autoSaveRoom()){
+  selectedFurniture.dataset.labelFontSize=previous;badge.style.fontSize=previous+'px';
+  status.textContent='保存できなかったため、文字サイズを元に戻しました。';return;
+ }
+ status.textContent='名前・メモの文字サイズを標準に戻しました。';
+}
 function applySelectedFurnitureLabelStyleToAll(){
  const status=document.getElementById('selectedMessage');
  if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に色の見本にする家具を選んでね。';return;}
@@ -2340,7 +2374,8 @@ validPosition(item.left)&&validPosition(item.top)&&
  (item.borderWidth===undefined||(typeof item.borderWidth==='string'&&/^[1-6]$/.test(item.borderWidth)))&&
  (item.label===undefined||(typeof item.label==='string'&&item.label.length<=20&&!/[\u0000-\u001f\u007f]/.test(item.label)))&&
   (item.labelColor===undefined||(typeof item.labelColor==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.labelColor)))&&
-  (item.labelBackground===undefined||(typeof item.labelBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.labelBackground))));
+  (item.labelBackground===undefined||(typeof item.labelBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.labelBackground)))&&
+   (item.labelFontSize===undefined||(typeof item.labelFontSize==='string'&&['9','11','13','15','18'].includes(item.labelFontSize))));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
@@ -2357,7 +2392,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',shadow:el.dataset.shadow||'',borderStyle:el.dataset.borderStyle||'',borderColor:el.dataset.borderColor||'',borderWidth:el.dataset.borderWidth||'',label:el.dataset.label||'',labelColor:el.dataset.labelColor||'',labelBackground:el.dataset.labelBackground||''
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',shadow:el.dataset.shadow||'',borderStyle:el.dataset.borderStyle||'',borderColor:el.dataset.borderColor||'',borderWidth:el.dataset.borderWidth||'',label:el.dataset.label||'',labelColor:el.dataset.labelColor||'',labelBackground:el.dataset.labelBackground||'',labelFontSize:el.dataset.labelFontSize||''
 }))
 };
 }
@@ -2386,7 +2421,7 @@ if(v.opacity)el.style.opacity=v.opacity;
  if(v.flipX===true)el.dataset.flipX='true';
  if(v.flipY===true)el.dataset.flipY='true';
  const restoredIcon=el.querySelector('.item-icon');
- if(typeof v.label==='string'&&v.label){el.dataset.label=v.label;const labelNode=document.createElement('span');labelNode.className='item-label';labelNode.textContent=v.label;if(v.labelColor){el.dataset.labelColor=v.labelColor;labelNode.style.color=v.labelColor;}if(v.labelBackground){el.dataset.labelBackground=v.labelBackground;labelNode.style.backgroundColor=v.labelBackground;}el.appendChild(labelNode);el.title=v.label+'（手のマークで移動）';if(restoredIcon)restoredIcon.setAttribute('aria-label',v.icon+'：'+v.label+' を選択');}
+ if(typeof v.label==='string'&&v.label){el.dataset.label=v.label;const labelNode=document.createElement('span');labelNode.className='item-label';labelNode.textContent=v.label;if(v.labelColor){el.dataset.labelColor=v.labelColor;labelNode.style.color=v.labelColor;}if(v.labelBackground){el.dataset.labelBackground=v.labelBackground;labelNode.style.backgroundColor=v.labelBackground;}if(v.labelFontSize){el.dataset.labelFontSize=v.labelFontSize;labelNode.style.fontSize=v.labelFontSize+'px';}el.appendChild(labelNode);el.title=v.label+'（手のマークで移動）';if(restoredIcon)restoredIcon.setAttribute('aria-label',v.icon+'：'+v.label+' を選択');}
  if(restoredIcon&&v.iconBackground){el.dataset.iconBackground=v.iconBackground;restoredIcon.style.backgroundColor=v.iconBackground;restoredIcon.style.borderRadius='12px';restoredIcon.style.padding='2px 6px';}
  if(restoredIcon&&v.shadow){el.dataset.shadow=v.shadow;restoredIcon.style.boxShadow=({soft:'0 2px 7px #00000030',strong:'0 4px 10px #00000070',glow:'0 0 12px #f5c542'})[v.shadow];}
  if(restoredIcon&&v.borderStyle&&v.borderColor){el.dataset.borderStyle=v.borderStyle;el.dataset.borderColor=v.borderColor;restoredIcon.style.border=(v.borderWidth||'2')+'px '+v.borderStyle+' '+v.borderColor; if(v.borderWidth)el.dataset.borderWidth=v.borderWidth;restoredIcon.style.borderRadius='12px';}
