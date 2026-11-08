@@ -571,3 +571,6 @@ assert.match(source,/borderWidth:el\.dataset\.borderWidth\|\|''/,'Furniture bord
 assert.match(source,/item\.borderWidth===undefined\|\|\(typeof item\.borderWidth==='string'&&\/\^\[1-6\]\$\//,'Furniture border width must be validated.');
 assert.match(source,/widthRaw\.trim\(\)===''\|\|!Number\.isInteger\(width\)\|\|width<1\|\|width>6/,'Furniture border width must be validated before applying.');
 assert.match(source,/restoredIcon\.style\.border=\(v\.borderWidth\|\|'2'\)\+'px '/,'Furniture border width must be restored.');
+assert.match(html,/swapRoomWallAndFloorColors/,'Room palette must expose wall/floor color swap.');
+assert.match(html,/壁と床の色を入れ替えました/,'Wall/floor color swap must report success.');
+assert.match(html,/commitStyleChange\(\(\)=>\{/,'Room color swap must use transactional save and rollback.');
