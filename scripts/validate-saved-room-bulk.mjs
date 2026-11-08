@@ -143,3 +143,18 @@ assert.match(furnitureSearch,/filtered\.length/,'Furniture search must report re
 assert.match(furnitureSearch,/見つかりませんでした/,'Empty searches must provide a useful message.');
 assert.match(furnitureSearch,/activeFurnitureCategory/,'Search must remain within the selected category.');
 console.log('Furniture search and category filtering checks passed.');
+
+
+const batchAddStart=html.indexOf('function addFurnitureBatch(icon){');
+assert.notEqual(batchAddStart,-1,'Bulk furniture add handler must exist.');
+const batchAddEnd=html.indexOf('function addFurniture(icon,persist=true)',batchAddStart);
+assert.notEqual(batchAddEnd,-1,'Bulk furniture add handler must end before single-item creation.');
+const batchAdd=html.slice(batchAddStart,batchAddEnd);
+assert.match(html,/id="furnitureAddCount" type="number" min="1" max="20"/,'Bulk furniture quantity input must be bounded from 1 to 20.');
+assert.match(batchAdd,/Number\.isInteger\(requested\)/,'Bulk furniture quantity must be an integer.');
+assert.match(batchAdd,/existing\+count>300/,'Bulk furniture add must enforce the room capacity.');
+assert.match(batchAdd,/addFurniture\(icon,false\)/,'Bulk furniture add must stage items before saving.');
+assert.match(batchAdd,/created\.forEach\(element=>element\.remove\(\)\)/,'Bulk furniture add must roll back staged items on failure.');
+assert.match(batchAdd,/if\(!autoSaveRoom\(\)\)/,'Bulk furniture add must save the completed batch once.');
+assert.match(html,/b\.onclick=\(\)=>addFurnitureBatch\(icon\)/,'Furniture picker buttons must use batch add.');
+console.log('Bulk furniture placement checks passed.');
