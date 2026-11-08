@@ -52,3 +52,10 @@ assert.match(html, /option value="category">分類順/);
 assert.match(html, /sortInput.addEventListener\("change",render\)/);
 assert.match(html, /a\.title\.localeCompare\(b\.title,"ja"\)/);
 assert.match(sw, /kokoro-family-v232/);
+
+assert.match(html, /材料チェック（料理中に確認）/);
+assert.match(html, /recipe\.ingredients\.split\(\/\\r\?\\n\/\)/);
+assert.match(html, /チェックをすべて解除/);
+assert.match(html, /checkbox\.addEventListener\("change"/);
+assert.match(html, /li\.append\(title,ingredients,checklist,steps,actions\)/);
+assert.match(sw, /kokoro-family-v235/);
