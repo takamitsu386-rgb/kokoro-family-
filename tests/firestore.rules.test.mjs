@@ -870,7 +870,8 @@ describe('shared room snapshots', () => {
     const owner = testEnv.authenticatedContext('room-owner').firestore();
     const recipient = testEnv.authenticatedContext('room-recipient').firestore();
     const stranger = testEnv.authenticatedContext('room-stranger').firestore();
-    await assertSucceeds(getDoc(doc(owner, 'sharedRooms/room-share-1')));\n    await assertSucceeds(getDocs(query(collection(owner, 'users', 'room-owner', 'sharedRooms'))));
+    await assertSucceeds(getDoc(doc(owner, 'sharedRooms/room-share-1')));
+    await assertSucceeds(getDocs(query(collection(owner, 'users', 'room-owner', 'sharedRooms'))));
     await assertSucceeds(setDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-2'), {
       ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'My room',
       currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
@@ -904,6 +905,7 @@ describe('shared room snapshots', () => {
     const owner = testEnv.authenticatedContext('room-owner').firestore();
     await assertFails(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
     await assertFails(deleteDoc(doc(recipient, 'sharedRooms/room-share-1')));
-    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));\n    await assertSucceeds(deleteDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-1')));
+    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));
+    await assertSucceeds(deleteDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-1')));
   });
 });
