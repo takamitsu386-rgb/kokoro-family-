@@ -308,6 +308,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <input id="furnitureIconBackground" type="color" value="#ffffff" aria-label="家具アイコンの背景色">
 <button type="button" onclick="setSelectedFurnitureIconBackground()">背景色を設定</button>
 <button type="button" onclick="resetSelectedFurnitureIconBackground()">背景色を解除</button>
+<h3>家具の影</h3>
+<button type="button" onclick="setSelectedFurnitureShadow('soft')">☁️ やわらかい影</button>
+<button type="button" onclick="setSelectedFurnitureShadow('strong')">🌑 はっきりした影</button>
+<button type="button" onclick="setSelectedFurnitureShadow('glow')">✨ ふんわり光る影</button>
+<button type="button" onclick="resetSelectedFurnitureShadow()">影を解除</button>
 <h3>家具の向きを反転</h3>
 <button type="button" onclick="toggleSelectedFurnitureFlip('horizontal')">↔️ 左右反転</button>
 <button type="button" onclick="toggleSelectedFurnitureFlip('vertical')">↕️ 上下反転</button>
@@ -1643,6 +1648,40 @@ function resetSelectedFurnitureIconBackground(){
  }
  status.textContent='家具アイコンの背景色を解除しました。「1つ戻す」で元に戻せます。';
 }
+function setSelectedFurnitureShadow(level){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に影を付けたい家具をタップしてね。';return;}
+ const shadows={soft:'0 2px 7px #00000030',strong:'0 4px 10px #00000070',glow:'0 0 12px #f5c542'};
+ if(!Object.prototype.hasOwnProperty.call(shadows,level)){status.textContent='影の種類を確認してください。';return;}
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(!icon){status.textContent='家具の表示を確認できません。';return;}
+ const previous=selectedFurniture.dataset.shadow||'';
+ if(previous===level){status.textContent='この家具には同じ影が設定されています。';return;}
+ selectedFurniture.dataset.shadow=level;
+ icon.style.boxShadow=shadows[level];
+ if(!autoSaveRoom()){
+  if(previous)selectedFurniture.dataset.shadow=previous;else delete selectedFurniture.dataset.shadow;
+  icon.style.boxShadow=previous?shadows[previous]:'';
+  status.textContent='保存できなかったため、影を元に戻しました。';return;
+ }
+ status.textContent='家具の影を設定しました。「1つ戻す」で元に戻せます。';
+}
+function resetSelectedFurnitureShadow(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に影を解除したい家具をタップしてね。';return;}
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(!icon){status.textContent='家具の表示を確認できません。';return;}
+ const previous=selectedFurniture.dataset.shadow||'';
+ if(!previous){status.textContent='この家具には影が設定されていません。';return;}
+ delete selectedFurniture.dataset.shadow;
+ icon.style.boxShadow='';
+ if(!autoSaveRoom()){
+  selectedFurniture.dataset.shadow=previous;
+  icon.style.boxShadow=({soft:'0 2px 7px #00000030',strong:'0 4px 10px #00000070',glow:'0 0 12px #f5c542'})[previous];
+  status.textContent='保存できなかったため、影を元に戻しました。';return;
+ }
+ status.textContent='家具の影を解除しました。「1つ戻す」で元に戻せます。';
+}
 function toggleSelectedFurnitureFlip(axis){
  const status=document.getElementById('selectedMessage');
  if(!selectedFurniture||!room.contains(selectedFurniture)){
@@ -1967,6 +2006,7 @@ validPosition(item.left)&&validPosition(item.top)&&
  (item.flipX===undefined||typeof item.flipX==='boolean')&&
  (item.flipY===undefined||typeof item.flipY==='boolean')&&
  (item.iconBackground===undefined||(typeof item.iconBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.iconBackground)))&&
+ (item.shadow===undefined||['soft','strong','glow'].includes(item.shadow))&&
  (item.label===undefined||(typeof item.label==='string'&&item.label.length<=20&&!/[\u0000-\u001f\u007f]/.test(item.label))));
 }
 function validSavedRooms(value){
@@ -1984,7 +2024,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',label:el.dataset.label||''
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',opacity:el.style.opacity,flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.dataset.iconBackground||'',shadow:el.dataset.shadow||'',label:el.dataset.label||''
 }))
 };
 }
@@ -2015,6 +2055,7 @@ if(v.opacity)el.style.opacity=v.opacity;
  const restoredIcon=el.querySelector('.item-icon');
  if(typeof v.label==='string'&&v.label){el.dataset.label=v.label;const labelNode=document.createElement('span');labelNode.className='item-label';labelNode.textContent=v.label;el.appendChild(labelNode);el.title=v.label+'（手のマークで移動）';if(restoredIcon)restoredIcon.setAttribute('aria-label',v.icon+'：'+v.label+' を選択');}
  if(restoredIcon&&v.iconBackground){el.dataset.iconBackground=v.iconBackground;restoredIcon.style.backgroundColor=v.iconBackground;restoredIcon.style.borderRadius='12px';restoredIcon.style.padding='2px 6px';}
+ if(restoredIcon&&v.shadow){el.dataset.shadow=v.shadow;restoredIcon.style.boxShadow=({soft:'0 2px 7px #00000030',strong:'0 4px 10px #00000070',glow:'0 0 12px #f5c542'})[v.shadow];}
  if(restoredIcon&&(v.flipX===true||v.flipY===true))restoredIcon.style.transform='scale('+(v.flipX===true?-1:1)+', '+(v.flipY===true?-1:1)+')';
 if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
