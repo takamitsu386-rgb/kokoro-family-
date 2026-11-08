@@ -46,3 +46,11 @@ assert.match(html, /id="familyMealsResetFilters"/);
 assert.match(html, /x\.name\+" "\+x\.note/);
 assert.match(html, /typeFilterInput\.addEventListener\("change",render\)/);
 assert.match(sw, /kokoro-family-v228/);
+
+assert.match(html, /id="familyMealsSort"/);
+assert.match(html, /option value="newest">登録が新しい順/);
+assert.match(html, /option value="oldest">登録が古い順/);
+assert.match(html, /option value="name">メニュー名順/);
+assert.match(html, /sortInput.addEventListener\("change",render\)/);
+assert.match(html, /a\.name\.localeCompare\(b\.name,"ja"\)/);
+assert.match(sw, /kokoro-family-v233/);
