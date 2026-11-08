@@ -29,3 +29,13 @@ assert.match(html, /クラウド同期・家族間共有にはまだ対応して
 assert.match(sw, /kokoro-family-v203/, "service worker cache is refreshed");
 
 console.log("Family task list source checks passed.");
+
+assert.match(html,/id="familyTaskExport"/);
+assert.match(html,/id="familyTaskImportFile"/);
+assert.match(html,/id="familyTaskCsvStatus"/);
+assert.match(html,/const parseCSV=text=>/);
+assert.match(html,/categoryMap/);
+assert.match(html,/priorityMap/);
+assert.match(html,/Task CSV import failed/);
+assert.match(html,/Task CSV export failed/);
+assert.match(sw,/kokoro-family-v209/);
