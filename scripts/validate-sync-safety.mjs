@@ -239,8 +239,8 @@ assert.ok(queueSyncHandler.includes('if (currentUser && currentUser.uid === queu
   'Automatic sync success notices and retries must remain scoped to the originating account generation.');
 assert.match(queueSyncHandler, /await uploadLocal\(queuedUid\);[\s\S]*?clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;\s*status\("自動同期しました。"\)/,
   'A successful automatic upload must clear any pending retry and reset the retry budget.');
-assert.match(queueSyncHandler, /if \(!navigator\.onLine\) \{[\s\S]*?通信が切れました[\s\S]*?\} else if \(!logoutInProgress && syncRetryCount < 3\) \{\s*const delay = \[3000, 10000, 30000\]\[syncRetryCount\+\+\];[\s\S]*?syncRetryTimer = setTimeout/,
-  'A failed automatic upload while offline must not consume a retry slot; online failures may schedule at most three retries.');
+assert.match(queueSyncHandler, /if \(logoutInProgress\) return;\s*status\("クラウド同期に失敗しました[\s\S]*?if \(!navigator\.onLine\) \{[\s\S]*?通信が切れました[\s\S]*?\} else if \(syncRetryCount < 3\) \{\s*const delay = \[3000, 10000, 30000\]\[syncRetryCount\+\+\];[\s\S]*?syncRetryTimer = setTimeout/,
+  'A failed automatic upload must not overwrite logout status or schedule retries during logout; offline failures must not consume retry slots.');
 assert.match(queueSyncHandler, /else if \(syncRetryCount >= 3\) \{[\s\S]*?自動再試行を3回行いました/,
   'The exhausted retry message must remain limited to the three-retry case.');
 
