@@ -237,3 +237,10 @@ assert.match(paletteBlock,/commitStyleChange\(\(\)=>/,'Palette application must 
 assert.match(paletteBlock,/backgroundImage='none'/,'Palette application must clear old wall and floor patterns.');
 assert.match(paletteBlock,/addEventListener\('click'/,'Palette buttons must apply their palette.');
 console.log('Room color palette checks passed.');
+
+const randomPalette=source.slice(source.indexOf('function applyRandomRoomColorPalette()'),source.indexOf('function applyRoomColorPalette(key)'));
+assert.match(source,/onclick="applyRandomRoomColorPalette\(\)"/,'Random palette control must exist.');
+assert.match(randomPalette,/roomColorPalettes\.filter/,'Random palette must choose from supported presets.');
+assert.match(randomPalette,/Math\.random\(\)/,'Random palette must select a palette.');
+assert.match(randomPalette,/applyRoomColorPalette\(palette\.key\)/,'Random palette must use the normal save and undo path.');
+console.log('Random room color palette checks passed.');
