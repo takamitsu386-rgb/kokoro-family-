@@ -335,6 +335,81 @@ exports.publicTimeline = onRequest({
 });
 
 
+// Search only explicitly public profiles by nickname; never return contact information.
+exports.searchPublicProfiles = onRequest({
+  region: "asia-northeast1",
+  maxInstances: 3,
+  timeoutSeconds: 30,
+  memory: "256MiB"
+}, async (req, res) => {
+  const origin = setReportCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
+  if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+
+  try {
+    const authHeader = req.get("authorization") || "";
+    const match = authHeader.match(/^Bearer (.+)$/);
+    if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
+    const decoded = await getAuth().verifyIdToken(match[1], true);
+    const prefix = typeof req.body?.prefix === "string" ? req.body.prefix.trim() : "";
+    if (prefix.length < 2 || prefix.length > 24 || /[\\u0000-\\u001f]/.test(prefix)) {
+      return sendJson(res, 400, { error: "ニックネームを2〜24文字で入力してください。" });
+    }
+
+    const db = getFirestore();
+    const tokyoDate = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(new Date()).reduce((parts, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
+    const usageRef = db.doc(`users/${decoded.uid}/profileSearchUsage/${dayKey}`);
+    const allowed = await db.runTransaction(async tx => {
+      const snap = await tx.get(usageRef);
+      const storedCount = snap.exists ? snap.data().count : 0;
+      const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 30;
+      if (count >= 30) return false;
+      tx.set(usageRef, { count: count + 1, updatedAt: Timestamp.now() }, { merge: true });
+      return true;
+    });
+    if (!allowed) return sendJson(res, 429, { error: "本日のプロフィール検索上限に達しました。" });
+
+    const [matches, viewerBlocks] = await Promise.all([
+      db.collection("profiles")
+        .where("visibility", "==", "public")
+        .orderBy("nickname")
+        .startAt(prefix)
+        .endAt(prefix + "\\uf8ff")
+        .limit(10)
+        .get(),
+      db.collection("users").doc(decoded.uid).collection("blocks").get()
+    ]);
+    const candidates = matches.docs.filter(item => item.id !== decoded.uid && !viewerBlocks.docs.some(block => block.id === item.id));
+    const reverseBlocks = candidates.length
+      ? await db.getAll(...candidates.map(item => db.doc(`users/${item.id}/blocks/${decoded.uid}`)))
+      : [];
+    const items = candidates.filter((item, index) => !reverseBlocks[index].exists).map(item => {
+      const data = item.data();
+      return {
+        uid: item.id,
+        nickname: typeof data.nickname === "string" ? data.nickname.trim().slice(0, 24) : "ユーザー",
+        avatarId: ["avatar-01", "avatar-02", "avatar-03", "avatar-04", "avatar-05"].includes(data.avatarId)
+          ? data.avatarId : "avatar-01"
+      };
+    });
+    return sendJson(res, 200, { items });
+  } catch (error) {
+    console.error("Public profile search error:", error?.message || error);
+    if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
+      return sendJson(res, 401, { error: "ログイン状態を確認できません。もう一度ログインしてください。" });
+    }
+    return sendJson(res, 500, { error: "プロフィールを検索できませんでした。" });
+  }
+});
+
+
 const reportReviewStatuses = new Set(["reviewed", "actioned", "dismissed"]);
 
 async function verifyAdminRequest(req, res) {
