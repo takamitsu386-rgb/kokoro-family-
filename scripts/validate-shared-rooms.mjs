@@ -60,3 +60,6 @@ assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(124\)/);
 assert.match(html, /snsAddBlock\.addEventListener\("click",[\s\S]*?const batch = writeBatch\(snsDb\);\s*batch\.set\(doc\(snsDb, "users", user\.uid, "blocks", targetUid\)/, "Blocking and share revocation must be atomic.");
 
 assert.match(html, /if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration\) return;\s*console\.error\("SNS block failed"/);
+
+assert.match(html, /removeShare\.addEventListener\("click", async \(\) => \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration \|\| snsBusy\) return;[\s\S]*?const operationGeneration = snsSetBusy\(true\);[\s\S]*?snsReleaseBusyFor\(user, operationGeneration\);/);
+assert.match(html, /if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration\) return;\s*console\.error\("Shared room removal failed"/);
