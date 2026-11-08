@@ -328,6 +328,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <select id="furnitureLabelFontSize"><option value="9">小さめ（9px）</option><option value="11" selected>標準（11px）</option><option value="13">少し大きめ（13px）</option><option value="15">大きめ（15px）</option><option value="18">特大（18px）</option></select>
 <button type="button" onclick="setSelectedFurnitureLabelFontSize()">文字サイズを設定</button>
 <button type="button" onclick="resetSelectedFurnitureLabelFontSize()">文字サイズを初期化</button>
+<button type="button" onclick="applySelectedFurnitureLabelFontSizeToAll()">この文字サイズを全家具のメモに適用</button>
 <h3>家具アイコンの背景色</h3>
 <label for="furnitureIconBackground">選択した家具の背景色</label>
 <input id="furnitureIconBackground" type="color" value="#ffffff" aria-label="家具アイコンの背景色">
@@ -1828,6 +1829,23 @@ function setSelectedFurnitureLabelStyle(){
   status.textContent='保存できなかったため、変更を元に戻しました。';return;
  }
  status.textContent='名前・メモの文字色と背景色を保存しました。';
+}
+function applySelectedFurnitureLabelFontSizeToAll(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に文字サイズの見本にする家具を選んでね。';return;}
+ const source=selectedFurniture.querySelector('.item-label');
+ if(!source){status.textContent='先に選択した家具へ名前・メモを設定してください。';return;}
+ const size=selectedFurniture.dataset.labelFontSize||'';
+ if(size&&!['9','11','13','15','18'].includes(size)){status.textContent='見本の文字サイズが正しくありません。';return;}
+ const targets=[...room.querySelectorAll('.furniture')].filter(el=>el.querySelector('.item-label'));
+ if(!targets.length){status.textContent='名前・メモが設定された家具がありません。';return;}
+ const previous=targets.map(el=>({el,size:el.dataset.labelFontSize||''}));
+ targets.forEach(({el})=>{const badge=el.querySelector('.item-label');if(size)el.dataset.labelFontSize=size;else delete el.dataset.labelFontSize;badge.style.fontSize=size?size+'px':'';});
+ if(!autoSaveRoom()){
+  previous.forEach(({el,size:old})=>{if(old)el.dataset.labelFontSize=old;else delete el.dataset.labelFontSize;const badge=el.querySelector('.item-label');if(badge)badge.style.fontSize=old?old+'px':'';});
+  status.textContent='保存できなかったため、全家具の文字サイズを元に戻しました。';return;
+ }
+ status.textContent=targets.length+'個の家具の名前・メモに同じ文字サイズを適用しました。';
 }
 function setSelectedFurnitureLabelFontSize(){
  const status=document.getElementById('selectedMessage');
