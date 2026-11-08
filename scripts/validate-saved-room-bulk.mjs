@@ -311,4 +311,12 @@ assert.ok(comparisonExport.includes("const csv='\\uFEFF'"),'Comparison CSV must 
 assert.ok(comparisonExport.includes(".join('\\r\\n')"),'Comparison CSV must use CRLF line endings.');
 assert.match(comparisonExport,/1000000/,'Comparison CSV must enforce a size limit.');
 assert.match(comparisonExport,/URL\.revokeObjectURL/,'Comparison CSV must release its object URL.');
+
+const spacingArrange=source.slice(source.indexOf('function arrangeFurnitureItems('),source.indexOf('function autoArrangeFurnitureByCategory('));
+assert.match(source,/autoArrangeFurniture\(0\.78\)/,'Room editor must offer compact furniture arrangement.');
+assert.match(source,/autoArrangeFurniture\(1\.22\)/,'Room editor must offer spacious furniture arrangement.');
+assert.match(spacingArrange,/spacingScale=1/,'Furniture arrangement must retain the default spacing mode.');
+assert.match(spacingArrange,/baseCenterX/,'Furniture arrangement must calculate horizontal grid centers.');
+assert.match(spacingArrange,/baseCenterY/,'Furniture arrangement must calculate vertical grid centers.');
+assert.match(spacingArrange,/spacingScale/,'Furniture arrangement must apply the selected spacing scale.');
 console.log('Saved room comparison CSV checks passed.');
