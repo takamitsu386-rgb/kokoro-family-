@@ -145,10 +145,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyMealsFilter">表示</label><select id="familyMealsFilter"><option value="week">今日から7日間</option><option value="all">すべて</option></select>
-<button type="button" id="familyMealsClearPast">過去の献立を整理</button><button type="button" id="familyMealsExport">CSVを書き出す</button>
+<button type="button" id="familyMealsClearPast">過去の献立を整理</button><button type="button" id="familyMealsExport">CSVを書き出す</button><label for="familyMealsImportFile" class="button">CSVを読み込む</label><input id="familyMealsImportFile" type="file" accept=".csv,text/csv" hidden>
 </div>
 <p id="familyMealsSummary" role="status" aria-live="polite">献立を読み込んでいます。</p>
 <p id="familyMealsExportStatus" role="status" aria-live="polite"></p>
+<p id="familyMealsImportStatus" role="status" aria-live="polite"></p>
 <p id="familyMealsShoppingStatus" role="status" aria-live="polite"></p>
 <ul id="familyMealsList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
@@ -6467,6 +6468,59 @@ snsRefreshPosts.addEventListener("click", async () => {
     }
   });
 
+
+  const importFile=document.getElementById("familyMealsImportFile");
+  const importStatus=document.getElementById("familyMealsImportStatus");
+  const parseMealCsv=source=>{
+    const rows=[];let row=[],cell="",quoted=false;
+    for(let i=0;i<source.length;i++){
+      const ch=source[i];
+      if(quoted){
+        if(ch==='"'&&source[i+1]==='"'){cell+='"';i++;}
+        else if(ch==='"')quoted=false;
+        else cell+=ch;
+      }else if(ch==='"'){if(cell.length)throw new Error("invalid quote");quoted=true;}
+      else if(ch===","){row.push(cell);cell="";}
+      else if(ch==="\\n"){row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\\r"){if(source[i+1]==="\\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
+      else cell+=ch;
+    }
+    if(quoted)throw new Error("unclosed quote");
+    if(cell.length||row.length){row.push(cell);rows.push(row);}
+    return rows.filter((line,index)=>index===0||line.some(value=>value!==""));
+  };
+  importFile.addEventListener("change",async()=>{
+    const file=importFile.files?.[0];if(!file)return;
+    try{
+      if(file.size>1024*1024)throw new Error("CSVファイルは1MB以内にしてください。");
+      const text=await file.text(),rows=parseMealCsv(text.replace(/^\\uFEFF/,""));
+      const header=["日付","食事区分","メニュー","メモ","登録日時"];
+      if(!rows.length||rows[0].length!==header.length||header.some((value,index)=>rows[0][index]!==value))
+        throw new Error("CSVの見出しが一致しません。献立CSVを書き出したファイルを選んでください。");
+      if(rows.length===1)throw new Error("読み込む献立がありません。");
+      const labels={朝ごはん:"breakfast",昼ごはん:"lunch",夜ごはん:"dinner",おやつ:"snack"};
+      const parsed=rows.slice(1).map((line,index)=>{
+        if(line.length!==5)throw new Error((index+2)+"行目の列数が正しくありません。");
+        const [date,label,name,note,created]=line;
+        if(!validDate(date)||!Object.hasOwn(labels,label)||!name.trim()||name.length>80||note.length>60)
+          throw new Error((index+2)+"行目の日付・食事区分・メニュー・メモを確認してください。");
+        const parsedTime=Date.parse(created),createdAt=Number.isSafeInteger(parsedTime)&&parsedTime>0?parsedTime:Date.now()+index;
+        return {date,type:labels[label],name:name.trim(),note,createdAt};
+      });
+      const known=new Set(entries.map(x=>x.date+"|"+x.type+"|"+x.name.trim().toLocaleLowerCase()));
+      const unique=parsed.filter(x=>{const key=x.date+"|"+x.type+"|"+x.name.trim().toLocaleLowerCase();if(known.has(key))return false;known.add(key);return true;});
+      const added=unique.slice(0,Math.max(0,LIMIT-entries.length));
+      if(!added.length)throw new Error("追加できる献立がありません（登録済み、または上限200件）。");
+      if(!confirm("CSVから"+added.length+"件の献立を追加しますか？"+(parsed.length>added.length?"\\n"+(parsed.length-added.length)+"件は重複または上限のため追加されません。":"")))return;
+      const now=Date.now();
+      const next=[...entries,...added.map((item,index)=>({...item,id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealimport_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,10)}))];
+      if(!save(next))throw new Error("保存できませんでした。既存データを確認してください。");
+      importStatus.textContent=added.length+"件の献立を読み込みました。";
+    }catch(error){
+      console.error("Family meals CSV import failed",error);
+      importStatus.textContent=error.message||"CSVを読み込めませんでした。既存の献立は変更していません。";
+    }finally{importFile.value="";}
+  });
   const filterInput=document.getElementById("familyMealsFilter");
   const listEl=document.getElementById("familyMealsList");
   const summaryEl=document.getElementById("familyMealsSummary");
