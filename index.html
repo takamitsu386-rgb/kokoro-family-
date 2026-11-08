@@ -107,7 +107,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyTaskPriorityFilter">優先度</label><select id="familyTaskPriorityFilter"><option value="all">すべての優先度</option><option value="high">高い</option><option value="normal">ふつう</option><option value="low">低い</option></select>
 <label for="familyTaskSort">並び順</label><select id="familyTaskSort"><option value="due">期限が近い順</option><option value="priority">優先度が高い順</option><option value="newest">新しく追加した順</option><option value="oldest">古い順</option></select>
 <label for="familyTaskSearch">キーワード</label><input id="familyTaskSearch" type="search" maxlength="80" placeholder="やることを検索" autocomplete="off">
-<button type="button" id="familyTaskClearDone">完了した項目を整理</button><button type="button" id="familyTaskResetFilters">絞り込みを解除</button>
+<button type="button" id="familyTaskCompleteAll">未完了をすべて完了</button><button type="button" id="familyTaskClearDone">完了した項目を整理</button><button type="button" id="familyTaskResetFilters">絞り込みを解除</button>
 </div>
 <p id="familyTaskSummary" role="status" aria-live="polite">タスクを読み込んでいます。</p>
 <ul id="familyTaskList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
@@ -5852,6 +5852,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const listEl = document.getElementById("familyTaskList");
   const summaryEl = document.getElementById("familyTaskSummary");
   const clearButton = document.getElementById("familyTaskClearDone");
+  const completeAllButton = document.getElementById("familyTaskCompleteAll");
   const resetFiltersButton = document.getElementById("familyTaskResetFilters");
   const submitButton = document.getElementById("familyTaskSubmit");
   const cancelButton = document.getElementById("familyTaskCancel");
@@ -6100,6 +6101,12 @@ snsRefreshPosts.addEventListener("click", async () => {
     searchInput.focus();
   });
   searchInput.addEventListener("input", render);
+  completeAllButton.addEventListener("click", () => {
+    const count = tasks.filter(task => !task.completed).length;
+    if (!count || !confirm("未完了の" + count + "件をすべて完了にしますか？")) return;
+    const next = tasks.map(task => task.completed ? task : {...task, completed: true});
+    persist(next);
+  });
   clearButton.addEventListener("click", () => {
     const count = tasks.filter(task => task.completed).length;
     if (count && confirm("完了した" + count + "件をリストから削除しますか？")) {
