@@ -20,6 +20,8 @@ assert.match(html, /window\.applyRoom\?\.\(item\.currentRoom\)/);
 assert.match(html, /batch\.delete\(doc\(snsDb, "sharedRooms", item\.id\)\)/);
 assert.match(html, /batch\.delete\(doc\(snsDb, "users", item\.ownerUid, "sharedRooms", item\.id\)\)/);
 assert.match(html, /snsLoadSharedRooms\(user, authGeneration\)/);
+assert.match(html, /const revokedShares = new Map\(\)/, 'Blocking a user must collect their shared room snapshots for revocation.');
+assert.match(html, /batch\.delete\(doc\(snsDb, "users", share\.ownerUid, "sharedRooms", shareId\)\)/, 'Blocking must remove both sides of shared room snapshots.');
 assert.match(html, /snsSharedRoomList\.replaceChildren\(\);\s*snsRoomShareStatus\.textContent = user \?/);
 
 assert.match(rules, /match \/sharedRooms\/{shareId}/);
