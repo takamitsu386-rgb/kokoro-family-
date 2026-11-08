@@ -128,3 +128,18 @@ assert.match(furnitureExport, /URL\.createObjectURL/, 'CSV export must create a 
 assert.match(furnitureExport, /URL\.revokeObjectURL/, 'CSV export must release its temporary object URL.');
 assert.match(html, /exportRoomFurnitureReport\(\)/, 'The room editor must expose the CSV export action.');
 console.log('Room furniture CSV export checks passed.');
+
+
+const furnitureSearchStart=html.indexOf("let activeFurnitureCategory='all';");
+assert.notEqual(furnitureSearchStart,-1,'Furniture category search state must exist.');
+const furnitureSearchEnd=html.indexOf('function setDotWallpaper()',furnitureSearchStart);
+assert.notEqual(furnitureSearchEnd,-1,'Furniture search renderer must end before wallpaper helpers.');
+const furnitureSearch=html.slice(furnitureSearchStart,furnitureSearchEnd);
+assert.match(html,/id="furnitureSearch" type="search"/,'Furniture search input must be available.');
+assert.match(furnitureSearch,/addEventListener\('input'/,'Furniture results must update while typing.');
+assert.match(furnitureSearch,/toLocaleLowerCase\('ja-JP'\)/,'Furniture search must support Japanese case-insensitive matching.');
+assert.match(furnitureSearch,/replaceChildren\(\)/,'Furniture results must be safely re-rendered.');
+assert.match(furnitureSearch,/filtered\.length/,'Furniture search must report result counts.');
+assert.match(furnitureSearch,/見つかりませんでした/,'Empty searches must provide a useful message.');
+assert.match(furnitureSearch,/activeFurnitureCategory/,'Search must remain within the selected category.');
+console.log('Furniture search and category filtering checks passed.');
