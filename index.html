@@ -3416,21 +3416,27 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
       if (window.applyRoom?.(item.currentRoom) === true) snsRoomShareStatus.textContent = "共有されたお部屋を読み込みました。自分のお部屋として編集できます。";
     });
     row.appendChild(open);
-    if (item.ownerUid === user.uid) {
-      const revoke = document.createElement("button"); revoke.type = "button"; revoke.textContent = "共有を取り消す";
-      revoke.addEventListener("click", async () => {
-        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-        if (!confirm("このお部屋の共有を取り消しますか？相手は以後読み込めなくなります。")) return;
-        try {
-          const batch = writeBatch(snsDb);\n          batch.delete(doc(snsDb, "sharedRooms", item.id));\n          batch.delete(doc(snsDb, "users", user.uid, "sharedRooms", item.id));\n          await batch.commit();
-          if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) await snsLoadSharedRooms(user, authGeneration);
-        } catch (error) {
-          console.error("Shared room revoke failed", error);
-          snsRoomShareStatus.textContent = "共有を取り消せませんでした。通信状態を確認してください。";
-        }
-      });
-      row.appendChild(revoke);
-    }
+    const removeShare = document.createElement("button");
+    removeShare.type = "button";
+    removeShare.textContent = item.ownerUid === user.uid ? "共有を取り消す" : "受け取った共有を削除";
+    removeShare.addEventListener("click", async () => {
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      const confirmText = item.ownerUid === user.uid
+        ? "このお部屋の共有を取り消しますか？相手は以後読み込めなくなります。"
+        : "受け取った共有を一覧から削除しますか？";
+      if (!confirm(confirmText)) return;
+      try {
+        const batch = writeBatch(snsDb);
+        batch.delete(doc(snsDb, "sharedRooms", item.id));
+        if (item.ownerUid === user.uid) batch.delete(doc(snsDb, "users", user.uid, "sharedRooms", item.id));
+        await batch.commit();
+        if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) await snsLoadSharedRooms(user, authGeneration);
+      } catch (error) {
+        console.error("Shared room removal failed", error);
+        snsRoomShareStatus.textContent = "共有を削除できませんでした。通信状態を確認してください。";
+      }
+    });
+    row.appendChild(removeShare);
     snsSharedRoomList.appendChild(row);
   }
 }
@@ -3452,7 +3458,12 @@ snsShareCurrentRoom.addEventListener("click", async () => {
     const requests = await Promise.all(requestIds.map(id => getDoc(doc(snsDb, "friendRequests", id))));
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     if (!requests.some(snap => snap.exists() && snap.data().status === "accepted")) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
-    const shareRef = doc(collection(snsDb, "sharedRooms"));\n    const snapshot = { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() };\n    const batch = writeBatch(snsDb);\n    batch.set(shareRef, snapshot);\n    batch.set(doc(snsDb, "users", user.uid, "sharedRooms", shareRef.id), snapshot);\n    await batch.commit();
+    const shareRef = doc(collection(snsDb, "sharedRooms"));
+    const snapshot = { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() };
+    const batch = writeBatch(snsDb);
+    batch.set(shareRef, snapshot);
+    batch.set(doc(snsDb, "users", user.uid, "sharedRooms", shareRef.id), snapshot);
+    await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsRoomShareStatus.textContent = "お部屋を共有しました。相手は共有一覧から読み込めます。";
     await snsLoadSharedRooms(user, authGeneration);
