@@ -1296,22 +1296,34 @@ if(selected.length!==2){document.getElementById('message').textContent='比較�
 const panel=document.getElementById('savedRoomCompare');if(!panel)return;
 panel.replaceChildren();panel.style.display='block';
 const heading=document.createElement('strong');heading.textContent='お部屋の比較';panel.appendChild(heading);
-const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px';
+const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:'+((window.matchMedia&&window.matchMedia('(max-width:520px)').matches)?'minmax(0,1fr)':'repeat(2,minmax(0,1fr))')+';gap:10px;margin-top:10px';
+const details=[];
 selected.forEach(name=>{
 const data=rooms[name],card=document.createElement('section');card.style.cssText='min-width:0;padding:10px;border:1px solid #e2def5;border-radius:10px;background:#fff';
 const title=document.createElement('h3');title.textContent=name;title.style.cssText='font-size:15px;overflow-wrap:anywhere;margin:0 0 8px';card.appendChild(title);
-const swatches=document.createElement('div');swatches.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+const scene=document.createElement('div');scene.setAttribute('role','img');scene.setAttribute('aria-label',name+' のお部屋プレビュー');
+scene.style.cssText='position:relative;width:100%;height:150px;overflow:hidden;border:5px solid #d7c3a7;border-radius:8px;background-color:'+(data.wallColor||'#f5e9d8')+';background-image:'+(data.wallImage||'none')+';background-size:'+(data.wallSize||'auto')+';background-repeat:'+(data.wallRepeat||'repeat')+';';
+const floor=document.createElement('div');floor.style.cssText='position:absolute;left:0;bottom:0;width:100%;height:28%;border-top:3px solid #b7855e;background-color:'+(data.floor||'#c89b72')+';background-image:'+(data.floorImage||'none')+';';scene.appendChild(floor);
+data.items.slice(0,60).forEach(item=>{const piece=document.createElement('span');piece.textContent=item.icon;piece.style.cssText='position:absolute;left:'+item.left+';top:'+item.top+';font-size:'+(item.size||'24px')+';line-height:1;z-index:'+(item.zIndex||'1')+';';scene.appendChild(piece);});
+card.appendChild(scene);
+const swatches=document.createElement('div');swatches.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:8px';
 [['壁',data.wallColor||'#f5e9d8'],['床',data.floor||'#c89b72']].forEach(([label,color])=>{const item=document.createElement('span');item.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:12px';const chip=document.createElement('i');chip.style.cssText='display:inline-block;width:20px;height:20px;border:1px solid #999;border-radius:4px;background:'+color;item.append(chip,document.createTextNode(label));swatches.appendChild(item);});card.appendChild(swatches);
 const count=document.createElement('p');count.textContent='家具：'+data.items.length+'個';card.appendChild(count);
-const furniture=document.createElement('p');furniture.textContent='配置：'+(data.items.slice(0,24).map(item=>item.icon).join(' ')||'家具なし')+(data.items.length>24?' …':'');furniture.style.cssText='overflow-wrap:anywhere';card.appendChild(furniture);
+const furnitureCounts=new Map();data.items.forEach(item=>furnitureCounts.set(item.icon,(furnitureCounts.get(item.icon)||0)+1));
+const furniture=document.createElement('p');furniture.textContent='家具の内訳：'+([...furnitureCounts].map(([icon,n])=>icon+' '+n+'個').join(' ・ ')||'家具なし');furniture.style.cssText='overflow-wrap:anywhere;font-size:13px';card.appendChild(furniture);
 const category=document.createElement('p');category.textContent='カテゴリ：'+((prefs.categories&&prefs.categories[name])||'未設定');card.appendChild(category);
 const note=document.createElement('p');note.textContent='メモ：'+((prefs.notes&&prefs.notes[name])||'なし');note.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px';card.appendChild(note);
+details.push({name,count:data.items.length,wall:data.wallColor||data.wall||'',floor:data.floor||'',icons:[...furnitureCounts.keys()].sort()});
 grid.appendChild(card);
 });
 panel.appendChild(grid);
+const summary=document.createElement('p');summary.style.cssText='margin:10px 0 0;padding:10px;background:#f3f1ff;border-radius:8px;font-size:13px';
+const a=details[0],b=details[1],shared=a.icons.filter(icon=>b.icons.includes(icon)),onlyA=a.icons.filter(icon=>!b.icons.includes(icon)),onlyB=b.icons.filter(icon=>!a.icons.includes(icon));
+summary.textContent='比較まとめ：家具数は「'+a.name+'」'+a.count+'個、「'+b.name+'」'+b.count+'個。共通の家具種類：'+(shared.join(' ')||'なし')+'。'+a.name+'だけ：'+(onlyA.join(' ')||'なし')+'。'+b.name+'だけ：'+(onlyB.join(' ')||'なし')+'。';
+panel.appendChild(summary);
 const close=document.createElement('button');close.type='button';close.textContent='比較を閉じる';close.style.marginTop='10px';close.onclick=()=>{panel.style.display='none';panel.replaceChildren();};panel.appendChild(close);
 panel.scrollIntoView({behavior:'smooth',block:'nearest'});
-document.getElementById('message').textContent='選択した2つのお部屋を比較表示しました。';
+document.getElementById('message').textContent='選択した2つのお部屋を、実際の配置プレビューと家具内訳つきで比較表示しました。';
 }
 function applyBulkSavedRoomCategory(){
 const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
