@@ -307,6 +307,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="placeSelectedAtCorner('bottom-right')">↘️ 右下</button>
 </div>
 <button type="button" onclick="autoArrangeFurniture()">🧩 家具を自動で整列</button>
+<button type="button" onclick="autoArrangeFurniture(0.78)">↔️ コンパクトに整列</button>
+<button type="button" onclick="autoArrangeFurniture(1.22)">↔️ ゆったり整列</button>
 <button type="button" onclick="autoArrangeFurnitureByCategory()">🗂️ 種類ごとに整列</button>
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
@@ -975,7 +977,7 @@ const deleteButton=document.querySelector('button[onclick="removeSelected()"]');
 if(deleteButton)deleteButton.focus();
 document.getElementById('selectedMessage').textContent=icon+' をお部屋から削除しました。';
 }
-function arrangeFurnitureItems(items,successLabel){
+function arrangeFurnitureItems(items,successLabel,spacingScale=1){
   const status=document.getElementById('selectedMessage');
   if(!items.length){status.textContent='整列する家具がまだありません。';return;}
   const roomWidth=room.clientWidth,roomHeight=room.clientHeight;
@@ -989,8 +991,12 @@ function arrangeFurnitureItems(items,successLabel){
     const column=index%columns,row=Math.floor(index/columns);
     const maxLeft=Math.max(0,roomWidth-item.offsetWidth);
     const maxTop=Math.max(0,roomHeight-item.offsetHeight);
-    const left=Math.max(0,Math.min(maxLeft,(column+.5)*gapX-item.offsetWidth/2));
-    const top=Math.max(0,Math.min(maxTop,(row+.5)*gapY-item.offsetHeight/2));
+    const baseCenterX=(column+.5)*gapX;
+    const baseCenterY=(row+.5)*gapY;
+    const centerX=roomWidth/2+(baseCenterX-roomWidth/2)*spacingScale;
+    const centerY=roomHeight/2+(baseCenterY-roomHeight/2)*spacingScale;
+    const left=Math.max(0,Math.min(maxLeft,centerX-item.offsetWidth/2));
+    const top=Math.max(0,Math.min(maxTop,centerY-item.offsetHeight/2));
     item.style.left=left+'px';
     item.style.top=top+'px';
   });
@@ -1002,8 +1008,10 @@ function arrangeFurnitureItems(items,successLabel){
   selectedFurniture=null;
   status.textContent=items.length+'個の家具を'+successLabel+'。「1つ戻す」で元の配置に戻せます。';
 }
-function autoArrangeFurniture(){
-  arrangeFurnitureItems([...room.querySelectorAll('.furniture')],'見やすく整列しました');
+function autoArrangeFurniture(spacingScale=1){
+  if(![0.78,1,1.22].includes(spacingScale)){document.getElementById('selectedMessage').textContent='配置間隔を確認できません。';return;}
+  const label=spacingScale<1?'コンパクトに整列しました':spacingScale>1?'ゆったり整列しました':'見やすく整列しました';
+  arrangeFurnitureItems([...room.querySelectorAll('.furniture')],label,spacingScale);
 }
 function autoArrangeFurnitureByCategory(){
   const groups={
