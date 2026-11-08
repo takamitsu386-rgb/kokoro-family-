@@ -116,8 +116,11 @@ service cloud.firestore {
       allow get, list: if owns(uid)
         || (
           signedIn()
-          && resource.data.visibility == 'public'
           && !blockedBetween(request.auth.uid, uid)
+          && (
+            resource.data.visibility == 'public'
+            || (resource.data.visibility == 'friends' && acceptedFriend(request.auth.uid, uid))
+          )
         );
 
       allow create: if owns(uid)
