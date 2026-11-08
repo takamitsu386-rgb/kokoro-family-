@@ -262,6 +262,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="applyRandomRoomColorPalette()">🎲 おまかせ配色</button>
 <button type="button" onclick="swapRoomWallAndFloorColors()">🔄 壁と床の色を入れ替え</button>
 <p id="roomColorSwapStatus" role="status" aria-live="polite"></p>
+<h3>⭐ お気に入りの配色を保存</h3>
+<label for="customRoomPaletteName">配色の名前（16文字まで）</label>
+<input id="customRoomPaletteName" type="text" maxlength="16" placeholder="例：春のリビング">
+<button type="button" onclick="saveCustomRoomPalette()">今の壁・床の色を保存</button>
+<div id="customRoomPalettes" class="items" aria-label="保存したお気に入り配色"></div>
+<p id="customRoomPaletteStatus" role="status" aria-live="polite"></p>
 <p id="roomColorPaletteStatus" role="status" aria-live="polite"></p>
 <h2>🧱 壁の色</h2>
 <div class="items" id="walls"></div>
@@ -745,6 +751,77 @@ if(wallPicker){const hex=toHex(floorColor);if(hex)wallPicker.value=hex;}
 if(floorPicker){const hex=toHex(wall);if(hex)floorPicker.value=hex;}
 status.textContent='壁と床の色を入れ替えました。模様や家具はそのままです。';
 }
+const CUSTOM_ROOM_PALETTE_KEY='kokoroCustomRoomPalettes';
+function readCustomRoomPalettes(){
+try{
+const raw=localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
+if(raw===null)return [];
+const list=JSON.parse(raw);
+if(!Array.isArray(list)||list.length>8||!list.every(item=>item&&typeof item.name==='string'&&item.name.length>0&&item.name.length<=16&&/^#[0-9a-fA-F]{6}$/.test(item.wall)&&/^#[0-9a-fA-F]{6}$/.test(item.floor)))throw new Error('invalid palette list');
+return list;
+}catch(error){
+console.warn('Custom room palettes could not be read',error);
+return [];
+}
+}
+function roomColorToHex(value){
+const hex=value.match(/^#([0-9a-f]{6})$/i);
+if(hex)return '#'+hex[1].toLowerCase();
+const match=value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+return match?'#'+match.slice(1,4).map(n=>Number(n).toString(16).padStart(2,'0')).join(''):null;
+}
+function renderCustomRoomPalettes(){
+const root=document.getElementById('customRoomPalettes');
+if(!root)return;
+root.replaceChildren();
+readCustomRoomPalettes().forEach((palette,index)=>{
+const group=document.createElement('div');
+group.style.display='flex';group.style.gap='6px';group.style.flexWrap='wrap';group.style.alignItems='center';
+const apply=document.createElement('button');
+apply.type='button';apply.textContent='🎨 '+palette.name;
+apply.setAttribute('aria-label',palette.name+' の配色を適用');
+apply.addEventListener('click',()=>loadCustomRoomPalette(index));
+const remove=document.createElement('button');
+remove.type='button';remove.textContent='削除';
+remove.setAttribute('aria-label',palette.name+' の配色を削除');
+remove.addEventListener('click',()=>deleteCustomRoomPalette(index));
+group.append(apply,remove);root.appendChild(group);
+});
+}
+function saveCustomRoomPalette(){
+const status=document.getElementById('customRoomPaletteStatus');
+const input=document.getElementById('customRoomPaletteName');
+const name=input?input.value.trim():'';
+if(!name||name.length>16){status.textContent='配色の名前を1〜16文字で入力してください。';return;}
+let list;
+try{list=readCustomRoomPalettes();}catch(error){status.textContent='保存済み配色を読み込めません。';return;}
+if(list.length>=8){status.textContent='お気に入り配色は8件まで保存できます。不要な配色を削除してください。';return;}
+const wall=roomColorToHex(getComputedStyle(room).backgroundColor);
+const floor=roomColorToHex(getComputedStyle(document.getElementById('floor')).backgroundColor);
+if(!wall||!floor){status.textContent='壁と床の色を読み取れませんでした。';return;}
+if(list.some(item=>item.name===name)){status.textContent='同じ名前の配色がすでにあります。';return;}
+list.push({name,wall,floor});
+try{localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(list));}
+catch(error){status.textContent='保存できませんでした。端末の空き容量を確認してください。';return;}
+input.value='';renderCustomRoomPalettes();status.textContent='「'+name+'」をお気に入り配色に保存しました。';
+}
+function loadCustomRoomPalette(index){
+const list=readCustomRoomPalettes(),palette=list[index],status=document.getElementById('customRoomPaletteStatus');
+if(!palette){status.textContent='選んだ配色が見つかりません。';return;}
+if(!commitStyleChange(()=>{
+room.style.backgroundColor=palette.wall;document.getElementById('floor').style.backgroundColor=palette.floor;
+})){status.textContent='保存できなかったため、配色を変更しませんでした。';return;}
+status.textContent='「'+palette.name+'」を適用しました。壁紙と床の模様はそのままです。';
+}
+function deleteCustomRoomPalette(index){
+const status=document.getElementById('customRoomPaletteStatus'),list=readCustomRoomPalettes();
+if(!Number.isInteger(index)||index<0||index>=list.length){status.textContent='削除する配色が見つかりません。';return;}
+const removed=list.splice(index,1);
+try{localStorage.setItem(CUSTOM_ROOM_PALETTE_KEY,JSON.stringify(list));}
+catch(error){status.textContent='削除できませんでした。';return;}
+renderCustomRoomPalettes();status.textContent='「'+removed[0].name+'」を削除しました。';
+}
+renderCustomRoomPalettes();
 function applyTheme(theme){
 const themes={
 sweet:{wall:'#f8dce8',floor:'#e0bd91',wallImage:'radial-gradient(#ffffff99 2px,transparent 2px)'},
