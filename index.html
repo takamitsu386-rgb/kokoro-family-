@@ -304,6 +304,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="arrangeFurnitureByUse()">🏡 用途別スペースに整列</button>
 <p id="selectedMessage" role="status" aria-live="polite">家具をタップして選んでね。</p>
 <button type="button" onclick="clearSelectedFurniture()">選択を解除</button>
+<button type="button" onclick="arrangeMatchingFurniture()">同じ種類だけ整列</button>
 <button type="button" onclick="removeAllMatchingFurniture()">同じ種類の家具をまとめて削除</button>
 <button onclick="removeSelected()">🗑️ 選んだ家具を削除</button>
 <button onclick="clearFurniture()">🧹 家具を全部片づける</button>
@@ -821,6 +822,13 @@ return;
 const clearButton=document.querySelector('button[onclick="clearFurniture()"]');
 if(clearButton)clearButton.focus();
 document.getElementById('selectedMessage').textContent='家具を全部片づけたよ。壁と床はそのままだよ！';
+}
+function arrangeMatchingFurniture(){
+if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に整列したい家具をタップしてね。';return;}
+const icon=selectedFurniture.dataset.icon;
+const matches=[...room.querySelectorAll('.furniture')].filter(item=>item.dataset.icon===icon);
+if(matches.length<2){document.getElementById('selectedMessage').textContent='同じ種類の家具は2個以上必要です。';return;}
+arrangeFurnitureItems(matches,icon+' を'+matches.length+'個まとめて整列しました');
 }
 function removeAllMatchingFurniture(){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に家具を選んでね。';return;}
