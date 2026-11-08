@@ -23,3 +23,11 @@ assert.ok(html.includes("button.textContent=icon+' を追加'"),'Missing items m
 assert.ok(html.includes("if(addFurniture(icon))checkRoomGoal(goalKey)"),'Adding a suggestion must refresh the goal result.');
 assert.ok(!html.includes("['座って話せる場所',['🛋️','🪑','🛏️']]"),'Family seating must not count a bed.');
 assert.ok(!html.includes("['机・作業場所',['🖥️','🪑','📚']]"),'Study desk must not count a chair or books.');
+
+assert.ok(html.includes('arrangeFurnitureForGoal(activeRoomGoal)'),'Theme-based layout control must exist.');
+assert.ok(html.includes('function arrangeFurnitureForGoal(goalKey)'),'Theme-based layout function must exist.');
+assert.ok(html.includes("family:{primary:['🛋️','🪑','🛏️']"),'Family layout must prioritize seating.');
+assert.ok(html.includes("study:{primary:['🖥️','🗄️','🗃️']"),'Study layout must prioritize work furniture.');
+assert.ok(html.includes("green:{primary:['🪴','🌷','🪻','🌵'"),'Green layout must prioritize plants.');
+assert.ok(html.includes("cafe:{primary:['🪑','🛋️']"),'Cafe layout must prioritize seating.');
+assert.ok(html.includes("if(!autoSaveRoom()){\n    previous.forEach"),'Theme layout must roll back when saving fails.');
