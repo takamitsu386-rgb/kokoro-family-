@@ -298,6 +298,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button type="button" onclick="exportRoomFurnitureReport()">📊 家具の内訳をCSVで書き出す</button>
 <div id="roomFurnitureReport" aria-live="polite" style="display:none;margin:10px 0;padding:12px;border:1px solid #d8dce5;border-radius:10px;background:#fafaff"></div>
 <h2>🔎 選んだ家具の大きさ</h2>
+<h3>家具アイコンの背景色</h3>
+<label for="furnitureIconBackground">選択した家具の背景色</label>
+<input id="furnitureIconBackground" type="color" value="#ffffff" aria-label="家具アイコンの背景色">
+<button type="button" onclick="setSelectedFurnitureIconBackground()">背景色を設定</button>
+<button type="button" onclick="resetSelectedFurnitureIconBackground()">背景色を解除</button>
 <h3>家具の向きを反転</h3>
 <button type="button" onclick="toggleSelectedFurnitureFlip('horizontal')">↔️ 左右反転</button>
 <button type="button" onclick="toggleSelectedFurnitureFlip('vertical')">↕️ 上下反転</button>
@@ -1543,6 +1548,49 @@ return;
 }
 document.getElementById('selectedMessage').textContent='選択した家具の向きを0°に戻しました。「1つ戻す」で元に戻せます。';
 }
+function setSelectedFurnitureIconBackground(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に背景色を変えたい家具をタップしてね。';return;
+ }
+ const input=document.getElementById('furnitureIconBackground');
+ const color=input?input.value:'';
+ if(typeof color!=='string'||!/^#[0-9a-fA-F]{6}$/.test(color)){
+  status.textContent='背景色を確認してください。';return;
+ }
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(!icon){status.textContent='家具の表示を確認できません。';return;}
+ const previous=icon.style.backgroundColor;
+ icon.style.backgroundColor=color;
+ icon.style.borderRadius='12px';
+ icon.style.padding='2px 6px';
+ if(!autoSaveRoom()){
+  icon.style.backgroundColor=previous;
+  if(!previous){icon.style.borderRadius='';icon.style.padding='';}
+  status.textContent='保存できなかったため、背景色を元に戻しました。';return;
+ }
+ status.textContent='家具アイコンの背景色を設定しました。「1つ戻す」で元に戻せます。';
+}
+function resetSelectedFurnitureIconBackground(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){
+  status.textContent='先に背景色を解除したい家具をタップしてね。';return;
+ }
+ const icon=selectedFurniture.querySelector('.item-icon');
+ if(!icon){status.textContent='家具の表示を確認できません。';return;}
+ const previous={backgroundColor:icon.style.backgroundColor,borderRadius:icon.style.borderRadius,padding:icon.style.padding};
+ if(!previous.backgroundColor){status.textContent='この家具には背景色が設定されていません。';return;}
+ icon.style.backgroundColor='';
+ icon.style.borderRadius='';
+ icon.style.padding='';
+ if(!autoSaveRoom()){
+  icon.style.backgroundColor=previous.backgroundColor;
+  icon.style.borderRadius=previous.borderRadius;
+  icon.style.padding=previous.padding;
+  status.textContent='保存できなかったため、背景色を元に戻しました。';return;
+ }
+ status.textContent='家具アイコンの背景色を解除しました。「1つ戻す」で元に戻せます。';
+}
 function toggleSelectedFurnitureFlip(axis){
  const status=document.getElementById('selectedMessage');
  if(!selectedFurniture||!room.contains(selectedFurniture)){
@@ -1865,7 +1913,8 @@ validPosition(item.left)&&validPosition(item.top)&&
  (item.locked===undefined||typeof item.locked==='boolean')&&
  (item.opacity===undefined||(typeof item.opacity==='string'&&/^(?:0\.[2-9]\d*|1(?:\.0+)?)$/.test(item.opacity)&&Number(item.opacity)>=0.2&&Number(item.opacity)<=1))&&
  (item.flipX===undefined||typeof item.flipX==='boolean')&&
- (item.flipY===undefined||typeof item.flipY==='boolean'));
+ (item.flipY===undefined||typeof item.flipY==='boolean')&&
+ (item.iconBackground===undefined||(typeof item.iconBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.iconBackground))));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
@@ -1882,7 +1931,7 @@ wallRepeat:room.style.backgroundRepeat,
 floor:document.getElementById('floor').style.backgroundColor,
 floorImage:document.getElementById('floor').style.backgroundImage,
 items:[...room.querySelectorAll('.furniture')].map(el=>({
-icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true'
+icon:el.dataset.icon,left:el.style.left,top:el.style.top,size:el.style.fontSize,zIndex:el.style.zIndex,locked:el.dataset.locked==='true',flipX:el.dataset.flipX==='true',flipY:el.dataset.flipY==='true',iconBackground:el.querySelector('.item-icon')?.style.backgroundColor||''
 }))
 };
 }
@@ -1911,6 +1960,7 @@ if(v.opacity)el.style.opacity=v.opacity;
  if(v.flipX===true)el.dataset.flipX='true';
  if(v.flipY===true)el.dataset.flipY='true';
  const restoredIcon=el.querySelector('.item-icon');
+ if(restoredIcon&&v.iconBackground){restoredIcon.style.backgroundColor=v.iconBackground;restoredIcon.style.borderRadius='12px';restoredIcon.style.padding='2px 6px';}
  if(restoredIcon&&(v.flipX===true||v.flipY===true))restoredIcon.style.transform='scale('+(v.flipX===true?-1:1)+', '+(v.flipY===true?-1:1)+')';
 if(v.locked===true){el.dataset.locked='true';const handle=el.querySelector('.drag-handle');if(handle){handle.setAttribute('aria-disabled','true');handle.setAttribute('aria-label',v.icon+' 固定中。移動できません');handle.title='固定中';}}
 const maxLeft=Math.max(0,room.clientWidth-el.offsetWidth);
