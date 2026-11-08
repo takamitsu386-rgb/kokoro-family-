@@ -323,6 +323,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <input id="furnitureLabelBackground" type="color" value="#ffffff">
 <button type="button" onclick="setSelectedFurnitureLabelStyle()">文字・背景色を設定</button>
 <button type="button" onclick="resetSelectedFurnitureLabelStyle()">文字・背景色を初期化</button>
+<button type="button" onclick="applySelectedFurnitureLabelStyleToAll()">この色を全家具のメモに適用</button>
 <h3>家具アイコンの背景色</h3>
 <label for="furnitureIconBackground">選択した家具の背景色</label>
 <input id="furnitureIconBackground" type="color" value="#ffffff" aria-label="家具アイコンの背景色">
@@ -1823,6 +1824,23 @@ function setSelectedFurnitureLabelStyle(){
   status.textContent='保存できなかったため、変更を元に戻しました。';return;
  }
  status.textContent='名前・メモの文字色と背景色を保存しました。';
+}
+function applySelectedFurnitureLabelStyleToAll(){
+ const status=document.getElementById('selectedMessage');
+ if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に色の見本にする家具を選んでね。';return;}
+ const source=selectedFurniture.querySelector('.item-label');
+ if(!source){status.textContent='先に選択した家具へ名前・メモを設定してください。';return;}
+ const textColor=selectedFurniture.dataset.labelColor||'';
+ const background=selectedFurniture.dataset.labelBackground||'';
+ const targets=[...room.querySelectorAll('.furniture')].filter(el=>el.querySelector('.item-label'));
+ if(!targets.length){status.textContent='名前・メモが設定された家具がありません。';return;}
+ const previous=targets.map(el=>({el,text:el.dataset.labelColor||'',background:el.dataset.labelBackground||''}));
+ targets.forEach(({el})=>{const badge=el.querySelector('.item-label');if(textColor)el.dataset.labelColor=textColor;else delete el.dataset.labelColor;if(background)el.dataset.labelBackground=background;else delete el.dataset.labelBackground;badge.style.color=textColor;badge.style.backgroundColor=background;});
+ if(!autoSaveRoom()){
+  previous.forEach(({el,text,background})=>{if(text)el.dataset.labelColor=text;else delete el.dataset.labelColor;if(background)el.dataset.labelBackground=background;else delete el.dataset.labelBackground;const badge=el.querySelector('.item-label');if(badge){badge.style.color=text;badge.style.backgroundColor=background;}});
+  status.textContent='保存できなかったため、全家具の色を元に戻しました。';return;
+ }
+ status.textContent=targets.length+'個の家具の名前・メモに同じ色を適用しました。';
 }
 function resetSelectedFurnitureLabelStyle(){
  const status=document.getElementById('selectedMessage');
