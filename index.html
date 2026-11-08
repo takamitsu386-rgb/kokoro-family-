@@ -1319,7 +1319,7 @@ grid.appendChild(card);
 panel.appendChild(grid);
 const summary=document.createElement('p');summary.style.cssText='margin:10px 0 0;padding:10px;background:#f3f1ff;border-radius:8px;font-size:13px';
 const a=details[0],b=details[1],shared=a.icons.filter(icon=>b.icons.includes(icon)),onlyA=a.icons.filter(icon=>!b.icons.includes(icon)),onlyB=b.icons.filter(icon=>!a.icons.includes(icon));
-summary.textContent='比較まとめ：家具数は「'+a.name+'」'+a.count+'個、「'+b.name+'」'+b.count+'個。共通の家具種類：'+(shared.join(' ')||'なし')+'。'+a.name+'だけ：'+(onlyA.join(' ')||'なし')+'。'+b.name+'だけ：'+(onlyB.join(' ')||'なし')+'。';
+summary.textContent='比較まとめ：家具数は「'+a.name+'」'+a.count+'個、「'+b.name+'」'+b.count+'個。壁の色：'+(a.wall===b.wall?'同じ':'異なる')+'。床の色：'+(a.floor===b.floor?'同じ':'異なる')+'。共通の家具種類：'+(shared.join(' ')||'なし')+'。'+a.name+'だけ：'+(onlyA.join(' ')||'なし')+'。'+b.name+'だけ：'+(onlyB.join(' ')||'なし')+'。';
 panel.appendChild(summary);
 const close=document.createElement('button');close.type='button';close.textContent='比較を閉じる';close.style.marginTop='10px';close.onclick=()=>{panel.style.display='none';panel.replaceChildren();};panel.appendChild(close);
 panel.scrollIntoView({behavior:'smooth',block:'nearest'});
