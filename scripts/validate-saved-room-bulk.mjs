@@ -63,3 +63,15 @@ assert.ok(multiImport.includes('while(Object.prototype.hasOwnProperty.call(nextR
 assert.ok(multiImport.includes('saveSavedRoomsWithUndo(nextRooms)'), 'Multi-room import must be undoable.');
 assert.ok(multiImport.includes('refreshSavedRooms()'), 'Saved room list must refresh after multi-import.');
 console.log('Bulk saved-room favorites, duplication, and portable export checks passed.');
+
+
+const searchStart = html.indexOf('const searchField=document.getElementById(\'savedRoomSearch\')');
+assert.notEqual(searchStart, -1, 'Saved room search must be integrated into refreshSavedRooms.');
+const searchEnd = html.indexOf('const categoryNames=', searchStart);
+assert.notEqual(searchEnd, -1, 'Saved room search setup must precede category rendering.');
+const searchLogic = html.slice(searchStart, html.indexOf('const favorites=', searchStart));
+assert.match(html, /id="savedRoomSearch"[^>]*oninput="refreshSavedRooms\(\)"/, 'Search input must refresh results while typing.');
+assert.match(searchLogic, /name,categories\[name\].*notes\[name\]/, 'Search must include room names, categories, and notes.');
+assert.match(searchLogic, /toLocaleLowerCase\('ja-JP'\)/, 'Search must be case-insensitive with Japanese locale handling.');
+assert.match(html, /searchQuery\?'・検索：'/, 'The active search query must be reflected in the result count.');
+console.log('Saved room search checks passed.');
