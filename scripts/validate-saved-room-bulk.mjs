@@ -83,7 +83,7 @@ assert.match(html, /選択した2部屋を比較/, 'Comparison control must be a
 assert.match(html, /selected\.length!==2/, 'Comparison must require exactly two selected rooms.');
 assert.match(html, /wallColor.*floor/s, 'Comparison must include wall and floor appearance.');
 assert.match(html, /data\.items\.length/, 'Comparison must include furniture counts.');
-assert.match(html, /prefs\\.categories.*prefs\\.notes/s, 'Comparison must include category and notes.');
+assert.match(html, /prefs\.categories.*prefs\.notes/s, 'Comparison must include category and notes.');
 assert.match(html, /savedRoomCompare/, 'Comparison panel must be present in the room manager.');
 const compareEnd = html.indexOf('function applyBulkSavedRoomCategory()', compareFn);
 assert.notEqual(compareEnd, -1, 'Comparison handler must end before bulk categorization.');
