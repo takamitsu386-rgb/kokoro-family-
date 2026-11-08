@@ -6481,8 +6481,8 @@ snsRefreshPosts.addEventListener("click", async () => {
         else cell+=ch;
       }else if(ch==='"'){if(cell.length)throw new Error("invalid quote");quoted=true;}
       else if(ch===","){row.push(cell);cell="";}
-      else if(ch==="\\n"){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(ch==="\\r"){if(source[i+1]==="\\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
+      else if(ch==="\r"){if(source[i+1]==="\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
       else cell+=ch;
     }
     if(quoted)throw new Error("unclosed quote");
@@ -6493,7 +6493,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     const file=importFile.files?.[0];if(!file)return;
     try{
       if(file.size>1024*1024)throw new Error("CSVファイルは1MB以内にしてください。");
-      const text=await file.text(),rows=parseMealCsv(text.replace(/^\\uFEFF/,""));
+      const text=await file.text(),rows=parseMealCsv(text.replace(/^\uFEFF/,""));
       const header=["日付","食事区分","メニュー","メモ","登録日時"];
       if(!rows.length||rows[0].length!==header.length||header.some((value,index)=>rows[0][index]!==value))
         throw new Error("CSVの見出しが一致しません。献立CSVを書き出したファイルを選んでください。");
@@ -6511,7 +6511,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const unique=parsed.filter(x=>{const key=x.date+"|"+x.type+"|"+x.name.trim().toLocaleLowerCase();if(known.has(key))return false;known.add(key);return true;});
       const added=unique.slice(0,Math.max(0,LIMIT-entries.length));
       if(!added.length)throw new Error("追加できる献立がありません（登録済み、または上限200件）。");
-      if(!confirm("CSVから"+added.length+"件の献立を追加しますか？"+(parsed.length>added.length?"\\n"+(parsed.length-added.length)+"件は重複または上限のため追加されません。":"")))return;
+      if(!confirm("CSVから"+added.length+"件の献立を追加しますか？"+(parsed.length>added.length?"\n"+(parsed.length-added.length)+"件は重複または上限のため追加されません。":"")))return;
       const now=Date.now();
       const next=[...entries,...added.map((item,index)=>({...item,id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealimport_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,10)}))];
       if(!save(next))throw new Error("保存できませんでした。既存データを確認してください。");
