@@ -870,11 +870,11 @@ describe('shared room snapshots', () => {
     const owner = testEnv.authenticatedContext('room-owner').firestore();
     const recipient = testEnv.authenticatedContext('room-recipient').firestore();
     const stranger = testEnv.authenticatedContext('room-stranger').firestore();
-    await assertSucceeds(getDoc(doc(owner, 'sharedRooms/room-share-1')));
+    await assertSucceeds(getDoc(doc(owner, 'sharedRooms/room-share-1')));\n    await assertSucceeds(getDocs(query(collection(owner, 'users', 'room-owner', 'sharedRooms'))));
     await assertSucceeds(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
-    await assertSucceeds(getDocs(query(collection(recipient, 'sharedRooms'), where('recipientUid', '==', 'room-recipient'), where('ownerUid', '!=', ''))));
+    await assertSucceeds(getDocs(query(collection(recipient, 'sharedRooms'), where('recipientUid', '==', 'room-recipient'))));
     await assertFails(getDoc(doc(stranger, 'sharedRooms/room-share-1')));
-    await assertFails(getDocs(query(collection(stranger, 'sharedRooms'), where('recipientUid', '==', 'room-stranger'), where('ownerUid', '!=', ''))));
+    await assertFails(getDocs(collection(stranger, 'sharedRooms')));
   });
 
   it('allows an owner to create a bounded snapshot only for an accepted friend', async () => {
@@ -900,6 +900,6 @@ describe('shared room snapshots', () => {
     const owner = testEnv.authenticatedContext('room-owner').firestore();
     await assertFails(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
     await assertFails(deleteDoc(doc(recipient, 'sharedRooms/room-share-1')));
-    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));
+    await assertSucceeds(deleteDoc(doc(owner, 'sharedRooms/room-share-1')));\n    await assertSucceeds(deleteDoc(doc(owner, 'users', 'room-owner', 'sharedRooms', 'room-share-1')));
   });
 });
