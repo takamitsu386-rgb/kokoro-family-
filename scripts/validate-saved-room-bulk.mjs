@@ -515,3 +515,12 @@ assert.match(source,/flipX:el\.dataset\.flipX==='true',flipY:el\.dataset\.flipY=
 assert.match(source,/item\.flipX===undefined\|\|typeof item\.flipX==='boolean'/,'Room validation must check horizontal flip data.');
 assert.match(source,/item\.flipY===undefined\|\|typeof item\.flipY==='boolean'/,'Room validation must check vertical flip data.');
 assert.match(source,/if\(restoredIcon&&\(v\.flipX===true\|\|v\.flipY===true\)\)/,'Room restoration must reapply flip state.');
+
+assert.match(source,/flipX:el\.dataset\.flipX==='true',flipY:el\.dataset\.flipY==='true'/,'Room snapshots must actually persist both furniture flip states.');
+assert.match(source,/iconBackground:el\.querySelector\('\.item-icon'\)\?\.style\.backgroundColor\|\|''/,'Room snapshots must persist icon background color.');
+assert.match(source,/id="furnitureIconBackground" type="color"/,'Furniture icon background color picker must be present.');
+assert.match(source,/function setSelectedFurnitureIconBackground\(\)/,'Furniture icon background color setter must be present.');
+assert.match(source,/function resetSelectedFurnitureIconBackground\(\)/,'Furniture icon background color reset must be present.');
+assert.match(source,/\^#[0-9a-fA-F]\{6\}\$/,'Furniture background color must be restricted to hex colors.');
+assert.match(source,/item\.iconBackground===undefined\|\|\(typeof item\.iconBackground==='string'/,'Saved furniture background color must be validated.');
+assert.match(source,/restoredIcon&&v\.iconBackground/,'Furniture icon background color must be restored.');
