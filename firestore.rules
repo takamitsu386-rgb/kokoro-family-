@@ -204,7 +204,7 @@ service cloud.firestore {
         && !blockedBetween(resource.data.fromUid, resource.data.toUid);
       allow list: if signedIn()
         && (
-          (resource.data.toUid == request.auth.uid && resource.data.status == 'pending')
+          resource.data.toUid == request.auth.uid
           || resource.data.fromUid == request.auth.uid
         )
         && !blockedBetween(resource.data.fromUid, resource.data.toUid);
