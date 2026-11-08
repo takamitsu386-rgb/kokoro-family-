@@ -829,6 +829,7 @@ function arrangeFurnitureByUse(){
   selectedFurniture=null;
   document.getElementById('selectedMessage').textContent='会話・学習・くつろぎの3つのスペースに分けて配置しました。分類できない家具は右端にまとめています。「1つ戻す」で元に戻せます。';
 }
+let activeRoomGoal=null;
 function checkRoomGoal(goalKey){
   const goals={
     family:{title:'家族団らん',requirements:[['座って話せる場所',['🛋️','🪑']],['飲み物',['☕','🫖','🥛']],['くつろげる飾り',['🪴','🖼️','🧸','🌷']]]},
@@ -837,6 +838,7 @@ function checkRoomGoal(goalKey){
     cafe:{title:'おうちカフェ',requirements:[['座れる場所',['🪑','🛋️']],['飲み物',['☕','🫖','🥛']],['おやつ',['🍓','🧁','🍰','🍉','🍊']],['雰囲気づくり',['💡','🪴','🕯️','🌷']]]}
   };
   const goal=goals[goalKey];
+  if(goal)activeRoomGoal=goalKey;
   const result=document.getElementById('roomGoalResult');
   if(!goal||!result)return;
   const icons=[...room.querySelectorAll('.furniture')].map(item=>item.dataset.icon);
@@ -1566,6 +1568,7 @@ document.getElementById('message').textContent='保存できませんでした�
 return false;
 }
 if(window.kokoroQueueSync)window.kokoroQueueSync();
+if(activeRoomGoal)checkRoomGoal(activeRoomGoal);
 return true;
 }
 function changeRoomHistory(direction){
