@@ -416,4 +416,15 @@ assert.match(resetRotationFunction,/selectedFurniture\.style\.rotate='0deg'/,'Ro
 assert.match(resetRotationFunction,/if\(!autoSaveRoom\(\)\)/,'Rotation reset must persist and roll back on failure.');
 assert.match(resetRotationFunction,/selectedFurniture\.style\.rotate=previous/,'Rotation reset must restore the previous angle if saving fails.');
 assert.match(resetRotationFunction,/room\.contains\(selectedFurniture\)/,'Rotation reset must reject stale furniture selections.');
+const setRotationStart=source.indexOf('function setSelectedFurnitureRotation(){');
+const setRotationEnd=source.indexOf('function resetSelectedFurnitureRotation(){',setRotationStart);
+const setRotationFunction=source.slice(setRotationStart,setRotationEnd);
+assert.notEqual(setRotationStart,-1,'Room editor must provide an exact rotation angle action.');
+assert.match(source,/id="furnitureRotationAngle"[^>]*min="0"[^>]*max="359"/,'Rotation angle input must be limited to 0–359 degrees.');
+assert.match(source,/setSelectedFurnitureRotation\(\)/,'Room editor must expose exact angle application.');
+assert.match(setRotationFunction,/Number\.isInteger\(degrees\)/,'Exact rotation angle must be an integer.');
+assert.match(setRotationFunction,/degrees<0\|\|degrees>359/,'Exact rotation angle must reject values outside 0–359.');
+assert.match(setRotationFunction,/selectedFurniture\.style\.rotate=next/,'Exact rotation must update selected furniture.');
+assert.match(setRotationFunction,/if\(!autoSaveRoom\(\)\)/,'Exact rotation must persist and roll back on failure.');
+assert.match(setRotationFunction,/selectedFurniture\.style\.rotate=previous/,'Exact rotation must restore previous angle after save failure.');
 console.log('Saved room comparison CSV checks passed.');
