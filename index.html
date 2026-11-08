@@ -1558,7 +1558,7 @@ function setSelectedFurnitureLabel(){
  if(!selectedFurniture||!room.contains(selectedFurniture)){status.textContent='先に名前を付けたい家具を選んでね。';return;}
  const input=document.getElementById('furnitureLabel');
  const label=input?input.value.trim():'';
- if(!label||label.length>20||/[\\u0000-\\u001f\\u007f]/.test(label)){status.textContent='名前・メモは1〜20文字で入力してください。';return;}
+ if(!label||label.length>20||/[\u0000-\u001f\u007f]/.test(label)){status.textContent='名前・メモは1〜20文字で入力してください。';return;}
  let badge=selectedFurniture.querySelector('.item-label');
  if(!badge){badge=document.createElement('span');badge.className='item-label';selectedFurniture.appendChild(badge);}
  const previous=selectedFurniture.dataset.label||'';
@@ -1967,7 +1967,7 @@ validPosition(item.left)&&validPosition(item.top)&&
  (item.flipX===undefined||typeof item.flipX==='boolean')&&
  (item.flipY===undefined||typeof item.flipY==='boolean')&&
  (item.iconBackground===undefined||(typeof item.iconBackground==='string'&&/^#[0-9a-fA-F]{6}$/.test(item.iconBackground)))&&
- (item.label===undefined||(typeof item.label==='string'&&item.label.length<=20&&!/[\\u0000-\\u001f\\u007f]/.test(item.label))));
+ (item.label===undefined||(typeof item.label==='string'&&item.label.length<=20&&!/[\u0000-\u001f\u007f]/.test(item.label))));
 }
 function validSavedRooms(value){
 return !!value&&typeof value==="object"&&!Array.isArray(value)&&
