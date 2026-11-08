@@ -108,7 +108,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['createdAt'])
         && request.resource.data.createdAt == request.time;
       allow update: if false;
-      allow delete: if owns(userId);
+      allow delete: if owns(userId) || (signedIn() && resource.data.recipientUid == request.auth.uid);
     }
 
     // Public-facing profile contains only an explicit allowlist of fields.
