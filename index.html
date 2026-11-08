@@ -6701,7 +6701,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     const file=importFile.files?.[0];if(!file)return;
     try{
       if(file.size>2*1024*1024)throw new Error("CSVファイルは2MB以内にしてください。");
-      const rows=parseRecipeCsv((await file.text()).replace(/^\\uFEFF/,""));
+      const rows=parseRecipeCsv((await file.text()).replace(/^\uFEFF/,""));
       const header=["料理名","分類","材料","作り方・コツ","登録日時","更新日時"];
       if(!rows.length||rows[0].length!==header.length||header.some((value,index)=>rows[0][index]!==value))
         throw new Error("CSVの見出しが一致しません。レシピCSVを書き出したファイルを選んでください。");
