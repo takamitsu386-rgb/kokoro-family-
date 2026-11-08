@@ -18,7 +18,7 @@ assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\), limi
 assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(50\)/);
 assert.match(html, /window\.applyRoom\?\.\(item\.currentRoom\)/);
 assert.match(html, /batch\.delete\(doc\(snsDb, "sharedRooms", item\.id\)\)/);
-assert.match(html, /batch\.delete\(doc\(snsDb, "users", user\.uid, "sharedRooms", item\.id\)\)/);
+assert.match(html, /batch\.delete\(doc\(snsDb, "users", item\.ownerUid, "sharedRooms", item\.id\)\)/);
 assert.match(html, /snsLoadSharedRooms\(user, authGeneration\)/);
 assert.match(html, /snsSharedRoomList\.replaceChildren\(\);\s*snsRoomShareStatus\.textContent = user \?/);
 
