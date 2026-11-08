@@ -2167,14 +2167,16 @@ function queueSync() {
       console.error(error);
       if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration) {
         status("クラウド同期に失敗しました。端末内には保存されています。");
-        if (syncRetryCount < 3) {
+        if (!navigator.onLine) {
+          status("通信が切れました。端末内データは保存済みです。通信復帰後にクラウド同期を再開します。");
+        } else if (!logoutInProgress && syncRetryCount < 3) {
           const delay = [3000, 10000, 30000][syncRetryCount++];
           clearTimeout(syncRetryTimer);
           syncRetryTimer = setTimeout(() => {
             syncRetryTimer = null;
             if (currentUser && currentUser.uid === queuedUid && authStateGeneration === queuedGeneration && !logoutInProgress) queueSync();
           }, delay);
-        } else {
+        } else if (syncRetryCount >= 3) {
           status("自動再試行を3回行いました。端末内データは保存済みです。通信復帰後か「同期する」から再試行できます。");
         }
       }
