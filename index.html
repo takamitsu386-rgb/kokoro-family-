@@ -1549,6 +1549,25 @@ function toggleBulkSavedRoom(name,checked){
 if(checked)bulkSavedRoomSelection.add(name);else bulkSavedRoomSelection.delete(name);
 updateBulkSavedRoomCount();
 }
+function exportSelectedRoomComparisonCsv(){
+const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
+if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データを読み取れません。';return;}
+const selected=[...bulkSavedRoomSelection].filter(name=>Object.prototype.hasOwnProperty.call(rooms,name)&&validRoomData(rooms[name]));
+if(selected.length!==2){document.getElementById('message').textContent='比較する2部屋を選び直してください。';return;}
+const [nameA,nameB]=selected,[roomA,roomB]=selected.map(name=>rooms[name]);
+const countIcons=room=>{const counts=new Map();room.items.forEach(item=>counts.set(item.icon,(counts.get(item.icon)||0)+1));return counts;};
+const countsA=countIcons(roomA),countsB=countIcons(roomB);
+const icons=[...new Set([...countsA.keys(),...countsB.keys()])].sort((a,b)=>a.localeCompare(b,'ja'));
+const rows=[['比較項目',nameA,nameB],['家具の合計数',String(roomA.items.length),String(roomB.items.length)],['壁の色',roomA.wallColor||roomA.wall||'未設定',roomB.wallColor||roomB.wall||'未設定'],['床の色',roomA.floor||'未設定',roomB.floor||'未設定'],['カテゴリ',(prefs.categories&&prefs.categories[nameA])||'未設定',(prefs.categories&&prefs.categories[nameB])||'未設定'],['メモ',(prefs.notes&&prefs.notes[nameA])||'',(prefs.notes&&prefs.notes[nameB])||''],['家具の種類','個数','個数'],...icons.map(icon=>[icon,String(countsA.get(icon)||0),String(countsB.get(icon)||0)])];
+const safeCell=value=>{let text=String(value??'');if(/^[\s]*[=+@-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
+const csv='\uFEFF'+rows.map(row=>row.map(safeCell).join(',')).join('\r\n');
+const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+if(blob.size>1000000){document.getElementById('message').textContent='比較CSVの容量が1MBを超えています。';return;}
+let url;
+try{url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='kokoro-family-room-comparison-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(link);link.click();link.remove();document.getElementById('message').textContent='選択した2部屋の比較表をCSV保存しました。';}
+catch(error){document.getElementById('message').textContent='比較CSVの保存に失敗しました。';}
+finally{if(url)URL.revokeObjectURL(url);}
+}
 function compareSelectedSavedRooms(){
 const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
 if(rooms===null||prefs===null){document.getElementById('message').textContent='保存データを読み取れません。';return;}
@@ -1582,6 +1601,7 @@ const summary=document.createElement('p');summary.style.cssText='margin:10px 0 0
 const a=details[0],b=details[1],shared=a.icons.filter(icon=>b.icons.includes(icon)),onlyA=a.icons.filter(icon=>!b.icons.includes(icon)),onlyB=b.icons.filter(icon=>!a.icons.includes(icon));
 summary.textContent='比較まとめ：家具数は「'+a.name+'」'+a.count+'個、「'+b.name+'」'+b.count+'個。壁の色：'+(a.wall===b.wall?'同じ':'異なる')+'。床の色：'+(a.floor===b.floor?'同じ':'異なる')+'。共通の家具種類：'+(shared.join(' ')||'なし')+'。'+a.name+'だけ：'+(onlyA.join(' ')||'なし')+'。'+b.name+'だけ：'+(onlyB.join(' ')||'なし')+'。';
 panel.appendChild(summary);
+const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='📥 この2部屋の比較をCSV保存';exportButton.style.marginTop='10px';exportButton.onclick=exportSelectedRoomComparisonCsv;panel.appendChild(exportButton);
 const close=document.createElement('button');close.type='button';close.textContent='比較を閉じる';close.style.marginTop='10px';close.onclick=()=>{panel.style.display='none';panel.replaceChildren();};panel.appendChild(close);
 panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 document.getElementById('message').textContent='選択した2つのお部屋を、実際の配置プレビューと家具内訳つきで比較表示しました。';
