@@ -186,3 +186,15 @@ assert.match(removeMatching,/if\(!autoSaveRoom\(\)\)/,'Bulk removal must handle 
 assert.match(removeMatching,/records\.slice\(\)\.reverse\(\)/,'Bulk removal must restore removed items on failure.');
 assert.match(removeMatching,/「1つ戻す」/,'Bulk removal must inform users about undo.');
 console.log('Bulk same-type furniture removal checks passed.');
+
+
+const arrangeMatchingStart=html.indexOf('function arrangeMatchingFurniture(){');
+assert.notEqual(arrangeMatchingStart,-1,'Same-type furniture arrangement handler must exist.');
+const arrangeMatchingEnd=html.indexOf('function removeAllMatchingFurniture(){',arrangeMatchingStart);
+assert.notEqual(arrangeMatchingEnd,-1,'Same-type arrangement handler must end before bulk removal.');
+const arrangeMatching=html.slice(arrangeMatchingStart,arrangeMatchingEnd);
+assert.match(html,/onclick="arrangeMatchingFurniture\(\)"/,'Same-type arrangement button must exist.');
+assert.match(arrangeMatching,/item\.dataset\.icon===icon/,'Same-type arrangement must filter by selected icon.');
+assert.match(arrangeMatching,/matches\.length<2/,'Same-type arrangement must handle fewer than two matches.');
+assert.match(arrangeMatching,/arrangeFurnitureItems\(matches/,'Same-type arrangement must reuse undoable arrangement routine.');
+console.log('Same-type furniture arrangement checks passed.');
