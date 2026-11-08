@@ -329,4 +329,12 @@ assert.match(distribution,/firstCenter/,'Even distribution must preserve the out
 assert.match(distribution,/lastCenter/,'Even distribution must calculate the final center position.');
 assert.match(distribution,/autoSaveRoom\(\)/,'Even distribution must save through the existing room save path.');
 assert.match(distribution,/previous\.forEach/,'Even distribution must restore positions if saving fails.');
+
+const mirror=source.slice(source.indexOf('function mirrorFurnitureLayout('),source.indexOf('function autoArrangeFurniture(spacingScale=1)'));
+assert.match(source,/mirrorFurnitureLayout\('horizontal'\)/,'Room editor must expose horizontal layout mirroring.');
+assert.match(source,/mirrorFurnitureLayout\('vertical'\)/,'Room editor must expose vertical layout mirroring.');
+assert.match(mirror,/roomSize-current-item\[dimension\]/,'Mirroring must calculate positions from the room boundary.');
+assert.match(mirror,/Math\.max\(0,Math\.min/,'Mirrored positions must stay inside the room.');
+assert.match(mirror,/autoSaveRoom\(\)/,'Mirroring must save through the existing room save path.');
+assert.match(mirror,/previous\.forEach/,'Mirroring must roll back positions if saving fails.');
 console.log('Saved room comparison CSV checks passed.');
