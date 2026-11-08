@@ -105,6 +105,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyTaskFilter">表示</label><select id="familyTaskFilter"><option value="all">すべて</option><option value="open">未完了</option><option value="overdue">期限切れ</option><option value="today">今日が期限</option><option value="upcoming">今後の期限</option><option value="done">完了</option></select>
 <label for="familyTaskCategoryFilter">分類</label><select id="familyTaskCategoryFilter"><option value="all">すべての分類</option><option value="household">家のこと</option><option value="cleaning">掃除</option><option value="study">勉強・仕事</option><option value="other">その他</option></select>
 <label for="familyTaskPriorityFilter">優先度</label><select id="familyTaskPriorityFilter"><option value="all">すべての優先度</option><option value="high">高い</option><option value="normal">ふつう</option><option value="low">低い</option></select>
+<label for="familyTaskSort">並び順</label><select id="familyTaskSort"><option value="due">期限が近い順</option><option value="priority">優先度が高い順</option><option value="newest">新しく追加した順</option><option value="oldest">古い順</option></select>
 <button type="button" id="familyTaskClearDone">完了した項目を整理</button>
 </div>
 <p id="familyTaskSummary" role="status" aria-live="polite">タスクを読み込んでいます。</p>
@@ -5845,6 +5846,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const filterInput = document.getElementById("familyTaskFilter");
   const categoryFilterInput = document.getElementById("familyTaskCategoryFilter");
   const priorityFilterInput = document.getElementById("familyTaskPriorityFilter");
+  const sortInput = document.getElementById("familyTaskSort");
   const listEl = document.getElementById("familyTaskList");
   const summaryEl = document.getElementById("familyTaskSummary");
   const clearButton = document.getElementById("familyTaskClearDone");
@@ -5917,10 +5919,18 @@ snsRefreshPosts.addEventListener("click", async () => {
       if (filter === "upcoming") return isUpcoming(task);
       return true;
     };
+    const priorityRank = {high: 0, normal: 1, low: 2};
     const visible = tasks.filter(task => matchesFilter(task) &&
       (categoryFilterInput.value === "all" || task.category === categoryFilterInput.value) &&
       (priorityFilterInput.value === "all" || task.priority === priorityFilterInput.value))
-      .sort((a,b) => Number(a.completed)-Number(b.completed) || (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || b.createdAt-a.createdAt);
+      .sort((a,b) => {
+        const completionOrder = Number(a.completed)-Number(b.completed);
+        if (completionOrder) return completionOrder;
+        if (sortInput.value === "priority") return priorityRank[a.priority]-priorityRank[b.priority] || (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || b.createdAt-a.createdAt;
+        if (sortInput.value === "newest") return b.createdAt-a.createdAt;
+        if (sortInput.value === "oldest") return a.createdAt-b.createdAt;
+        return (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || priorityRank[a.priority]-priorityRank[b.priority] || b.createdAt-a.createdAt;
+      });
     const done = tasks.filter(task => task.completed).length;
     const overdue = tasks.filter(isOverdue).length;
     const dueToday = tasks.filter(isToday).length;
@@ -6074,6 +6084,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   filterInput.addEventListener("change", render);
   categoryFilterInput.addEventListener("change", render);
   priorityFilterInput.addEventListener("change", render);
+  sortInput.addEventListener("change", render);
   clearButton.addEventListener("click", () => {
     const count = tasks.filter(task => task.completed).length;
     if (count && confirm("完了した" + count + "件をリストから削除しますか？")) {
