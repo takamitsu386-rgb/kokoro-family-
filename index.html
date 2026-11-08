@@ -302,6 +302,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <button onclick="resizeSelected(1.25)">大きく</button>
 <button type="button" onclick="rotateSelected(-90)">↶ 左に90°回転</button>
 <button type="button" onclick="rotateSelected(90)">↷ 右に90°回転</button>
+<button type="button" onclick="rotateSelected(-15)">↶ 左に15°微調整</button>
+<button type="button" onclick="rotateSelected(15)">↷ 右に15°微調整</button>
+<button type="button" onclick="rotateSelected(-45)">左に45°</button>
+<button type="button" onclick="rotateSelected(45)">右に45°</button>
 <button onclick="centerSelected()">🎯 真ん中に移動</button>
 <div class="items" aria-label="選んだ家具の配置場所">
 <button type="button" onclick="placeSelectedAtCorner('top-left')">↖️ 左上</button>
@@ -1406,7 +1410,7 @@ document.getElementById('selectedMessage').textContent='家具をお部屋の真
 }
 function rotateSelected(degrees){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先に回転したい家具をタップしてね。';return;}
-if(![-90,90].includes(degrees)){document.getElementById('selectedMessage').textContent='回転角度を確認できません。';return;}
+if(![-90,-45,-15,15,45,90].includes(degrees)){document.getElementById('selectedMessage').textContent='回転角度を確認できません。';return;}
 const previous=selectedFurniture.style.rotate;
 const current=Number.parseFloat(previous)||0;
 const next=((current+degrees)%360+360)%360;
@@ -1416,7 +1420,7 @@ selectedFurniture.style.rotate=previous;
 document.getElementById('selectedMessage').textContent='保存できなかったため、家具の向きを元に戻しました。';
 return;
 }
-document.getElementById('selectedMessage').textContent=degrees>0?'家具を右に90°回転しました。':'家具を左に90°回転しました。';
+document.getElementById('selectedMessage').textContent='家具を'+(degrees>0?'右に':'左に')+Math.abs(degrees)+'°回転しました。';
 }
 function resizeSelected(factor){
 if(!selectedFurniture){document.getElementById('selectedMessage').textContent='先にお部屋の家具をタップしてね。';return;}
