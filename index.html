@@ -6120,7 +6120,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     if(!file)return;
     try{
       if(file.size>1024*1024)throw new Error("CSV file too large");
-      const source=(await file.text()).replace(/^\\uFEFF/,"");
+      const source=(await file.text()).replace(/^\uFEFF/,"");
       const parseCSV=text=>{
         const rows=[];let row=[],field="",quoted=false;
         for(let i=0;i<text.length;i++){
@@ -6133,8 +6133,8 @@ snsRefreshPosts.addEventListener("click", async () => {
             if(field.length)throw new Error("invalid quote");
             quoted=true;
           }else if(ch===","){row.push(field);field="";}
-          else if(ch==="\\n"||ch==="\\r"){
-            if(ch==="\\r"&&text[i+1]==="\\n")i++;
+          else if(ch==="\n"||ch==="\r"){
+            if(ch==="\r"&&text[i+1]==="\n")i++;
             row.push(field);field="";
             if(row.some(value=>value!==""))rows.push(row);
             row=[];
