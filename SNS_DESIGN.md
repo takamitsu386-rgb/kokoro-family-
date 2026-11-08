@@ -187,10 +187,10 @@ Firestore Emulator と Rules Unit Testing を使ったテストをCIに追加し
 - Recipients can import a snapshot as their own editable room. The original remains unchanged; this is not live collaborative editing.
 - Recipient snapshots are stored in `sharedRooms`; the owner's private mirror is stored in `users/{ownerUid}/sharedRooms` so Firestore queries remain scoped and rule-compatible.
 - Both copies are written and removed with a Firestore batch. Only accepted, unblocked friends can receive a new share.
-- Recipients can remove their received copy; owners can revoke a share. Blocking a user removes up to 200 matching shared snapshots from both sides.
+- Recipients can remove their received copy; owners can revoke a share. Blocking a user removes up to 124 matching shared snapshots from both sides.
 - Shared-room lists are bounded to 50 entries per direction. Snapshot uploads are limited to 700 KB client-side, 300 furniture items, and 40-character titles.
 - Emulator coverage verifies recipient-only listing, owner mirror privacy, accepted-friend creation, immutable snapshots, and removal permissions.
 - Live Firebase deployment and device testing are still outstanding.
 
 
-- Friend removal now also removes the shared room snapshots exchanged between those two accounts from both owner and recipient lists. The cleanup is bounded to the most recent 200 shares in each direction.
+- Friend removal now also removes the shared room snapshots exchanged between those two accounts from both owner and recipient lists. The cleanup is bounded to the up to 124 shares in each direction.
