@@ -14,7 +14,7 @@ assert.match(html, /name\.textContent=item\.name/);
 assert.match(html, /Shopping list rollback failed/);
 assert.match(html, /購入済みの/);
 assert.match(html, /クラウド同期・家族間共有には未対応です/);
-assert.match(sw, /kokoro-family-v195/);
+assert.match(sw, /kokoro-family-v208/);
 console.log("Family shopping list source checks passed.");
 
 assert.match(html,/id="familyShoppingSubmit"/);
@@ -23,7 +23,7 @@ assert.match(html,/textContent="編集"/);
 assert.match(html,/function resetEditor\(\)/);
 assert.match(html,/editingId\?\{/);
 assert.match(html,/Object\.hasOwn\(categories,categoryInput\.value\)/);
-assert.match(sw,/kokoro-family-v200/);
+assert.match(sw,/kokoro-family-v208/);
 
 assert.match(html,/id="familyShoppingExport"/);
 assert.match(html,/id="familyShoppingExportStatus"/);
@@ -33,7 +33,7 @@ assert.match(html,/return \/\^[\\s\]\*\[=\+\\-@\]\/\.test\(text\)/);
 assert.match(html,/new Blob\(\[csv\]/);
 assert.match(html,/text\/csv;charset=utf-8/);
 assert.match(html,/購入済み/);
-assert.match(sw,/kokoro-family-v207/);
+assert.match(sw,/kokoro-family-v208/);
 
 assert.match(html,/id="familyShoppingImportFile"/);
 assert.match(html,/accept="\.csv,text\/csv"/);
@@ -44,3 +44,8 @@ assert.match(html,/categoryByLabel/);
 assert.match(html,/登録日時は取り込み時刻になります/);
 assert.match(html,/Shopping CSV import failed/);
 assert.match(sw,/kokoro-family-v208/);
+
+assert.match(html,/replace\(\/\^\\uFEFF\/,""\)/);
+assert.match(html,/ch==="\\n"\|\|ch==="\\r"/);
+assert.match(html,/ch==="\\r"&&text\[i\+1\]==="\\n"/);
+assert.match(html,/finally\{importFile\.value="";\}/);
