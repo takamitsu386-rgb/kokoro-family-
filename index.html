@@ -78,13 +78,33 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
 <div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+</section>
+<section class="panel" id="family-tasks">
+<h2>📝 家族のやることリスト</h2>
+<p>家のことや毎日の予定を、忘れないようにメモできます。タスクはこの端末のブラウザーに保存されます（Googleアカウントとのクラウド同期・家族間共有にはまだ対応していません）。</p>
+<form id="familyTaskForm" style="display:grid;gap:8px">
+<label for="familyTaskTitle">やること（80文字以内）</label>
+<input id="familyTaskTitle" maxlength="80" required placeholder="例：リビングを片づける">
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<label>分類<select id="familyTaskCategory"><option value="household">家のこと</option><option value="cleaning">掃除</option><option value="study">勉強・仕事</option><option value="other">その他</option></select></label>
+<label>優先度<select id="familyTaskPriority"><option value="normal">ふつう</option><option value="high">高い</option><option value="low">低い</option></select></label>
+<label>期限<input id="familyTaskDue" type="date"></label>
+</div>
+<button class="primary" type="submit">リストに追加</button>
+</form>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
+<label for="familyTaskFilter">表示</label><select id="familyTaskFilter"><option value="all">すべて</option><option value="open">未完了</option><option value="done">完了</option></select>
+<button type="button" id="familyTaskClearDone">完了した項目を整理</button>
+</div>
+<p id="familyTaskSummary" role="status" aria-live="polite">タスクを読み込んでいます。</p>
+<ul id="familyTaskList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="ai-consultation">
 <h2>💬 AI相談</h2>
@@ -5715,6 +5735,131 @@ snsRefreshPosts.addEventListener("click", async () => {
     snsMessage("投稿を読み込めませんでした。");
   } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
+</script>
+
+
+<script>
+(() => {
+  const KEY = "kokoroFamilyTasksV1";
+  const LIMIT = 100;
+  const form = document.getElementById("familyTaskForm");
+  if (!form) return;
+  const titleInput = document.getElementById("familyTaskTitle");
+  const categoryInput = document.getElementById("familyTaskCategory");
+  const priorityInput = document.getElementById("familyTaskPriority");
+  const dueInput = document.getElementById("familyTaskDue");
+  const filterInput = document.getElementById("familyTaskFilter");
+  const listEl = document.getElementById("familyTaskList");
+  const summaryEl = document.getElementById("familyTaskSummary");
+  const clearButton = document.getElementById("familyTaskClearDone");
+  const categories = { household: "家のこと", cleaning: "掃除", study: "勉強・仕事", other: "その他" };
+  const priorities = { low: "低", normal: "ふつう", high: "高" };
+  let tasks = [];
+  let storageReady = false;
+
+  function validTask(task) {
+    return !!task && typeof task === "object" &&
+      typeof task.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(task.id) &&
+      typeof task.title === "string" && task.title.trim().length >= 1 && task.title.length <= 80 &&
+      Object.hasOwn(categories, task.category) && Object.hasOwn(priorities, task.priority) &&
+      (task.dueDate === "" || (typeof task.dueDate === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(task.dueDate) && !Number.isNaN(Date.parse(task.dueDate)))) &&
+      typeof task.completed === "boolean" && Number.isSafeInteger(task.createdAt) && task.createdAt > 0;
+  }
+  function readTasks() {
+    const raw = localStorage.getItem(KEY);
+    if (raw === null) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length > LIMIT || !parsed.every(validTask) ||
+        new Set(parsed.map(task => task.id)).size !== parsed.length) throw new Error("invalid tasks");
+    return parsed;
+  }
+  function persist(next) {
+    if (!storageReady || !Array.isArray(next) || next.length > LIMIT || !next.every(validTask)) {
+      summaryEl.textContent = "保存データを確認できないため、変更を保留しました。";
+      return false;
+    }
+    const previous = JSON.stringify(tasks);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+      tasks = next;
+      render();
+      return true;
+    } catch (error) {
+      try {
+        if (previous === "[]") localStorage.removeItem(KEY);
+        else localStorage.setItem(KEY, previous);
+      } catch (rollbackError) { console.error("Task storage rollback failed", rollbackError); }
+      summaryEl.textContent = "保存できませんでした。端末の空き容量を確認してください。";
+      return false;
+    }
+  }
+  function render() {
+    const filter = filterInput.value;
+    const visible = tasks.filter(task => filter === "all" || (filter === "done" ? task.completed : !task.completed))
+      .sort((a,b) => Number(a.completed)-Number(b.completed) || (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || b.createdAt-a.createdAt);
+    const done = tasks.filter(task => task.completed).length;
+    summaryEl.textContent = "全" + tasks.length + "件・未完了" + (tasks.length-done) + "件・完了" + done + "件";
+    listEl.replaceChildren();
+    if (!visible.length) {
+      const empty = document.createElement("li");
+      empty.textContent = tasks.length ? "この表示条件に合う項目はありません。" : "まだ項目がありません。上から追加できます。";
+      listEl.append(empty);
+    }
+    for (const task of visible) {
+      const li = document.createElement("li");
+      li.style.cssText = "padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#fff;display:grid;gap:7px";
+      const heading = document.createElement("div");
+      heading.style.cssText = "display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox"; checkbox.checked = task.completed;
+      checkbox.setAttribute("aria-label", task.title + "を完了にする");
+      checkbox.addEventListener("change", () => persist(tasks.map(item => item.id === task.id ? {...item, completed: checkbox.checked} : item)));
+      const title = document.createElement("strong");
+      title.textContent = task.title;
+      if (task.completed) title.style.textDecoration = "line-through";
+      heading.append(checkbox, title);
+      const meta = document.createElement("small");
+      meta.style.color = "#667085";
+      meta.textContent = categories[task.category] + "・優先度：" + priorities[task.priority] + (task.dueDate ? "・期限：" + task.dueDate : "");
+      const actions = document.createElement("div");
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.textContent = "削除";
+      remove.addEventListener("click", () => {
+        if (confirm("「" + task.title + "」を削除しますか？")) persist(tasks.filter(item => item.id !== task.id));
+      });
+      actions.append(remove);
+      li.append(heading, meta, actions);
+      listEl.append(li);
+    }
+    clearButton.disabled = done === 0;
+    titleInput.disabled = tasks.length >= LIMIT;
+    form.querySelector('button[type="submit"]').disabled = tasks.length >= LIMIT;
+  }
+  try {
+    tasks = readTasks();
+    storageReady = true;
+    render();
+  } catch (error) {
+    console.error("Family task data validation failed", error);
+    summaryEl.textContent = "保存データに問題があるため、上書きせず保護しました。バックアップを確認してください。";
+    form.querySelectorAll("input,select,button").forEach(control => control.disabled = true);
+    filterInput.disabled = false;
+    return;
+  }
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const title = titleInput.value.trim();
+    if (!title || title.length > 80 || tasks.length >= LIMIT) return;
+    const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : "task_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,10);
+    const next = [...tasks, {id, title, category: categoryInput.value, priority: priorityInput.value, dueDate: dueInput.value, completed: false, createdAt: Date.now()}];
+    if (persist(next)) { titleInput.value = ""; dueInput.value = ""; titleInput.focus(); }
+  });
+  filterInput.addEventListener("change", render);
+  clearButton.addEventListener("click", () => {
+    const count = tasks.filter(task => task.completed).length;
+    if (count && confirm("完了した" + count + "件をリストから削除しますか？")) persist(tasks.filter(task => !task.completed));
+  });
+})();
 </script>
 
 </body>
