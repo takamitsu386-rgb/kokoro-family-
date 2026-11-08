@@ -31,8 +31,18 @@ assert.match(rules, /function\s+validProfile\(/,
   'Profile field allowlist validation is required.');
 assert.match(rules, /function\s+validPost\(/,
   'Post field allowlist validation is required.');
-assert.match(rules, /allow\s+read,\s*write:\s*if\s+false;/,
-  'Unimplemented SNS subcollections must remain denied by default.');
+assert.match(rules, /function\s+canInteractWithPost\(postId\)/,
+  'Interactions must validate parent post visibility and block status.');
+assert.match(rules, /function\s+validComment\(data\)/,
+  'Comment field and length validation is required.');
+assert.match(rules, /match\s+\/comments\/\{commentId\}/,
+  'Comment rules must be explicit.');
+assert.match(rules, /match\s+\/likes\/\{likerUid\}/,
+  'Like rules must be explicit.');
+assert.match(rules, /likerUid\s*==\s*request\.auth\.uid/,
+  'A like document ID must be the authenticated UID.');
+assert.match(rules, /request\.resource\.data\.text\.size\(\)\s*<=\s*300/,
+  'Comments must be limited to 300 characters.');
 assert.match(rules, /match\s+\/users\/\{userId\}\/aiUsage\/\{dayKey\}\s*\{\s*allow\s+read,\s*write:\s*if\s+false;/,
   'AI usage counters must be explicitly inaccessible to clients.');
 assert.doesNotMatch(rules, /match\s+\/\{document=\*\*\}/,
