@@ -3092,17 +3092,40 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
 }
 async function snsRemoveFriend(requestId) {
   const user = snsUser;
-  if (!user || snsBusy || !window.confirm("この相手との友達関係を解除しますか？")) return;
+  const authGeneration = snsAuthGeneration;
+  if (!user || snsBusy || !window.confirm("この相手との友達関係を解除しますか？共有中・受け取ったお部屋も削除されます。")) return;
   const operationGeneration = snsSetBusy(true);
   try {
+    const requestSnap = await getDoc(doc(snsDb, "friendRequests", requestId));
+    if (!requestSnap.exists()) throw new Error("友達情報が見つかりません。");
+    const requestData = requestSnap.data();
+    const peerUid = requestData.fromUid === user.uid ? requestData.toUid : requestData.toUid === user.uid ? requestData.fromUid : null;
+    if (!peerUid || peerUid === user.uid) throw new Error("友達情報を確認できません。");
     await deleteDoc(doc(snsDb, "friendRequests", requestId));
-    if (!snsUser || snsUser.uid !== user.uid) return;
-    snsFriendNotice.textContent = "友達関係を解除しました。";
-    await snsLoadFriendRequests(user);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const [ownedShares, receivedShares] = await Promise.all([
+      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(200))),
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(200)))
+    ]);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const revokedShares = new Map();
+    ownedShares.docs.filter(snap => snap.data().recipientUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    receivedShares.docs.filter(snap => snap.data().ownerUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    if (revokedShares.size) {
+      const batch = writeBatch(snsDb);
+      for (const [shareId, share] of revokedShares) {
+        batch.delete(doc(snsDb, "sharedRooms", shareId));
+        batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+      }
+      await batch.commit();
+    }
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    snsFriendNotice.textContent = "友達関係を解除し、この相手とのお部屋共有も削除しました。";
+    await Promise.all([snsLoadFriendRequests(user, authGeneration), snsLoadSharedRooms(user, authGeneration)]);
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     console.error("Friend removal failed", error);
-    snsFriendNotice.textContent = "友達を解除できませんでした。";
+    snsFriendNotice.textContent = error.message || "友達を解除できませんでした。";
   } finally {
     snsReleaseBusyFor(user, operationGeneration);
   }
