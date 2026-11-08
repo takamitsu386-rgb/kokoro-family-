@@ -598,3 +598,10 @@ assert.match(html,/function moveCustomRoomPalette\(index,direction\)/,'Palette r
 assert.match(html,/\[list\[index\],list\[next\]\]=\[list\[next\],list\[index\]\]/,'Palette reorder must swap adjacent entries.');
 assert.match(html,/moveUp\.disabled=index===0/,'First palette must disable move-up.');
 assert.match(html,/moveDown\.disabled=index===palettes\.length-1/,'Last palette must disable move-down.');
+assert.match(html,/function validCustomRoomPalettes\(list\)/,'Custom palette backup validator must exist.');
+assert.match(html,/customRoomPalettes\s*\}/,'Full backup must include saved custom palettes.');
+assert.match(html,/data\.customRoomPalettes===undefined\?\[\]:data\.customRoomPalettes/,'Older backups without custom palettes must remain importable.');
+assert.match(html,/お気に入り配色：'\+data\.customRoomPalettes\.length/,'Backup preview must show custom palette count.');
+assert.match(html,/localStorage\.setItem\(CUSTOM_ROOM_PALETTE_KEY,JSON\.stringify\(incomingPalettes\)\)/,'Backup import must restore custom palettes.');
+assert.match(html,/kokoroCustomRoomPalettesBeforeImport/,'Backup import must preserve pre-import custom palettes.');
+assert.match(html,/renderCustomRoomPalettes\(\);/,'Palette list must refresh after backup import.');
