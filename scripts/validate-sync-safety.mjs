@@ -195,20 +195,22 @@ assert.match(sns, /const accountChanged = snsUser\?\.uid !== user\?\.uid/,
   'SNS must detect account changes before showing account-specific content.');
 assert.match(sns, /if \(accountChanged\) \{[\s\S]*?snsNickname\.value = ""[\s\S]*?snsRenderPosts\(\[\]\)[\s\S]*?snsBlockList\.replaceChildren\(\)[\s\S]*?snsBlockUid\.value = ""[\s\S]*?snsReportUid\.value = ""/,
   'SNS must clear private profile, post, block, and report form data on account changes.');
+assert.match(sns, /let snsAuthGeneration = 0;[\\s\\S]*?onAuthStateChanged\\(getAuth\\(snsApp\\), async user => \\{\\s*const authGeneration = \\+\\+snsAuthGeneration;/,
+  'Every SNS auth-state callback must receive a fresh generation, including same-UID sign-in cycles.');
 for (const [loader, firstUiWrite] of [
   ['snsLoadProfile', 'snsNickname.value ='],
   ['snsLoadPosts', 'snsRenderPosts(posts)'],
   ['snsLoadBlocks', 'snsBlockList.replaceChildren()']
 ]) {
-  const loaderStart = sns.indexOf('async function ' + loader + '(user)');
+  const loaderStart = sns.indexOf('async function ' + loader + '(user, authGeneration = snsAuthGeneration)');
   const loaderEnd = sns.indexOf('\n}', loaderStart);
   assert.ok(loaderStart >= 0 && loaderEnd > loaderStart, loader + ' must exist.');
   const loaderSource = sns.slice(loaderStart, loaderEnd);
   const awaitedRead = loaderSource.indexOf('await ');
-  const uidGuard = loaderSource.indexOf('if (!snsUser || snsUser.uid !== user.uid)');
+  const generationGuard = loaderSource.indexOf('snsAuthGeneration !== authGeneration');
   const uiWrite = loaderSource.indexOf(firstUiWrite);
-  assert.ok(awaitedRead >= 0 && uidGuard > awaitedRead && uiWrite > uidGuard,
-    loader + ' must verify the active UID after its asynchronous read and before updating the UI.');
+  assert.ok(awaitedRead >= 0 && generationGuard > awaitedRead && uiWrite > generationGuard,
+    loader + ' must verify the auth generation after its asynchronous read and before updating the UI.');
 }
 const loginHandlerStart = html.indexOf('loginButton.addEventListener("click"');
 const loginHandlerEnd = html.indexOf('syncButton.addEventListener("click", syncNow)', loginHandlerStart);
