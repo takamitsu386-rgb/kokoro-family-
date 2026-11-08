@@ -3444,6 +3444,39 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
       if (window.applyRoom?.(item.currentRoom) === true) snsRoomShareStatus.textContent = "共有されたお部屋を読み込みました。自分のお部屋として編集できます。";
     });
     row.appendChild(open);
+    const saveCopy = document.createElement("button");
+    saveCopy.type = "button";
+    saveCopy.textContent = "保存済みのお部屋にコピー";
+    saveCopy.addEventListener("click", () => {
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      const suggested = item.title.slice(0, 60);
+      const name = prompt("保存するお部屋の名前を入力してください（80文字以内）", suggested);
+      if (name === null) return;
+      const cleanName = name.trim();
+      if (!cleanName || cleanName.length > 80 || ["__proto__", "constructor", "prototype"].includes(cleanName)) {
+        snsRoomShareStatus.textContent = "お部屋の名前は1〜80文字で入力してください。";
+        return;
+      }
+      const savedRooms = window.savedRoomData?.();
+      if (!savedRooms || typeof savedRooms !== "object" || Array.isArray(savedRooms)) {
+        snsRoomShareStatus.textContent = "保存済みのお部屋を読み取れません。元データは変更していません。";
+        return;
+      }
+      if (!Object.prototype.hasOwnProperty.call(savedRooms, cleanName) && Object.keys(savedRooms).length >= 100) {
+        snsRoomShareStatus.textContent = "保存できるお部屋は100個までです。不要なお部屋を整理してください。";
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(savedRooms, cleanName) && !confirm("同じ名前のお部屋があります。上書きしますか？")) return;
+      const nextRooms = { ...savedRooms, [cleanName]: item.currentRoom };
+      if (!window.validSavedRooms?.(nextRooms) || window.saveSavedRoomsWithUndo?.(nextRooms) !== true) {
+        snsRoomShareStatus.textContent = "保存できませんでした。既存のお部屋は変更していません。";
+        return;
+      }
+      window.kokoroQueueSync?.();
+      window.refreshSavedRooms?.();
+      snsRoomShareStatus.textContent = "「" + cleanName + "」として保存しました。元の共有データはそのままです。";
+    });
+    row.appendChild(saveCopy);
     const removeShare = document.createElement("button");
     removeShare.type = "button";
     removeShare.textContent = item.ownerUid === user.uid ? "共有を取り消す" : "受け取った共有を削除";
