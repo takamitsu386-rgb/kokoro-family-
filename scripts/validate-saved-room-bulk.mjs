@@ -158,3 +158,17 @@ assert.match(batchAdd,/created\.forEach\(element=>element\.remove\(\)\)/,'Bulk f
 assert.match(batchAdd,/if\(!autoSaveRoom\(\)\)/,'Bulk furniture add must save the completed batch once.');
 assert.match(html,/b\.onclick=\(\)=>addFurnitureBatch\(icon\)/,'Furniture picker buttons must use batch add.');
 console.log('Bulk furniture placement checks passed.');
+
+
+const clearSelectionStart=html.indexOf('function clearSelectedFurniture(){');
+assert.notEqual(clearSelectionStart,-1,'Furniture selection clear handler must exist.');
+const clearSelectionEnd=html.indexOf('function selectFurniture(el){',clearSelectionStart);
+assert.notEqual(clearSelectionEnd,-1,'Furniture selection clear handler must end before selection handler.');
+const clearSelection=html.slice(clearSelectionStart,clearSelectionEnd);
+assert.match(html,/onclick="clearSelectedFurniture\(\)"/,'Selection clear button must be available.');
+assert.match(clearSelection,/selectedFurniture=null/,'Clearing selection must reset selected furniture state.');
+assert.match(clearSelection,/style\.outline='none'/,'Clearing selection must remove the visual selection outline.');
+assert.match(clearSelection,/setAttribute\('aria-pressed','false'\)/,'Clearing selection must reset accessible pressed state.');
+assert.match(html,/event\.key==='Escape'&&selectedFurniture/,'Escape must clear the active furniture selection.');
+assert.match(html,/event\.target===room\|\|event\.target\.id==='floor'/,'Clicking empty room space must clear selection.');
+console.log('Furniture selection clear and keyboard checks passed.');
