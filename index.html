@@ -151,6 +151,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div id="snsFriendList" aria-live="polite"><p>ログインすると表示されます。</p></div>
 <h4>🏡 友達とお部屋を共有</h4>
 <p style="font-size:13px;color:#667085">承認済みの友達に、今のお部屋のコピーを共有できます。相手は自分の端末に読み込めます。共有後も元のお部屋は別々で、相手の編集は元データに反映されません。共有には部屋のデザインと家具配置だけが含まれます。</p>
+<label for="snsShareRoomSource">共有するお部屋</label>
+<select id="snsShareRoomSource" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="current">今のお部屋</option></select>
 <label for="snsShareRoomFriend">共有する友達</label>
 <select id="snsShareRoomFriend" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="">友達一覧から選択</option></select>
 <label for="snsShareRoomTitle">お部屋の名前（40文字以内）</label>
@@ -2661,6 +2663,7 @@ const snsFriendNotice = document.getElementById("snsFriendNotice");
 const snsFriendList = document.getElementById("snsFriendList");
 const snsRefreshFriends = document.getElementById("snsRefreshFriends");
 const snsShareRoomFriend = document.getElementById("snsShareRoomFriend");
+const snsShareRoomSource = document.getElementById("snsShareRoomSource");
 const snsShareRoomTitle = document.getElementById("snsShareRoomTitle");
 const snsShareCurrentRoom = document.getElementById("snsShareCurrentRoom");
 const snsRoomShareStatus = document.getElementById("snsRoomShareStatus");
@@ -3390,6 +3393,31 @@ if (snsApp) {
 } else {
   snsMessage("Firebaseが初期化されていません。ログイン設定を確認してください。");
 }
+function snsRefreshShareRoomOptions() {
+  const selected = snsShareRoomSource.value || "current";
+  snsShareRoomSource.replaceChildren();
+  const currentOption = document.createElement("option");
+  currentOption.value = "current";
+  currentOption.textContent = "今のお部屋";
+  snsShareRoomSource.appendChild(currentOption);
+  try {
+    const rooms = window.savedRoomData?.();
+    if (rooms && typeof rooms === "object" && !Array.isArray(rooms)) {
+      Object.keys(rooms).forEach(name => {
+        if (!Object.prototype.hasOwnProperty.call(rooms, name) || !window.validRoomData?.(rooms[name])) return;
+        const option = document.createElement("option");
+        option.value = "saved:" + name;
+        option.textContent = "保存済み：" + name.slice(0, 80);
+        snsShareRoomSource.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.warn("Saved room list unavailable for sharing", error);
+  }
+  if ([...snsShareRoomSource.options].some(option => option.value === selected)) snsShareRoomSource.value = selected;
+  else snsShareRoomSource.value = "current";
+}
+snsShareRoomSource.addEventListener("focus", snsRefreshShareRoomOptions);
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
   const [owned, received] = await Promise.all([
     getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
@@ -3449,7 +3477,16 @@ snsShareCurrentRoom.addEventListener("click", async () => {
   if (!recipientUid || recipientUid === user.uid) { snsRoomShareStatus.textContent = "共有する友達を選んでください。"; return; }
   if (!title || title.length > 40) { snsRoomShareStatus.textContent = "お部屋の名前を1〜40文字で入力してください。"; return; }
   if (typeof window.roomData !== "function" || typeof window.validRoomData !== "function") { snsRoomShareStatus.textContent = "お部屋データを読み取れません。"; return; }
-  const currentRoom = window.roomData();
+  let currentRoom;
+  const roomSource = snsShareRoomSource.value || "current";
+  if (roomSource.startsWith("saved:")) {
+    const savedName = roomSource.slice(6);
+    const savedRooms = window.savedRoomData?.();
+    if (!savedRooms || !Object.prototype.hasOwnProperty.call(savedRooms, savedName)) { snsRoomShareStatus.textContent = "選択した保存済みのお部屋が見つかりません。一覧を更新してください。"; return; }
+    currentRoom = savedRooms[savedName];
+  } else {
+    currentRoom = window.roomData();
+  }
   if (!window.validRoomData(currentRoom) || new TextEncoder().encode(JSON.stringify(currentRoom)).length > 700000) { snsRoomShareStatus.textContent = "お部屋データが正しくないか大きすぎます。家具を整理してください。"; return; }
   const operationGeneration = snsSetBusy(true);
   snsRoomShareStatus.textContent = "友達との関係と共有内容を確認しています…";
