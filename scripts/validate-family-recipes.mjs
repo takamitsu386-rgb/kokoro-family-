@@ -15,3 +15,11 @@ assert.match(html,/上書きせず保護しました/);
 assert.match(html,/クラウド同期・家族間共有には未対応です/);
 assert.match(sw,/kokoro-family-v198/);
 console.log("Family recipe notebook source checks passed.");
+
+assert.match(html,/familyRecipesShoppingStatus/);
+assert.match(html,/材料を買い物リストへ/);
+assert.match(html,/kokoroFamilyShoppingV1/);
+assert.match(html,/new Set\(current\.map\(x=>x\.id\)\)/);
+assert.match(html,/上限100件に達しています/);
+assert.match(html,/Recipe shopping import rollback failed/);
+assert.match(sw,/kokoro-family-v199/);
