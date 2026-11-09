@@ -129,6 +129,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <p id="familyWeeklyPlanStatus" role="status" aria-live="polite">読み込み中です。</p>
 <div id="familyWeeklyPlanReport" style="display:grid;gap:14px"></div>
+<div class="weekly-plan-section" id="familyOutingPrep">
+  <h3>🎒 お出かけ準備ページ（今後30日）</h3>
+  <p>予定ごとの持ち物、準備の進み具合、買い物リストの登録状況をまとめて確認できます。</p>
+  <div id="familyOutingPrepReport" style="display:grid;gap:10px"></div>
+</div>
 </section>
 <section class="panel" id="family-tasks">
 <h2>📝 家族のやることリスト</h2>
@@ -7307,6 +7312,53 @@ snsRefreshPosts.addEventListener("click", async () => {
   const validMeal=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&!Number.isNaN(Date.parse(x.date))&&["breakfast","lunch","dinner","snack"].includes(x.type)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=80&&typeof x.note==="string"&&x.note.length<=60&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
   const validShopping=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&["food","daily","stationery","other"].includes(x.category)&&typeof x.bought==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
   const section=(heading,items,empty)=>{const wrap=document.createElement("section");wrap.className="weekly-plan-section";const h=document.createElement("h3");h.textContent=heading;wrap.append(h);if(!items.length){const p=document.createElement("p");p.className="weekly-plan-empty";p.textContent=empty;wrap.append(p);}else{const ul=document.createElement("ul");items.forEach(value=>{const li=document.createElement("li");li.textContent=value;ul.append(li);});wrap.append(ul);}return wrap;};
+  const renderOutingPrep=(events,shopping)=>{
+    const target=document.getElementById("familyOutingPrepReport");if(!target)return;
+    target.replaceChildren();
+    const start=today(),end=addDays(start,29);
+    const upcoming=events.filter(event=>!event.done&&event.date>=start&&event.date<=end&&/持ち物[:：]/.test(event.place)).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+    if(!upcoming.length){const empty=document.createElement("p");empty.className="weekly-plan-empty";empty.textContent="今後30日以内に、持ち物が登録された未完了の予定はありません。カレンダーのメモに「持ち物：水筒、タオル」のように登録できます。";target.append(empty);return;}
+    let checks=[];try{checks=readPrepChecks();}catch(error){const warning=document.createElement("p");warning.textContent="準備チェックを読み込めません。保存データを確認してください。";target.append(warning);return;}
+    const bought=new Set(shopping.filter(item=>item.bought).map(item=>item.name.trim().toLocaleLowerCase()));
+    const listed=new Set(shopping.map(item=>item.name.trim().toLocaleLowerCase()));
+    upcoming.forEach(event=>{
+      const match=event.place.match(/持ち物[:：]([^｜|]*)/);
+      const names=match? [...new Set(match[1].split(/[、,，;；\s　]+/).map(value=>value.trim()).filter(value=>value&&value.length<=60))]:[];
+      if(!names.length)return;
+      const card=document.createElement("section");card.style.cssText="border:1px solid #e4e7ef;border-radius:10px;padding:12px;background:#fff;display:grid;gap:8px";
+      const heading=document.createElement("strong");heading.textContent=dateText(event.date)+(event.time?" "+event.time:" 時間未定")+"｜"+event.title;card.append(heading);
+      const list=document.createElement("div");list.style.cssText="display:grid;gap:6px";
+      names.forEach(name=>{
+        const key=event.id+"|"+name.toLocaleLowerCase();
+        const checked=checks.some(item=>item.eventId+"|"+item.name.toLocaleLowerCase()===key&&item.done);
+        const inShopping=listed.has(name.toLocaleLowerCase()),isBought=bought.has(name.toLocaleLowerCase());
+        const label=document.createElement("label");label.style.cssText="display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 9px;border:1px solid #edf0f5;border-radius:8px";
+        const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=checked;checkbox.style.cssText="width:20px;height:20px;flex:0 0 auto";checkbox.setAttribute("aria-label",event.title+"の"+name+"の準備完了");
+        const text=document.createElement("span");text.textContent=name+(isBought?"（購入済み）":inShopping?"（買い物リスト登録済み）":"");text.style.cssText=checked?"text-decoration:line-through;color:#667085":"";
+        checkbox.addEventListener("change",()=>{if(!savePrepCheck(event.id,name,checkbox.checked)){checkbox.checked=!checkbox.checked;return;}text.style.cssText=checkbox.checked?"text-decoration:line-through;color:#667085":"";updateProgress();});
+        label.append(checkbox,text);list.append(label);
+      });
+      const progress=document.createElement("small");
+      const updateProgress=()=>{progress.textContent=list.querySelectorAll('input[type="checkbox"]:checked').length+"/"+names.length+" 準備完了";};
+      updateProgress();card.append(list,progress);
+      const add=document.createElement("button");add.type="button";add.textContent="未登録の持ち物を買い物リストへ追加";
+      add.addEventListener("click",()=>{
+        let raw=null,current=[];
+        try{
+          const key="kokoroFamilyShoppingV1";raw=localStorage.getItem(key);current=raw===null?[]:JSON.parse(raw);
+          if(!Array.isArray(current)||current.length>100||!current.every(validShopping)||new Set(current.map(item=>item.id)).size!==current.length)throw new Error("invalid shopping list");
+          const known=new Set(current.map(item=>item.name.trim().toLocaleLowerCase()));
+          const added=names.filter(name=>!known.has(name.toLocaleLowerCase())).slice(0,100-current.length);
+          if(!added.length){status.textContent=current.length>=100?"買い物リストが100件の上限です。":"持ち物はすべて買い物リストに登録済みです。";return;}
+          if(!confirm("「"+event.title+"」の未登録の持ち物"+added.length+"件を追加しますか？\n"+added.join("、")))return;
+          const now=Date.now(),next=[...current,...added.map((name,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"outing_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,8),name,quantity:"",category:"other",bought:false,createdAt:now+index}))];
+          try{localStorage.setItem(key,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));status.textContent=added.length+"件を買い物リストに追加しました。";renderOutingPrep(events,next);}
+          catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Outing preparation shopping rollback failed",rollbackError);}throw error;}
+        }catch(error){console.error("Outing preparation shopping import failed",error);status.textContent="買い物リストを更新できませんでした。既存データは保護しています。";}
+      });
+      card.append(add);target.append(card);
+    });
+  };
   const render=()=>{
     report.replaceChildren();const start=today(),end=addDays(start,6),days=Array.from({length:7},(_,i)=>addDays(start,i));let warnings=[];
     let tasks=[],events=[],meals=[],shopping=[];
@@ -7314,6 +7366,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     try{events=read(keys.calendar,validEvent,100);}catch(e){warnings.push("家族カレンダー");}
     try{meals=read(keys.meals,validMeal,200);}catch(e){warnings.push("献立");}
     try{shopping=read(keys.shopping,validShopping,100);}catch(e){warnings.push("買い物リスト");}
+    renderOutingPrep(events,shopping);
     const heading=document.createElement("h2");heading.textContent="こころファミリー｜週間まとめ";report.append(heading);
     const meta=document.createElement("p");meta.className="weekly-plan-meta";meta.textContent=dateText(start)+"〜"+dateText(end)+"（7日間）";report.append(meta);
     const overdue=tasks.filter(x=>!x.completed&&x.dueDate&&x.dueDate<start).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
