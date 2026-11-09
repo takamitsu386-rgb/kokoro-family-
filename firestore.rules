@@ -98,6 +98,57 @@ service cloud.firestore {
       allow read, write: if owns(userId) && documentId in ["data", "shopping"];
     }
 
+
+    // Shared shopping data is accessible only to two mutually accepted friends.
+    match /sharedShopping/{shareId} {
+      function validSharedShopping(data) {
+        return data.keys().hasAll(['version', 'ownerUid', 'recipientUid', 'members', 'items', 'history', 'budgets', 'assigneeBudgets', 'updatedBy', 'updatedAt'])
+          && data.keys().hasOnly(['version', 'ownerUid', 'recipientUid', 'members', 'items', 'history', 'budgets', 'assigneeBudgets', 'updatedBy', 'updatedAt'])
+          && data.version == 1
+          && data.ownerUid is string
+          && data.recipientUid is string
+          && data.ownerUid != data.recipientUid
+          && data.members is list
+          && data.members.size() == 2
+          && data.members.hasAll([data.ownerUid, data.recipientUid])
+          && data.items is list && data.items.size() <= 100
+          && data.history is list && data.history.size() <= 500
+          && data.budgets is map && data.assigneeBudgets is map
+          && data.updatedBy is string
+          && data.updatedAt is timestamp
+          && data.updatedBy in data.members
+          && request.resource.size() <= 750000;
+      }
+      function areMembersFriends(data) {
+        return acceptedFriend(data.ownerUid, data.recipientUid)
+          && !blockedBetween(data.ownerUid, data.recipientUid);
+      }
+      allow get: if signedIn()
+        && request.auth.uid in resource.data.members
+        && areMembersFriends(resource.data);
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid != request.auth.uid
+        && shareId == (request.auth.uid < request.resource.data.recipientUid
+          ? request.auth.uid + '_' + request.resource.data.recipientUid
+          : request.resource.data.recipientUid + '_' + request.auth.uid)
+        && request.resource.data.members == [request.auth.uid, request.resource.data.recipientUid].toSet().toList()
+        && areMembersFriends(request.resource.data)
+        && validSharedShopping(request.resource.data);
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.recipientUid == resource.data.recipientUid
+        && request.resource.data.members == resource.data.members
+        && request.resource.data.updatedBy == request.auth.uid
+        && areMembersFriends(resource.data)
+        && areMembersFriends(request.resource.data)
+        && validSharedShopping(request.resource.data);
+      allow delete: if signedIn() && request.auth.uid == resource.data.ownerUid;
+    }
+
     // A user may create or remove only their own block records.
     // Block records contain no profile or private user information.
     match /users/{userId}/blocks/{targetUid} {
