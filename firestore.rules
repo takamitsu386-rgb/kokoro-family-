@@ -134,7 +134,7 @@ service cloud.firestore {
         && shareId == (request.auth.uid < request.resource.data.recipientUid
           ? request.auth.uid + '_' + request.resource.data.recipientUid
           : request.resource.data.recipientUid + '_' + request.auth.uid)
-        && request.resource.data.members == [request.auth.uid, request.resource.data.recipientUid].toSet().toList()
+        && request.resource.data.members[0] < request.resource.data.members[1]
         && areMembersFriends(request.resource.data)
         && validSharedShopping(request.resource.data);
       allow update: if signedIn()
