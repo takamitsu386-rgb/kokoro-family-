@@ -7306,6 +7306,36 @@ snsRefreshPosts.addEventListener("click", async () => {
       const mealNames={breakfast:"朝",lunch:"昼",dinner:"夜",snack:"おやつ"};
       wrap.append(section("やること",dayTasks.map(x=>x.title+"（"+({high:"優先",normal:"通常",low:"低め"}[x.priority])+"）"),"予定なし"));
       wrap.append(section("家族の予定",dayEvents.map(x=>(x.time?x.time+" ":"")+x.title+(x.place?"｜"+x.place:"")+(x.done?"［完了］":"")),"予定なし"));
+      const eventsWithItems=dayEvents.filter(event=>/持ち物[:：]/.test(event.place));
+      if(eventsWithItems.length){
+        const itemPrep=document.createElement("section");itemPrep.className="weekly-plan-section";
+        const itemHeading=document.createElement("h3");itemHeading.textContent="予定の持ち物";itemPrep.append(itemHeading);
+        eventsWithItems.forEach(event=>{
+          const match=event.place.match(/持ち物[:：]([^｜|]*)/);
+          const names=match?match[1].split(/[、,，;；\s　]+/).map(value=>value.trim()).filter(value=>value&&value.length<=60):[];
+          const line=document.createElement("p");line.textContent=event.title+"："+(names.length?names.join("・"):"持ち物を確認してください");itemPrep.append(line);
+          if(!names.length)return;
+          const button=document.createElement("button");button.type="button";button.textContent="買い物リストに追加";
+          button.addEventListener("click",()=>{
+            const key="kokoroFamilyShoppingV1";let raw=null,current=[];
+            try{
+              raw=localStorage.getItem(key);current=raw===null?[]:JSON.parse(raw);
+              const valid=entry=>entry&&typeof entry==="object"&&typeof entry.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(entry.id)&&typeof entry.name==="string"&&entry.name.trim()&&entry.name.length<=60&&typeof entry.quantity==="string"&&entry.quantity.length<=20&&["food","daily","stationery","other"].includes(entry.category)&&typeof entry.bought==="boolean"&&Number.isSafeInteger(entry.createdAt)&&entry.createdAt>0;
+              if(!Array.isArray(current)||current.length>100||!current.every(valid)||new Set(current.map(entry=>entry.id)).size!==current.length)throw new Error("invalid shopping data");
+              const existing=new Set(current.map(entry=>entry.name.trim().toLocaleLowerCase()));
+              const unique=[...new Set(names)].filter(name=>!existing.has(name.toLocaleLowerCase()));
+              const added=unique.slice(0,100-current.length);
+              if(!added.length){status.textContent=current.length>=100?"買い物リストが100件の上限です。":"持ち物はすべて買い物リストに登録済みです。";return;}
+              if(!confirm("「"+event.title+"」の持ち物"+added.length+"件を買い物リストに追加しますか？\n"+added.slice(0,8).join("、")+(added.length>8?" ほか":"")+(names.length>added.length?"\n重複または上限により"+(names.length-added.length)+"件は追加しません。":"")))return;
+              const now=Date.now(),next=[...current,...added.map((name,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"eventitem_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,8),name,quantity:"",category:"other",bought:false,createdAt:now+index}))];
+              try{localStorage.setItem(key,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));status.textContent=added.length+"件を予定の持ち物から買い物リストに追加しました。";}
+              catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Event shopping rollback failed",rollbackError);}throw error;}
+            }catch(error){console.error("Event shopping import failed",error);status.textContent="買い物リストを読み込めないか保存できませんでした。既存データは保護しています。";}
+          });
+          itemPrep.append(button);
+        });
+        wrap.append(itemPrep);
+      }
       if(dayEvents.length){
         const prep=document.createElement("div");prep.className="weekly-plan-section";
         const prepHeading=document.createElement("h3");prepHeading.textContent="予定に合わせた準備";prep.append(prepHeading);
