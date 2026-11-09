@@ -7196,13 +7196,30 @@ snsRefreshPosts.addEventListener("click", async () => {
           const valid=current=>Array.isArray(current)&&current.length<=100&&current.every(x=>x&&typeof x==="object"&&typeof x.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(x.id)&&typeof x.name==="string"&&x.name.trim().length>=1&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&Object.hasOwn(categories,x.category)&&typeof x.bought==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0)&&new Set(current.map(x=>x.id)).size===current.length;
           if(!valid(current))throw new Error("invalid shopping data");
           const existing=new Set(current.map(x=>x.name.trim().toLocaleLowerCase()));
-          const candidates=recipe.ingredients.split(/\r?\n/).map(x=>x.trim().replace(/^[・•*\-]+\s*/,"")).filter(x=>x.length>0&&x.length<=60&&!existing.has(x.toLocaleLowerCase()));
+          const candidates=[],seen=new Set(existing);
+          const quantityPattern=/^(適量|少々|ひとつまみ|[0-9０-９]+(?:[./／][0-9０-９]+)?(?:〜|～|-)?[0-9０-９]*(?:\\s*)(?:kg|g|mg|L|ml|cc|個|本|枚|袋|パック|束|缶|箱|丁|切れ|杯|合|大さじ|小さじ|カップ|玉|房|株|片|尾|匹|人分))$/i;
+          for(const line of recipe.ingredients.split(/\\r?\\n/)){
+            const value=line.trim().replace(/^[・•*\\-]+\\s*/,"");
+            if(!value)continue;
+            let name=value,quantity="";
+            const separated=value.match(/^(.+?)[：:=]\\s*(.+)$/);
+            if(separated&&quantityPattern.test(separated[2].trim())){name=separated[1].trim();quantity=separated[2].trim();}
+            else{
+              const spaced=value.match(/^(.+?)[\\s　]+(適量|少々|ひとつまみ|[0-9０-９]+(?:[./／][0-9０-９]+)?(?:〜|～|-)?[0-9０-９]*(?:\\s*)(?:kg|g|mg|L|ml|cc|個|本|枚|袋|パック|束|缶|箱|丁|切れ|杯|合|大さじ|小さじ|カップ|玉|房|株|片|尾|匹|人分))$/i);
+              if(spaced){name=spaced[1].trim();quantity=spaced[2].trim();}
+            }
+            if(name.length<1||name.length>60||quantity.length>20)continue;
+            const normalized=name.toLocaleLowerCase();
+            if(seen.has(normalized))continue;
+            seen.add(normalized);candidates.push({name,quantity});
+          }
           const remaining=100-current.length,added=candidates.slice(0,remaining);
-          if(!added.length){status.textContent=candidates.length?"買い物リストの上限100件に達しています。":"追加できる新しい材料がありません（登録済み・空欄・文字数超過）。";return;}
-          if(!confirm("「"+recipe.title+"」の材料から"+added.length+"件を買い物リストに追加しますか？"+(candidates.length>added.length?"\\n上限のため"+(candidates.length-added.length)+"件は追加されません。":"")))return;
-          const next=[...current,...added.map(name=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10),name,quantity:"",category:"food",bought:false,createdAt:Date.now()}))];
+          if(!added.length){status.textContent=current.length>=100?"買い物リストの上限100件に達しています。":"追加できる新しい材料がありません（登録済み・空欄・文字数超過）。";return;}
+          if(!confirm("「"+recipe.title+"」の材料から"+added.length+"件を買い物リストに追加しますか？\\n"+added.slice(0,8).map(item=>item.name+(item.quantity?" × "+item.quantity:"")).join("、")+(added.length>8?" ほか":"")+(candidates.length>added.length?"\\n上限のため"+(candidates.length-added.length)+"件は追加されません。":"")))return;
+          const now=Date.now();
+          const next=[...current,...added.map((item,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,10),name:item.name,quantity:item.quantity,category:"food",bought:false,createdAt:now+index}))];
           const previous=raw;
-          try{localStorage.setItem(key,JSON.stringify(next));status.textContent=added.length+"件の材料を買い物リストに追加しました。"; }
+          try{localStorage.setItem(key,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));status.textContent=added.length+"件の材料を数量付きで買い物リストに追加しました。買い物リストにも反映しました。"; }
           catch(error){try{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);}catch(rollbackError){console.error("Recipe shopping import rollback failed",rollbackError);}throw error;}
         }catch(error){console.error("Recipe shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
       });
