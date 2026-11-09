@@ -6126,7 +6126,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const existing=new Set(current.map(entry=>entry.name.trim().toLocaleLowerCase()));
       const added=unique.filter(item=>!existing.has(item.name.toLocaleLowerCase())).slice(0,100-current.length);
       if(!added.length){status.textContent=current.length>=100?"買い物リストが上限の100件に達しています。":"7日分の買い物メモはすべて登録済みです。";return;}
-      if(!confirm("今日から7日間の献立メモから"+added.length+"件を買い物リストに追加しますか？"+(unique.length>added.length?"\\n重複または上限のため"+(unique.length-added.length)+"件は追加しません。":"")))return;
+      if(!confirm("今日から7日間の献立メモから"+added.length+"件を買い物リストに追加しますか？\\n"+added.slice(0,8).map(item=>item.name+(item.quantity?" × "+item.quantity:"")).join("、")+(added.length>8?" ほか":"")+(unique.length>added.length?"\\n重複または上限のため"+(unique.length-added.length)+"件は追加しません。":"")))return;
       const now=Date.now(),next=[...current,...added.map((item,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealweek_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,8),name:item.name,quantity:item.quantity,category:"food",bought:false,createdAt:now+index}))];
       try{localStorage.setItem(key,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));status.textContent=added.length+"件を7日分の献立から数量付きで買い物リストに追加しました。買い物リストにも反映しました。";}
       catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Weekly meal shopping rollback failed",rollbackError);}throw error;}
