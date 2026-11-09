@@ -125,6 +125,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button type="button" class="primary" id="familyWeeklyPlanRefresh">最新の内容に更新</button>
 <button type="button" id="familyWeeklyPlanPrint">週間まとめを印刷</button>
+<button type="button" id="familyWeeklyPlanShoppingAdd">＋ 買い物を追加</button>
 </div>
 <p id="familyWeeklyPlanStatus" role="status" aria-live="polite">読み込み中です。</p>
 <div id="familyWeeklyPlanReport" style="display:grid;gap:14px"></div>
@@ -7242,7 +7243,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const status=document.getElementById("familyWeeklyPlanStatus");
   const refresh=document.getElementById("familyWeeklyPlanRefresh");
   const printButton=document.getElementById("familyWeeklyPlanPrint");
-  if(!report||!status||!refresh||!printButton)return;
+  const shoppingAddButton=document.getElementById("familyWeeklyPlanShoppingAdd");
+  if(!report||!status||!refresh||!printButton||!shoppingAddButton)return;
   const keys={tasks:"kokoroFamilyTasksV1",calendar:"kokoroFamilyCalendarV1",meals:"kokoroFamilyMealsV1",shopping:"kokoroFamilyShoppingV1"};
   const dateText=value=>{const [y,m,d]=value.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",weekday:"short"});};
   const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
@@ -7303,6 +7305,14 @@ snsRefreshPosts.addEventListener("click", async () => {
     status.textContent=warnings.length?"一部のデータを読み込めませんでした："+warnings.join("・")+"。該当する一覧は表示を省略しています。":"週間まとめを更新しました。各一覧の保存内容を読み取り専用で集約しています。";
   };
   refresh.addEventListener("click",render);
+  shoppingAddButton.addEventListener("click",()=>{
+    const form=document.getElementById("familyShoppingForm");
+    const name=document.getElementById("familyShoppingName");
+    if(!form||!name){status.textContent="買い物リストの入力フォームを開けませんでした。";return;}
+    form.scrollIntoView({behavior:"smooth",block:"start"});
+    name.focus();
+    status.textContent="買い物リストの入力欄を開きました。品名・数量・分類を入力して保存してください。";
+  });
   printButton.addEventListener("click",()=>{render();window.print();});
   render();
 })();
