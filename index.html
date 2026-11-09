@@ -7306,6 +7306,26 @@ snsRefreshPosts.addEventListener("click", async () => {
       const mealNames={breakfast:"朝",lunch:"昼",dinner:"夜",snack:"おやつ"};
       wrap.append(section("やること",dayTasks.map(x=>x.title+"（"+({high:"優先",normal:"通常",low:"低め"}[x.priority])+"）"),"予定なし"));
       wrap.append(section("家族の予定",dayEvents.map(x=>(x.time?x.time+" ":"")+x.title+(x.place?"｜"+x.place:"")+(x.done?"［完了］":"")),"予定なし"));
+      if(dayEvents.length){
+        const prep=document.createElement("div");prep.className="weekly-plan-section";
+        const prepHeading=document.createElement("h3");prepHeading.textContent="予定に合わせた準備";prep.append(prepHeading);
+        const prepActions=document.createElement("div");prepActions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+        dayEvents.forEach(event=>{
+          const button=document.createElement("button");button.type="button";button.textContent="＋「"+event.title.slice(0,24)+"」の準備を追加";
+          button.addEventListener("click",()=>{
+            const taskForm=document.getElementById("familyTaskForm"),dueInput=document.getElementById("familyTaskDue"),titleInput=document.getElementById("familyTaskTitle");
+            if(!taskForm||!dueInput||!titleInput){status.textContent="やることの入力フォームを開けませんでした。";return;}
+            const taskTitle=("【予定の準備】"+event.title).slice(0,80);
+            if(tasks.some(task=>!task.completed&&task.dueDate===day&&task.title===taskTitle)){status.textContent="この予定の準備タスクはすでに登録されています。";return;}
+            if(titleInput.value.trim()&&!confirm("入力中のやることを残さず、予定の準備タスクに切り替えますか？"))return;
+            dueInput.value=day;titleInput.value=taskTitle;
+            taskForm.scrollIntoView({behavior:"smooth",block:"start"});titleInput.focus();
+            status.textContent=dateText(day)+"の「"+event.title+"」に合わせた準備タスクを入力欄にセットしました。内容を確認して保存してください。";
+          });
+          prepActions.append(button);
+        });
+        prep.append(prepActions);wrap.append(prep);
+      }
       wrap.append(section("献立",dayMeals.map(x=>mealNames[x.type]+"："+x.name+(x.note?"（"+x.note+"）":"")),"登録なし"));
       const quickActions=document.createElement("div");
       quickActions.className="weekly-plan-quick-actions";
