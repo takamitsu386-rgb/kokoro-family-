@@ -7275,6 +7275,26 @@ snsRefreshPosts.addEventListener("click", async () => {
       wrap.append(section("やること",dayTasks.map(x=>x.title+"（"+({high:"優先",normal:"通常",low:"低め"}[x.priority])+"）"),"予定なし"));
       wrap.append(section("家族の予定",dayEvents.map(x=>(x.time?x.time+" ":"")+x.title+(x.place?"｜"+x.place:"")+(x.done?"［完了］":"")),"予定なし"));
       wrap.append(section("献立",dayMeals.map(x=>mealNames[x.type]+"："+x.name+(x.note?"（"+x.note+"）":"")),"登録なし"));
+      const quickActions=document.createElement("div");
+      quickActions.className="weekly-plan-quick-actions";
+      quickActions.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
+      const addAction=(label,formId,dateId,titleId)=>{
+        const button=document.createElement("button");button.type="button";button.textContent=label;
+        button.addEventListener("click",()=>{
+          const targetForm=document.getElementById(formId),dateInput=document.getElementById(dateId),titleInput=document.getElementById(titleId);
+          if(!targetForm||!dateInput||!titleInput){status.textContent="入力フォームを開けませんでした。";return;}
+          if(titleInput.value.trim()&&!confirm("入力中の内容を残さず、この日付の入力に切り替えますか？"))return;
+          dateInput.value=day;
+          targetForm.scrollIntoView({behavior:"smooth",block:"start"});
+          titleInput.focus();
+          status.textContent=dateText(day)+"の入力フォームを開きました。内容を入力して保存してください。";
+        });
+        quickActions.append(button);
+      };
+      addAction("＋ やること","familyTaskForm","familyTaskDue","familyTaskTitle");
+      addAction("＋ 家族の予定","familyCalendarForm","familyCalendarDate","familyCalendarTitle");
+      addAction("＋ 献立","familyMealsForm","familyMealsDate","familyMealsName");
+      wrap.append(quickActions);
       report.append(wrap);
     });
     const unbought=shopping.filter(x=>!x.bought).sort((a,b)=>["food","daily","stationery","other"].indexOf(a.category)-["food","daily","stationery","other"].indexOf(b.category)||a.name.localeCompare(b.name,"ja"));
