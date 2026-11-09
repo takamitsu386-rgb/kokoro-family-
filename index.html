@@ -266,6 +266,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
 <label for="familyShoppingFilter">表示</label><select id="familyShoppingFilter"><option value="all">すべて</option><option value="needed">買うもの</option><option value="bought">購入済み</option></select>
 <label for="familyShoppingCategoryFilter">分類</label><select id="familyShoppingCategoryFilter"><option value="all">すべての分類</option><option value="food">食べもの</option><option value="daily">日用品</option><option value="stationery">文房具</option><option value="other">その他</option></select>
+<label for="familyShoppingAssigneeFilter">担当者</label><select id="familyShoppingAssigneeFilter"><option value="all">全員</option><option value="__unassigned">担当未設定</option></select>
 <label for="familyShoppingSearch">キーワード</label><input id="familyShoppingSearch" type="search" maxlength="80" placeholder="品物を検索" autocomplete="off">
 <label for="familyShoppingSort">並び順</label><select id="familyShoppingSort"><option value="newest">新しく追加した順</option><option value="name">品物名順</option><option value="category">分類順</option><option value="oldest">古い順</option></select>
 <button type="button" id="familyShoppingResetFilters">絞り込みを解除</button>
@@ -273,6 +274,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0"><button type="button" id="familyShoppingModeToggle" aria-pressed="false">🛍️ 買い物中モードを開始</button><span id="familyShoppingModeStatus" role="status" aria-live="polite">通常表示</span></div>
 <p id="familyShoppingSummary" role="status" aria-live="polite">リストを読み込んでいます。</p>
+<div id="familyShoppingAssigneeSummary" aria-live="polite" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0"></div>
 <ul id="familyShoppingList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
 <section class="panel" id="ai-consultation">
@@ -6247,6 +6249,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const purchaseMemoInput = document.getElementById("familyShoppingMemo");
   const filterInput = document.getElementById("familyShoppingFilter");
   const categoryFilterInput = document.getElementById("familyShoppingCategoryFilter");
+  const assigneeFilterInput = document.getElementById("familyShoppingAssigneeFilter");
+  const assigneeSummaryEl = document.getElementById("familyShoppingAssigneeSummary");
   const searchInput = document.getElementById("familyShoppingSearch");
   const sortInput = document.getElementById("familyShoppingSort");
   const resetFiltersButton = document.getElementById("familyShoppingResetFilters");
@@ -6299,11 +6303,16 @@ snsRefreshPosts.addEventListener("click", async () => {
     }
   }
   function render() {
-    const filter=filterInput.value, categoryFilter=categoryFilterInput.value;
+    const filter=filterInput.value, categoryFilter=categoryFilterInput.value, assigneeFilter=assigneeFilterInput.value;
     const query=searchInput.value.trim().toLocaleLowerCase();
+    const assignees=[...new Set(entries.map(item=>(item.assignee||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ja"));
+    const selectedAssignee=assigneeFilterInput.value;
+    assigneeFilterInput.replaceChildren(new Option("全員","all"),new Option("担当未設定","__unassigned"),...assignees.map(name=>new Option(name,name)));
+    assigneeFilterInput.value=[...["all","__unassigned"],...assignees].includes(selectedAssignee)?selectedAssignee:"all";
     const visible=entries.filter(item=>(shoppingMode?!item.bought:(filter==="all"||(filter==="bought"?item.bought:!item.bought))) &&
       (categoryFilter==="all"||item.category===categoryFilter) &&
-      (!query||item.name.toLocaleLowerCase().includes(query)||item.quantity.toLocaleLowerCase().includes(query)))
+      (assigneeFilterInput.value==="all"||(assigneeFilterInput.value==="__unassigned"?!item.assignee:(item.assignee||"").trim()===assigneeFilterInput.value)) &&
+      (!query||item.name.toLocaleLowerCase().includes(query)||item.quantity.toLocaleLowerCase().includes(query)||(item.assignee||"").toLocaleLowerCase().includes(query)||(item.purchaseMemo||"").toLocaleLowerCase().includes(query)))
       .sort((a,b)=>{
         const statusOrder=Number(a.bought)-Number(b.bought);
         if(statusOrder)return statusOrder;
@@ -6315,6 +6324,10 @@ snsRefreshPosts.addEventListener("click", async () => {
       });
     const bought=entries.filter(item=>item.bought).length;
     summaryEl.textContent="全"+entries.length+"件・買うもの"+(entries.length-bought)+"件・購入済み"+bought+"件";
+    assigneeSummaryEl.replaceChildren();
+    const groups=[...assignees.map(name=>({name,count:entries.filter(item=>!item.bought&&(item.assignee||"").trim()===name).length,total:entries.filter(item=>(item.assignee||"").trim()===name).length})),{name:"担当未設定",count:entries.filter(item=>!item.bought&&!item.assignee).length,total:entries.filter(item=>!item.assignee).length}];
+    groups.forEach(group=>{if(!group.total)return;const card=document.createElement("button");card.type="button";card.style.cssText="text-align:left;padding:10px;border:1px solid #e4e7ef;border-radius:10px;background:#fff;color:inherit;display:grid;gap:3px";card.setAttribute("aria-label",group.name+"の未購入"+group.count+"件。絞り込む");const label=document.createElement("strong");label.textContent=group.name;const count=document.createElement("span");count.textContent="未購入 "+group.count+"件";const total=document.createElement("small");total.style.color="#667085";total.textContent="登録 "+group.total+"件";card.append(label,count,total);card.addEventListener("click",()=>{assigneeFilterInput.value=group.name==="担当未設定"?"__unassigned":group.name;render();});assigneeSummaryEl.append(card);});
+    if(!groups.length)assigneeSummaryEl.textContent="担当者別の件数は、担当者を登録すると表示されます。";
     listEl.replaceChildren();
     if(!visible.length) {
       const empty=document.createElement("li");
@@ -6355,7 +6368,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     modeToggle.textContent=shoppingMode?"通常表示に戻る":"🛍️ 買い物中モードを開始";
     modeToggle.setAttribute("aria-pressed",String(shoppingMode));
     modeStatus.textContent=shoppingMode?"買うものだけを分類・品物名順で表示中。チェックすると一覧から外れます。":"通常表示";
-    filterInput.disabled=shoppingMode;categoryFilterInput.disabled=shoppingMode;searchInput.disabled=shoppingMode;sortInput.disabled=shoppingMode;resetFiltersButton.disabled=shoppingMode;
+    filterInput.disabled=shoppingMode;categoryFilterInput.disabled=shoppingMode;assigneeFilterInput.disabled=shoppingMode;searchInput.disabled=shoppingMode;sortInput.disabled=shoppingMode;resetFiltersButton.disabled=shoppingMode;
     const full=entries.length>=LIMIT&&!editingId;
     nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;assigneeInput.disabled=full;plannedDateInput.disabled=full;purchaseMemoInput.disabled=full;submitButton.disabled=full;
   }
@@ -6476,9 +6489,10 @@ snsRefreshPosts.addEventListener("click", async () => {
   searchInput.addEventListener("input",render);
   resetFiltersButton.addEventListener("click",()=>{filterInput.value="week";typeFilterInput.value="all";searchInput.value="";render();});
   categoryFilterInput.addEventListener("change",render);
+  assigneeFilterInput.addEventListener("change",render);
   searchInput.addEventListener("input",render);
   sortInput.addEventListener("change",render);
-  resetFiltersButton.addEventListener("click",()=>{filterInput.value="all";categoryFilterInput.value="all";searchInput.value="";sortInput.value="newest";render();searchInput.focus();});
+  resetFiltersButton.addEventListener("click",()=>{filterInput.value="all";categoryFilterInput.value="all";assigneeFilterInput.value="all";searchInput.value="";sortInput.value="newest";render();searchInput.focus();});
   window.addEventListener("kokoro-family-shopping-updated",()=>{
     if(!ready)return;
     try{entries=readEntries();render();}
