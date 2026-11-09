@@ -6120,7 +6120,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       if(!added.length){status.textContent=current.length>=100?"買い物リストが上限の100件に達しています。":"7日分の買い物メモはすべて登録済みです。";return;}
       if(!confirm("今日から7日間の献立メモから"+added.length+"件を買い物リストに追加しますか？"+(unique.length>added.length?"\\n重複または上限のため"+(unique.length-added.length)+"件は追加しません。":"")))return;
       const now=Date.now(),next=[...current,...added.map((name,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealweek_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,8),name,quantity:"",category:"food",bought:false,createdAt:now+index}))];
-      try{localStorage.setItem(key,JSON.stringify(next));status.textContent=added.length+"件を7日分の献立から買い物リストに追加しました。";}
+      try{localStorage.setItem(key,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));status.textContent=added.length+"件を7日分の献立から買い物リストに追加しました。買い物リストにも反映しました。";}
       catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Weekly meal shopping rollback failed",rollbackError);}throw error;}
     }catch(error){console.error("Weekly meal shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
   });
@@ -6446,6 +6446,11 @@ snsRefreshPosts.addEventListener("click", async () => {
   searchInput.addEventListener("input",render);
   sortInput.addEventListener("change",render);
   resetFiltersButton.addEventListener("click",()=>{filterInput.value="all";categoryFilterInput.value="all";searchInput.value="";sortInput.value="newest";render();searchInput.focus();});
+  window.addEventListener("kokoro-family-shopping-updated",()=>{
+    if(!ready)return;
+    try{entries=readEntries();render();}
+    catch(error){console.error("Shopping list refresh failed",error);summaryEl.textContent="追加内容を表示できませんでした。リストを再読み込みしてください。";}
+  });
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.bought).length;
     if(count&&confirm("購入済みの"+count+"件を削除しますか？"))save(entries.filter(item=>!item.bought));
