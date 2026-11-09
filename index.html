@@ -276,6 +276,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0"><button type="button" id="familyShoppingModeToggle" aria-pressed="false">🛍️ 買い物中モードを開始</button><span id="familyShoppingModeStatus" role="status" aria-live="polite">通常表示</span></div>
 <p id="familyShoppingSummary" role="status" aria-live="polite">リストを読み込んでいます。</p>
 <p id="familyShoppingDueNotice" role="status" aria-live="polite" style="padding:10px;border-radius:10px;background:#fff8e8;color:#7a4b00"></p>
+<section id="familyShoppingWeeklyPlan" aria-label="週間買い物計画" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#f8f9fc"><h3 style="margin:0 0 8px">📅 週間買い物計画（今日から7日間）</h3><div id="familyShoppingWeeklyPlanContent" aria-live="polite">計画を読み込んでいます。</div></section>
 <div id="familyShoppingAssigneeSummary" aria-live="polite" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0"></div>
 <ul id="familyShoppingList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
 </section>
@@ -6254,6 +6255,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const assigneeFilterInput = document.getElementById("familyShoppingAssigneeFilter");
   const dueFilterInput = document.getElementById("familyShoppingDueFilter");
   const dueNoticeEl = document.getElementById("familyShoppingDueNotice");
+  const weeklyPlanEl = document.getElementById("familyShoppingWeeklyPlanContent");
   const assigneeSummaryEl = document.getElementById("familyShoppingAssigneeSummary");
   const searchInput = document.getElementById("familyShoppingSearch");
   const sortInput = document.getElementById("familyShoppingSort");
@@ -6338,6 +6340,31 @@ snsRefreshPosts.addEventListener("click", async () => {
     const overdueCount=pending.filter(item=>dueOffset(item)<0).length,todayCount=pending.filter(item=>dueOffset(item)===0).length,weekCount=pending.filter(item=>dueOffset(item)>=0&&dueOffset(item)<=7).length;
     dueNoticeEl.textContent="購入予定のお知らせ：期限超過 "+overdueCount+"件・今日 "+todayCount+"件・7日以内 "+weekCount+"件";
     dueNoticeEl.hidden=!pending.length;
+    weeklyPlanEl.replaceChildren();
+    const weekItems=pending.filter(item=>dueOffset(item)>=0&&dueOffset(item)<=7).sort((a,b)=>a.plannedDate.localeCompare(b.plannedDate,"ja")||(a.assignee||"").localeCompare(b.assignee||"","ja")||a.name.localeCompare(b.name,"ja"));
+    if(!weekItems.length){const empty=document.createElement("p");empty.textContent="今日から7日間に予定された買い物はありません。購入予定日を登録すると、ここに担当者別の計画が表示されます。";empty.style.margin="4px 0";weeklyPlanEl.append(empty);}
+    else {
+      const dateGroups=[...new Set(weekItems.map(item=>item.plannedDate))];
+      dateGroups.forEach(dateKey=>{
+        const dayItems=weekItems.filter(item=>item.plannedDate===dateKey);
+        const day=document.createElement("section");day.style.cssText="padding:9px 0;border-top:1px solid #e4e7ef";
+        const heading=document.createElement("h4");heading.style.margin="0 0 6px";
+        const date=new Date(dateKey+"T12:00:00");const weekday=["日","月","火","水","木","金","土"][date.getDay()];
+        heading.textContent=dateKey+"（"+weekday+"）・"+dayItems.length+"件";day.append(heading);
+        const byAssignee=new Map();
+        dayItems.forEach(item=>{const key=(item.assignee||"").trim()||"担当未設定";if(!byAssignee.has(key))byAssignee.set(key,[]);byAssignee.get(key).push(item);});
+        byAssignee.forEach((items,assignee)=>{
+          const group=document.createElement("div");group.style.cssText="margin:5px 0 8px 8px";
+          const owner=document.createElement("strong");owner.textContent=assignee+"（"+items.length+"件）";group.append(owner);
+          const list=document.createElement("ul");list.style.cssText="margin:3px 0;padding-left:20px";
+          items.forEach(item=>{const li=document.createElement("li");li.textContent=item.name+(item.quantity?" × "+item.quantity:"")+(item.category?" ・"+categories[item.category]:"");list.append(li);});
+          group.append(list);day.append(group);
+        });
+        weeklyPlanEl.append(day);
+      });
+    }
+    const noDateCount=entries.filter(item=>!item.bought&&!item.plannedDate).length;
+    if(noDateCount){const note=document.createElement("p");note.style.cssText="margin:8px 0 0;color:#667085;font-size:.9rem";note.textContent="購入予定日未設定："+noDateCount+"件（予定日を登録すると週間計画に追加されます）";weeklyPlanEl.append(note);}
     assigneeSummaryEl.replaceChildren();
     const groups=[...assignees.map(name=>({name,count:entries.filter(item=>!item.bought&&(item.assignee||"").trim()===name).length,total:entries.filter(item=>(item.assignee||"").trim()===name).length})),{name:"担当未設定",count:entries.filter(item=>!item.bought&&!item.assignee).length,total:entries.filter(item=>!item.assignee).length}];
     groups.forEach(group=>{if(!group.total)return;const card=document.createElement("button");card.type="button";card.style.cssText="text-align:left;padding:10px;border:1px solid #e4e7ef;border-radius:10px;background:#fff;color:inherit;display:grid;gap:3px";card.setAttribute("aria-label",group.name+"の未購入"+group.count+"件。絞り込む");const label=document.createElement("strong");label.textContent=group.name;const count=document.createElement("span");count.textContent="未購入 "+group.count+"件";const total=document.createElement("small");total.style.color="#667085";total.textContent="登録 "+group.total+"件";card.append(label,count,total);card.addEventListener("click",()=>{assigneeFilterInput.value=group.name==="担当未設定"?"__unassigned":group.name;render();});assigneeSummaryEl.append(card);});
