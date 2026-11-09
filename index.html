@@ -257,7 +257,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label for="familyShoppingAssignee">担当者（30文字以内）<input id="familyShoppingAssignee" maxlength="30" placeholder="例：お父さん"></label>
 <label for="familyShoppingPlannedDate">購入予定日<input id="familyShoppingPlannedDate" type="date"></label>
 </div>
-<label for="familyShoppingMemo">購入メモ（120文字以内）</label><textarea id="familyShoppingMemo" maxlength="120" rows="2" placeholder="例：特売日を確認、無糖タイプ"></textarea>
+<label for="familyShoppingAmount">予定金額・購入金額（円・任意）<input id="familyShoppingAmount" type="number" min="0" max="100000000" step="1" inputmode="numeric" placeholder="例：398"></label><label for="familyShoppingMemo">購入メモ（120文字以内）</label><textarea id="familyShoppingMemo" maxlength="120" rows="2" placeholder="例：特売日を確認、無糖タイプ"></textarea>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyShoppingSubmit">買い物リストに追加</button><button type="button" id="familyShoppingCancel" hidden>編集をやめる</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" id="familyShoppingExport">CSVを書き出す</button></div>
@@ -276,7 +276,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0"><button type="button" id="familyShoppingModeToggle" aria-pressed="false">🛍️ 買い物中モードを開始</button><span id="familyShoppingModeStatus" role="status" aria-live="polite">通常表示</span></div>
 <p id="familyShoppingSummary" role="status" aria-live="polite">リストを読み込んでいます。</p>
 <p id="familyShoppingDueNotice" role="status" aria-live="polite" style="padding:10px;border-radius:10px;background:#fff8e8;color:#7a4b00"></p>
-<section id="familyShoppingPurchaseHistory" aria-label="購入履歴と月間実績" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px"><h3 style="margin:0 0 8px">🧾 購入履歴・月間実績</h3><label for="familyShoppingHistoryMonth">集計する月</label> <input id="familyShoppingHistoryMonth" type="month"><div id="familyShoppingHistorySummary" role="status" aria-live="polite">購入履歴を読み込んでいます。</div><div id="familyShoppingHistoryBreakdown"></div><h4>よく買う商品</h4><p style="font-size:13px;color:#667085">購入履歴から頻度の高い商品をまとめています。ボタンで買い物リストに再登録できます。</p><div id="familyShoppingFrequentItems" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px"></div><p id="familyShoppingFrequentStatus" role="status" aria-live="polite"></p><h4>最近の購入履歴</h4><ul id="familyShoppingHistoryList" style="padding-left:20px"></ul></section>
+<section id="familyShoppingPurchaseHistory" aria-label="購入履歴と月間実績" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px"><h3 style="margin:0 0 8px">🧾 購入履歴・月間実績</h3><label for="familyShoppingHistoryMonth">集計する月</label> <input id="familyShoppingHistoryMonth" type="month"><div id="familyShoppingHistorySummary" role="status" aria-live="polite">購入履歴を読み込んでいます。</div><div style="display:grid;gap:6px;margin:10px 0;padding:10px;border:1px solid #e4e7ef;border-radius:10px"><label for="familyShoppingMonthlyBudget">この月の予算（円）</label><input id="familyShoppingMonthlyBudget" type="number" min="0" max="100000000" step="1" inputmode="numeric" placeholder="予算を入力"><div id="familyShoppingBudgetSummary" role="status" aria-live="polite"></div><small style="color:#667085">購入金額は登録した金額を実績として記録します。実際の金額と違う場合は、購入前に修正してください。</small></div><div id="familyShoppingHistoryBreakdown"></div><h4>よく買う商品</h4><p style="font-size:13px;color:#667085">購入履歴から頻度の高い商品をまとめています。ボタンで買い物リストに再登録できます。</p><div id="familyShoppingFrequentItems" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px"></div><p id="familyShoppingFrequentStatus" role="status" aria-live="polite"></p><h4>最近の購入履歴</h4><ul id="familyShoppingHistoryList" style="padding-left:20px"></ul></section>
 <section id="familyShoppingWeeklyPlan" aria-label="週間買い物計画" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#f8f9fc"><h3 style="margin:0 0 8px">📅 週間買い物計画（今日から7日間）</h3><div id="familyShoppingWeeklyPlanContent" aria-live="polite">計画を読み込んでいます。</div></section>
 <div id="familyShoppingAssigneeSummary" aria-live="polite" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0"></div>
 <ul id="familyShoppingList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
@@ -6251,6 +6251,8 @@ snsRefreshPosts.addEventListener("click", async () => {
   const assigneeInput = document.getElementById("familyShoppingAssignee");
   const plannedDateInput = document.getElementById("familyShoppingPlannedDate");
   const purchaseMemoInput = document.getElementById("familyShoppingMemo");
+  const amountInput=document.getElementById("familyShoppingAmount"),monthlyBudgetInput=document.getElementById("familyShoppingMonthlyBudget"),budgetSummaryEl=document.getElementById("familyShoppingBudgetSummary");
+  const BUDGET_KEY="kokoroFamilyShoppingBudgetsV1";let monthlyBudgets={};
   const filterInput = document.getElementById("familyShoppingFilter");
   const categoryFilterInput = document.getElementById("familyShoppingCategoryFilter");
   const assigneeFilterInput = document.getElementById("familyShoppingAssigneeFilter");
@@ -6293,15 +6295,23 @@ snsRefreshPosts.addEventListener("click", async () => {
       (item.assignee===undefined||(typeof item.assignee==="string"&&item.assignee.length<=30)) &&
       (item.plannedDate===undefined||(typeof item.plannedDate==="string"&&validDate(item.plannedDate))) &&
       (item.purchaseMemo===undefined||(typeof item.purchaseMemo==="string"&&item.purchaseMemo.length<=120)) &&
+      (item.amount===undefined||(Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=100000000)) &&
       Number.isSafeInteger(item.createdAt) && item.createdAt > 0;
   }
-  function validPurchaseRecord(item){return !!item&&typeof item==="object"&&typeof item.id==="string"&&item.id.length<=64&&typeof item.name==="string"&&item.name.length<=60&&typeof item.category==="string"&&Object.hasOwn(categories,item.category)&&typeof item.quantity==="string"&&item.quantity.length<=20&&typeof item.assignee==="string"&&item.assignee.length<=30&&typeof item.purchasedAt==="string"&&/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(item.purchasedAt)&&(!item.plannedDate||validDate(item.plannedDate));}
+  function validPurchaseRecord(item){return !!item&&typeof item==="object"&&typeof item.id==="string"&&item.id.length<=64&&typeof item.name==="string"&&item.name.length<=60&&typeof item.category==="string"&&Object.hasOwn(categories,item.category)&&typeof item.quantity==="string"&&item.quantity.length<=20&&typeof item.assignee==="string"&&item.assignee.length<=30&&typeof item.purchasedAt==="string"&&/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(item.purchasedAt)&&(!item.plannedDate||validDate(item.plannedDate))&&(item.amount===undefined||(Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=100000000));}
   function readHistory(){const raw=localStorage.getItem(HISTORY_KEY);if(raw===null)return [];const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>HISTORY_LIMIT||!data.every(validPurchaseRecord))throw new Error("invalid shopping history");return data;}
-  function recordPurchase(item){const record={id:item.id,name:item.name,category:item.category,quantity:item.quantity,assignee:(item.assignee||"").trim(),plannedDate:item.plannedDate||"",purchasedAt:new Date().toISOString()};const next=[record,...purchaseHistory].slice(0,HISTORY_LIMIT);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(next));purchaseHistory=next;renderHistory();return true;}catch(error){console.error("Shopping history save failed",error);return false;}}
+  function recordPurchase(item){const record={id:item.id,name:item.name,category:item.category,quantity:item.quantity,assignee:(item.assignee||"").trim(),plannedDate:item.plannedDate||"",amount:Number.isSafeInteger(item.amount)?item.amount:null,purchasedAt:new Date().toISOString()};const next=[record,...purchaseHistory].slice(0,HISTORY_LIMIT);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(next));purchaseHistory=next;renderHistory();return true;}catch(error){console.error("Shopping history save failed",error);return false;}}
   function renderHistory(){
     const month=historyMonthInput.value||localDateKey().slice(0,7);
     const selected=purchaseHistory.filter(item=>localDateKey(new Date(item.purchasedAt)).slice(0,7)===month);
     historySummaryEl.textContent=month+"の購入実績："+selected.length+"件（累計保存 "+purchaseHistory.length+"件）";
+    const budget=Object.hasOwn(monthlyBudgets,month)?monthlyBudgets[month]:"";
+    monthlyBudgetInput.value=budget===""?"":String(budget);
+    const knownAmounts=selected.filter(item=>Number.isSafeInteger(item.amount));
+    const actual=knownAmounts.reduce((sum,item)=>sum+item.amount,0);
+    const planned=entries.filter(item=>!item.bought&&Number.isSafeInteger(item.amount)).reduce((sum,item)=>sum+item.amount,0);
+    const budgetText=budget===""?"予算未設定":("予算 "+Number(budget).toLocaleString("ja-JP")+"円");
+    budgetSummaryEl.textContent=budgetText+"・"+month+"の購入実績 "+actual.toLocaleString("ja-JP")+"円（金額記録 "+knownAmounts.length+"件）・未購入リストの予定金額 "+planned.toLocaleString("ja-JP")+"円"+(budget===""?"": "・予算残り "+(Number(budget)-actual).toLocaleString("ja-JP")+"円");
     historyBreakdownEl.replaceChildren();historyListEl.replaceChildren();
     const frequentEl=document.getElementById("familyShoppingFrequentItems");
     const frequentStatusEl=document.getElementById("familyShoppingFrequentStatus");
@@ -6309,8 +6319,8 @@ snsRefreshPosts.addEventListener("click", async () => {
     const groups=new Map();
     purchaseHistory.forEach(item=>{
       const key=[item.name.trim().toLocaleLowerCase(),item.category,item.quantity.trim().toLocaleLowerCase()].join("\u0000");
-      if(!groups.has(key))groups.set(key,{name:item.name,category:item.category,quantity:item.quantity,count:0,last:item.purchasedAt,assignees:new Map()});
-      const group=groups.get(key);group.count++;if(item.purchasedAt>group.last)group.last=item.purchasedAt;
+      if(!groups.has(key))groups.set(key,{name:item.name,category:item.category,quantity:item.quantity,count:0,last:item.purchasedAt,amount:null,assignees:new Map()});
+      const group=groups.get(key);group.count++;if(item.purchasedAt>group.last)group.last=item.purchasedAt;if(Number.isSafeInteger(item.amount))group.amount=item.amount;
       const owner=item.assignee||"";if(owner)group.assignees.set(owner,(group.assignees.get(owner)||0)+1);
     });
     const frequent=[...groups.values()].sort((a,b)=>b.count-a.count||b.last.localeCompare(a.last)).slice(0,12);
@@ -6318,7 +6328,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     frequent.forEach(group=>{
       const card=document.createElement("div");card.style.cssText="padding:10px;border:1px solid #e4e7ef;border-radius:10px;display:grid;gap:5px";
       const title=document.createElement("strong");title.textContent=group.name;
-      const detail=document.createElement("small");detail.style.color="#667085";detail.textContent=categories[group.category]+(group.quantity?"・"+group.quantity:"")+"・購入 "+group.count+"回";
+      const detail=document.createElement("small");detail.style.color="#667085";detail.textContent=categories[group.category]+(group.quantity?"・"+group.quantity:"")+"・購入 "+group.count+"回"+(Number.isSafeInteger(group.amount)?"・約"+group.amount.toLocaleString("ja-JP")+"円":"");
       const button=document.createElement("button");button.type="button";button.textContent="＋ リストに再登録";
       button.addEventListener("click",()=>{
         if(!ready){frequentStatusEl.textContent="買い物リストの準備ができていません。";return;}
@@ -6327,7 +6337,7 @@ snsRefreshPosts.addEventListener("click", async () => {
         if(duplicate){frequentStatusEl.textContent="「"+group.name+"」は未購入リストに登録済みです。重複追加はしませんでした。";filterInput.value="needed";searchInput.value=group.name;render();return;}
         const assignee=[...group.assignees].sort((a,b)=>b[1]-a[1])[0]?.[0]||"";
         const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
-        const next=[...entries,{id,name:group.name,quantity:group.quantity,category:group.category,assignee,plannedDate:"",purchaseMemo:"",bought:false,createdAt:Date.now()}];
+        const next=[...entries,{id,name:group.name,quantity:group.quantity,category:group.category,assignee,plannedDate:"",purchaseMemo:"",amount:group.amount,bought:false,createdAt:Date.now()}];
         if(save(next)){frequentStatusEl.textContent="「"+group.name+"」を買い物リストに再登録しました。購入予定日は必要に応じて設定してください。";filterInput.value="needed";searchInput.value=group.name;render();}
         else frequentStatusEl.textContent="再登録できませんでした。保存容量を確認してください。";
       });
@@ -6450,12 +6460,13 @@ snsRefreshPosts.addEventListener("click", async () => {
       if(item.assignee)details.push("担当："+item.assignee);
       if(item.plannedDate)details.push("購入予定："+item.plannedDate);
       if(item.purchaseMemo)details.push("メモ："+item.purchaseMemo);
+      if(Number.isSafeInteger(item.amount))details.push("金額："+item.amount.toLocaleString("ja-JP")+"円");
       const detail=document.createElement("small");detail.style.cssText="color:#475467;white-space:pre-wrap;overflow-wrap:anywhere";detail.textContent=details.join("　｜　");detail.hidden=!details.length;
       const offset=dueOffset(item);const dueLabel=document.createElement("strong");dueLabel.style.cssText="font-size:.88rem;width:max-content;padding:3px 8px;border-radius:999px";
       if(!item.bought&&offset!==null){if(offset<0){dueLabel.textContent="期限超過："+item.plannedDate;dueLabel.style.cssText+=";background:#fde8e7;color:#9b2420";}else if(offset===0){dueLabel.textContent="今日購入："+item.plannedDate;dueLabel.style.cssText+=";background:#fff0d6;color:#8a4b00";}else if(offset===1){dueLabel.textContent="明日購入："+item.plannedDate;dueLabel.style.cssText+=";background:#fff7df;color:#805500";}else if(offset<=7){dueLabel.textContent="7日以内："+item.plannedDate;dueLabel.style.cssText+=";background:#eef4ff;color:#284b8f";}else{dueLabel.textContent="購入予定："+item.plannedDate;dueLabel.style.cssText+=";background:#f2f4f7;color:#475467";}}else dueLabel.hidden=true;
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
       const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
-      edit.addEventListener("click",()=>{editingId=item.id;nameInput.value=item.name;quantityInput.value=item.quantity;categoryInput.value=item.category;assigneeInput.value=item.assignee||"";plannedDateInput.value=item.plannedDate||"";purchaseMemoInput.value=item.purchaseMemo||"";submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
+      edit.addEventListener("click",()=>{editingId=item.id;nameInput.value=item.name;quantityInput.value=item.quantity;categoryInput.value=item.category;assigneeInput.value=item.assignee||"";plannedDateInput.value=item.plannedDate||"";purchaseMemoInput.value=item.purchaseMemo||"";amountInput.value=Number.isSafeInteger(item.amount)?String(item.amount):"";submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」を削除しますか？"))save(entries.filter(entry=>entry.id!==item.id));});
       if(!shoppingMode)actions.append(edit,remove);
@@ -6468,9 +6479,9 @@ snsRefreshPosts.addEventListener("click", async () => {
     modeStatus.textContent=shoppingMode?"買うものだけを分類・品物名順で表示中。チェックすると一覧から外れます。":"通常表示";
     filterInput.disabled=shoppingMode;categoryFilterInput.disabled=shoppingMode;assigneeFilterInput.disabled=shoppingMode;dueFilterInput.disabled=shoppingMode;searchInput.disabled=shoppingMode;sortInput.disabled=shoppingMode;resetFiltersButton.disabled=shoppingMode;
     const full=entries.length>=LIMIT&&!editingId;
-    nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;assigneeInput.disabled=full;plannedDateInput.disabled=full;purchaseMemoInput.disabled=full;submitButton.disabled=full;
+    nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;assigneeInput.disabled=full;plannedDateInput.disabled=full;purchaseMemoInput.disabled=full;amountInput.disabled=full;submitButton.disabled=full;
   }
-  try { entries=readEntries();ready=true;historyMonthInput.value=localDateKey().slice(0,7);try{purchaseHistory=readHistory();renderHistory();}catch(historyError){console.error("Shopping history validation failed",historyError);purchaseHistory=[];historySummaryEl.textContent="購入履歴を読み込めませんでした。買い物リスト本体は引き続き利用できます。";}render(); }
+  try { entries=readEntries();ready=true;try{const savedBudget=localStorage.getItem(BUDGET_KEY);if(savedBudget!==null){monthlyBudgets=JSON.parse(savedBudget);if(!monthlyBudgets||typeof monthlyBudgets!=="object"||Array.isArray(monthlyBudgets)||Object.entries(monthlyBudgets).some(([key,value])=>!/^[0-9]{4}-[0-9]{2}$/.test(key)||!Number.isSafeInteger(value)||value<0||value>100000000))throw new Error("invalid budgets");}}catch(budgetError){monthlyBudgets={};budgetSummaryEl.textContent="予算データを読み込めませんでした。";}historyMonthInput.value=localDateKey().slice(0,7);try{purchaseHistory=readHistory();renderHistory();}catch(historyError){console.error("Shopping history validation failed",historyError);purchaseHistory=[];historySummaryEl.textContent="購入履歴を読み込めませんでした。買い物リスト本体は引き続き利用できます。";}render(); }
   catch(error) {
     console.error("Shopping list validation failed",error);
     summaryEl.textContent="保存データに問題があるため、上書きせず保護しました。";
@@ -6478,12 +6489,14 @@ snsRefreshPosts.addEventListener("click", async () => {
     filterInput.disabled=false;return;
   }
   historyMonthInput.addEventListener("change",renderHistory);
+  monthlyBudgetInput.addEventListener("change",()=>{const month=historyMonthInput.value||localDateKey().slice(0,7),raw=monthlyBudgetInput.value.trim(),value=raw===""?null:Number(raw);if(value!==null&&(!Number.isSafeInteger(value)||value<0||value>100000000)){budgetSummaryEl.textContent="予算は0〜100,000,000円の整数で入力してください。";return;}const next={...monthlyBudgets};if(value===null)delete next[month];else next[month]=value;try{localStorage.setItem(BUDGET_KEY,JSON.stringify(next));monthlyBudgets=next;renderHistory();}catch(error){budgetSummaryEl.textContent="予算を保存できませんでした。端末の空き容量を確認してください。";}});
   modeToggle.addEventListener("click",()=>{shoppingMode=!shoppingMode;render();});
   form.addEventListener("submit",event=>{
     event.preventDefault();
     const name=nameInput.value.trim(),quantity=quantityInput.value.trim(),assignee=assigneeInput.value.trim(),plannedDate=plannedDateInput.value,purchaseMemo=purchaseMemoInput.value.trim();
-    if(!name||name.length>60||quantity.length>20||assignee.length>30||purchaseMemo.length>120||!validDate(plannedDate)||!Object.hasOwn(categories,categoryInput.value)){summaryEl.textContent="入力内容を確認してください。購入予定日は正しい日付を指定してください。";return;}
-    const metadata={assignee,plannedDate,purchaseMemo};
+    const amountRaw=amountInput.value.trim(),amount=amountRaw===""?null:Number(amountRaw);
+    if(!name||name.length>60||quantity.length>20||assignee.length>30||purchaseMemo.length>120||!validDate(plannedDate)||!Object.hasOwn(categories,categoryInput.value)||(amount!==null&&(!Number.isSafeInteger(amount)||amount<0||amount>100000000))){summaryEl.textContent="入力内容を確認してください。金額は0〜100,000,000円の整数で入力してください。";return;}
+    const metadata={assignee,plannedDate,purchaseMemo,amount};
     if(editingId){
       const current=entries.find(item=>item.id===editingId);if(!current)return;
       const next=entries.map(item=>item.id===editingId?{...item,name,quantity,category:categoryInput.value,...metadata}:item);
@@ -6491,7 +6504,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     }else{
       if(entries.length>=LIMIT)return;
       const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
-      if(save([...entries,{id,name,quantity,category:categoryInput.value,...metadata,bought:false,createdAt:Date.now()}])){nameInput.value="";quantityInput.value="";assigneeInput.value="";plannedDateInput.value="";purchaseMemoInput.value="";nameInput.focus();}
+      if(save([...entries,{id,name,quantity,category:categoryInput.value,...metadata,bought:false,createdAt:Date.now()}])){nameInput.value="";quantityInput.value="";assigneeInput.value="";plannedDateInput.value="";purchaseMemoInput.value="";amountInput.value="";nameInput.focus();}
     }
   });
   exportButton.addEventListener("click",()=>{
@@ -6501,9 +6514,9 @@ snsRefreshPosts.addEventListener("click", async () => {
       return /^[\s]*[=+\-@]/.test(text)?"'"+text:text;
     };
     const quote=value=>'"'+safe(value).replace(/"/g,'""')+'"';
-    const rows=[["品物","数量・メモ","分類","購入状況","登録日時","担当者","購入予定日","購入メモ"],...entries
+    const rows=[["品物","数量・メモ","分類","購入状況","登録日時","担当者","購入予定日","購入メモ","予定金額・購入金額"],...entries
       .slice().sort((a,b)=>a.createdAt-b.createdAt)
-      .map(item=>[item.name,item.quantity,categories[item.category],item.bought?"購入済み":"未購入",new Date(item.createdAt).toLocaleString("ja-JP"),item.assignee||"",item.plannedDate||"",item.purchaseMemo||""])];
+      .map(item=>[item.name,item.quantity,categories[item.category],item.bought?"購入済み":"未購入",new Date(item.createdAt).toLocaleString("ja-JP"),item.assignee||"",item.plannedDate||"",item.purchaseMemo||"",Number.isSafeInteger(item.amount)?item.amount:""])];
     const csv="\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\r\n");
     try{
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
@@ -6545,18 +6558,21 @@ snsRefreshPosts.addEventListener("click", async () => {
       const rows=parseCSV(source);
       const legacyHeader=["品物","数量・メモ","分類","購入状況","登録日時"];
       const extendedHeader=[...legacyHeader,"担当者","購入予定日","購入メモ"];
+      const pricedHeader=[...extendedHeader,"予定金額・購入金額"];
+      const priced=rows.length>0&&rows[0].length===pricedHeader.length&&pricedHeader.every((value,index)=>rows[0][index]===value);
       const extended=rows.length>0&&rows[0].length===extendedHeader.length&&extendedHeader.every((value,index)=>rows[0][index]===value);
       const legacy=rows.length>0&&rows[0].length===legacyHeader.length&&legacyHeader.every((value,index)=>rows[0][index]===value);
-      if(!extended&&!legacy)throw new Error("unexpected CSV header");
+      if(!priced&&!extended&&!legacy)throw new Error("unexpected CSV header");
       if(rows.length>101)throw new Error("too many rows");
       const categoryByLabel={"食べもの":"food","日用品":"daily","文房具":"stationery","その他":"other"};
       const imported=rows.slice(1).map(row=>{
-        if(row.length!==(extended?8:5))throw new Error("invalid CSV columns");
-        const [name,quantity,category,bought,,assignee="",plannedDate="",purchaseMemo=""]=row;
+        if(row.length!==(priced?9:(extended?8:5)))throw new Error("invalid CSV columns");
+        const [name,quantity,category,bought,,assignee="",plannedDate="",purchaseMemo="",amountText=""]=row;
+        const amount=amountText===""?null:Number(amountText);
         if(typeof name!=="string"||!name.trim()||name.trim().length>60||quantity.length>20||assignee.length>30||purchaseMemo.length>120||!validDate(plannedDate)||
-          !Object.hasOwn(categoryByLabel,category)||!["購入済み","未購入"].includes(bought))
+          !Object.hasOwn(categoryByLabel,category)||!["購入済み","未購入"].includes(bought)||(amount!==null&&(!Number.isSafeInteger(amount)||amount<0||amount>100000000)))
           throw new Error("invalid CSV value");
-        return {name:name.trim(),quantity:quantity.trim(),category:categoryByLabel[category],bought:bought==="購入済み",assignee:assignee.trim(),plannedDate,purchaseMemo:purchaseMemo.trim()};
+        return {name:name.trim(),quantity:quantity.trim(),category:categoryByLabel[category],bought:bought==="購入済み",assignee:assignee.trim(),plannedDate,purchaseMemo:purchaseMemo.trim(),amount};
       });
       if(!imported.length){exportStatus.textContent="CSVに取り込める品物がありません。";return;}
       const existing=new Set(entries.map(item=>item.name.trim().toLocaleLowerCase()));
