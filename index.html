@@ -7277,6 +7277,27 @@ snsRefreshPosts.addEventListener("click", async () => {
   if(!report||!status||!refresh||!printButton||!shoppingAddButton)return;
   const keys={tasks:"kokoroFamilyTasksV1",calendar:"kokoroFamilyCalendarV1",meals:"kokoroFamilyMealsV1",shopping:"kokoroFamilyShoppingV1"};
   const dateText=value=>{const [y,m,d]=value.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",weekday:"short"});};
+  const prepKey="kokoroFamilyEventPrepV1";
+  const readPrepChecks=()=>{
+    const raw=localStorage.getItem(prepKey);if(raw===null)return [];
+    const data=JSON.parse(raw);
+    if(!Array.isArray(data)||data.length>500||!data.every(item=>item&&typeof item==="object"&&typeof item.eventId==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(item.eventId)&&typeof item.name==="string"&&item.name.trim().length>0&&item.name.length<=60&&typeof item.done==="boolean"))throw new Error("invalid event preparation checks");
+    if(new Set(data.map(item=>item.eventId+"|"+item.name.toLocaleLowerCase())).size!==data.length)throw new Error("duplicate event preparation checks");
+    return data;
+  };
+  const savePrepCheck=(eventId,name,done)=>{
+    let raw=null,current=[];
+    try{
+      raw=localStorage.getItem(prepKey);current=readPrepChecks();
+      const key=eventId+"|"+name.toLocaleLowerCase();
+      const next=current.filter(item=>item.eventId+"|"+item.name.toLocaleLowerCase()!==key);
+      if(done)next.push({eventId,name,done:true});
+      if(next.length>500)throw new Error("preparation check limit");
+      try{if(next.length)localStorage.setItem(prepKey,JSON.stringify(next));else localStorage.removeItem(prepKey);}
+      catch(error){try{if(raw===null)localStorage.removeItem(prepKey);else localStorage.setItem(prepKey,raw);}catch(rollbackError){console.error("Event preparation rollback failed",rollbackError);}throw error;}
+      return true;
+    }catch(error){console.error("Event preparation save failed",error);status.textContent="準備チェックを保存できませんでした。もう一度お試しください。";return false;}
+  };
   const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
   const addDays=(value,n)=>{const [y,m,d]=value.split("-").map(Number),date=new Date(y,m-1,d);date.setDate(date.getDate()+n);return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");};
   const read=(key,validate,limit)=>{const raw=localStorage.getItem(key);if(raw===null)return [];const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>limit||!data.every(validate)||new Set(data.map(x=>x.id)).size!==data.length)throw new Error("保存データを確認できません");return data;};
@@ -7315,6 +7336,25 @@ snsRefreshPosts.addEventListener("click", async () => {
           const names=match?match[1].split(/[、,，;；\s　]+/).map(value=>value.trim()).filter(value=>value&&value.length<=60):[];
           const line=document.createElement("p");line.textContent=event.title+"："+(names.length?names.join("・"):"持ち物を確認してください");itemPrep.append(line);
           if(!names.length)return;
+          let checks=[];
+          try{checks=readPrepChecks();}catch(error){console.error("Event preparation checks could not be read",error);status.textContent="準備チェックを読み込めません。保存データを確認してください。";}
+          const checklist=document.createElement("div");checklist.style.cssText="display:grid;gap:6px;margin:8px 0 12px";
+          names.forEach(name=>{
+            const checked=checks.some(item=>item.eventId===event.id&&item.name.toLocaleLowerCase()===name.toLocaleLowerCase()&&item.done);
+            const label=document.createElement("label");label.style.cssText="display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border:1px solid #e4e7ef;border-radius:9px;background:#fff";
+            const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=checked;checkbox.setAttribute("aria-label",event.title+"の"+name+"の準備完了");
+            checkbox.style.cssText="width:20px;height:20px;flex:0 0 auto";
+            const text=document.createElement("span");text.textContent=name;text.style.cssText=checked?"text-decoration:line-through;color:#667085":"";
+            checkbox.addEventListener("change",()=>{
+              if(!savePrepCheck(event.id,name,checkbox.checked)){checkbox.checked=!checkbox.checked;return;}
+              text.style.cssText=checkbox.checked?"text-decoration:line-through;color:#667085":"";
+              const completed=checklist.querySelectorAll('input[type="checkbox"]:checked').length;
+              progress.textContent=completed+"/"+names.length+" 準備完了";
+            });
+            label.append(checkbox,text);checklist.append(label);
+          });
+          const progress=document.createElement("small");progress.textContent=checklist.querySelectorAll('input[type="checkbox"]:checked').length+"/"+names.length+" 準備完了";
+          itemPrep.append(checklist,progress);
           const button=document.createElement("button");button.type="button";button.textContent="買い物リストに追加";
           button.addEventListener("click",()=>{
             const key="kokoroFamilyShoppingV1";let raw=null,current=[];
