@@ -95,7 +95,7 @@ service cloud.firestore {
 
     // Existing private room data: keep this path owner-only and unchanged.
     match /users/{userId}/kokoro/{documentId} {
-      allow read, write: if owns(userId) && documentId == "data";
+      allow read, write: if owns(userId) && documentId in ["data", "shopping"];
     }
 
     // A user may create or remove only their own block records.
