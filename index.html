@@ -7197,15 +7197,15 @@ snsRefreshPosts.addEventListener("click", async () => {
           if(!valid(current))throw new Error("invalid shopping data");
           const existing=new Set(current.map(x=>x.name.trim().toLocaleLowerCase()));
           const candidates=[],seen=new Set(existing);
-          const quantityPattern=/^(適量|少々|ひとつまみ|[0-9０-９]+(?:[./／][0-9０-９]+)?(?:〜|～|-)?[0-9０-９]*(?:\\s*)(?:kg|g|mg|L|ml|cc|個|本|枚|袋|パック|束|缶|箱|丁|切れ|杯|合|大さじ|小さじ|カップ|玉|房|株|片|尾|匹|人分))$/i;
-          for(const line of recipe.ingredients.split(/\\r?\\n/)){
-            const value=line.trim().replace(/^[・•*\\-]+\\s*/,"");
+          const quantityPattern=/^(適量|少々|ひとつまみ|[0-9０-９]+(?:[./／][0-9０-９]+)?(?:〜|～|-)?[0-9０-９]*(?:\s*)(?:kg|g|mg|L|ml|cc|個|本|枚|袋|パック|束|缶|箱|丁|切れ|杯|合|大さじ|小さじ|カップ|玉|房|株|片|尾|匹|人分))$/i;
+          for(const line of recipe.ingredients.split(/\r?\n/)){
+            const value=line.trim().replace(/^[・•*\\-]+\s*/,"");
             if(!value)continue;
             let name=value,quantity="";
-            const separated=value.match(/^(.+?)[：:=]\\s*(.+)$/);
+            const separated=value.match(/^(.+?)[：:=]\s*(.+)$/);
             if(separated&&quantityPattern.test(separated[2].trim())){name=separated[1].trim();quantity=separated[2].trim();}
             else{
-              const spaced=value.match(/^(.+?)[\\s　]+(適量|少々|ひとつまみ|[0-9０-９]+(?:[./／][0-9０-９]+)?(?:〜|～|-)?[0-9０-９]*(?:\\s*)(?:kg|g|mg|L|ml|cc|個|本|枚|袋|パック|束|缶|箱|丁|切れ|杯|合|大さじ|小さじ|カップ|玉|房|株|片|尾|匹|人分))$/i);
+              const spaced=value.match(/^(.+?)[\s　]+(適量|少々|ひとつまみ|[0-9０-９]+(?:[./／][0-9０-９]+)?(?:〜|～|-)?[0-9０-９]*(?:\s*)(?:kg|g|mg|L|ml|cc|個|本|枚|袋|パック|束|缶|箱|丁|切れ|杯|合|大さじ|小さじ|カップ|玉|房|株|片|尾|匹|人分))$/i);
               if(spaced){name=spaced[1].trim();quantity=spaced[2].trim();}
             }
             if(name.length<1||name.length>60||quantity.length>20)continue;
@@ -7215,7 +7215,7 @@ snsRefreshPosts.addEventListener("click", async () => {
           }
           const remaining=100-current.length,added=candidates.slice(0,remaining);
           if(!added.length){status.textContent=current.length>=100?"買い物リストの上限100件に達しています。":"追加できる新しい材料がありません（登録済み・空欄・文字数超過）。";return;}
-          if(!confirm("「"+recipe.title+"」の材料から"+added.length+"件を買い物リストに追加しますか？\\n"+added.slice(0,8).map(item=>item.name+(item.quantity?" × "+item.quantity:"")).join("、")+(added.length>8?" ほか":"")+(candidates.length>added.length?"\\n上限のため"+(candidates.length-added.length)+"件は追加されません。":"")))return;
+          if(!confirm("「"+recipe.title+"」の材料から"+added.length+"件を買い物リストに追加しますか？\n"+added.slice(0,8).map(item=>item.name+(item.quantity?" × "+item.quantity:"")).join("、")+(added.length>8?" ほか":"")+(candidates.length>added.length?"\n上限のため"+(candidates.length-added.length)+"件は追加されません。":"")))return;
           const now=Date.now();
           const next=[...current,...added.map((item,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+(now+index).toString(36)+"_"+Math.random().toString(36).slice(2,10),name:item.name,quantity:item.quantity,category:"food",bought:false,createdAt:now+index}))];
           const previous=raw;
