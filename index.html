@@ -276,7 +276,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0"><button type="button" id="familyShoppingModeToggle" aria-pressed="false">🛍️ 買い物中モードを開始</button><span id="familyShoppingModeStatus" role="status" aria-live="polite">通常表示</span></div>
 <p id="familyShoppingSummary" role="status" aria-live="polite">リストを読み込んでいます。</p>
 <p id="familyShoppingDueNotice" role="status" aria-live="polite" style="padding:10px;border-radius:10px;background:#fff8e8;color:#7a4b00"></p>
-<section id="familyShoppingPurchaseHistory" aria-label="購入履歴と月間実績" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px"><h3 style="margin:0 0 8px">🧾 購入履歴・月間実績</h3><label for="familyShoppingHistoryMonth">集計する月</label> <input id="familyShoppingHistoryMonth" type="month"><div id="familyShoppingHistorySummary" role="status" aria-live="polite">購入履歴を読み込んでいます。</div><div id="familyShoppingHistoryBreakdown"></div><h4>最近の購入履歴</h4><ul id="familyShoppingHistoryList" style="padding-left:20px"></ul></section>
+<section id="familyShoppingPurchaseHistory" aria-label="購入履歴と月間実績" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px"><h3 style="margin:0 0 8px">🧾 購入履歴・月間実績</h3><label for="familyShoppingHistoryMonth">集計する月</label> <input id="familyShoppingHistoryMonth" type="month"><div id="familyShoppingHistorySummary" role="status" aria-live="polite">購入履歴を読み込んでいます。</div><div id="familyShoppingHistoryBreakdown"></div><h4>よく買う商品</h4><p style="font-size:13px;color:#667085">購入履歴から頻度の高い商品をまとめています。ボタンで買い物リストに再登録できます。</p><div id="familyShoppingFrequentItems" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px"></div><p id="familyShoppingFrequentStatus" role="status" aria-live="polite"></p><h4>最近の購入履歴</h4><ul id="familyShoppingHistoryList" style="padding-left:20px"></ul></section>
 <section id="familyShoppingWeeklyPlan" aria-label="週間買い物計画" style="margin:12px 0;padding:12px;border:1px solid #e4e7ef;border-radius:12px;background:#f8f9fc"><h3 style="margin:0 0 8px">📅 週間買い物計画（今日から7日間）</h3><div id="familyShoppingWeeklyPlanContent" aria-live="polite">計画を読み込んでいます。</div></section>
 <div id="familyShoppingAssigneeSummary" aria-live="polite" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0"></div>
 <ul id="familyShoppingList" style="list-style:none;padding:0;display:grid;gap:8px"></ul>
@@ -6298,7 +6298,51 @@ snsRefreshPosts.addEventListener("click", async () => {
   function validPurchaseRecord(item){return !!item&&typeof item==="object"&&typeof item.id==="string"&&item.id.length<=64&&typeof item.name==="string"&&item.name.length<=60&&typeof item.category==="string"&&Object.hasOwn(categories,item.category)&&typeof item.quantity==="string"&&item.quantity.length<=20&&typeof item.assignee==="string"&&item.assignee.length<=30&&typeof item.purchasedAt==="string"&&/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(item.purchasedAt)&&(!item.plannedDate||validDate(item.plannedDate));}
   function readHistory(){const raw=localStorage.getItem(HISTORY_KEY);if(raw===null)return [];const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>HISTORY_LIMIT||!data.every(validPurchaseRecord))throw new Error("invalid shopping history");return data;}
   function recordPurchase(item){const record={id:item.id,name:item.name,category:item.category,quantity:item.quantity,assignee:(item.assignee||"").trim(),plannedDate:item.plannedDate||"",purchasedAt:new Date().toISOString()};const next=[record,...purchaseHistory].slice(0,HISTORY_LIMIT);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(next));purchaseHistory=next;renderHistory();return true;}catch(error){console.error("Shopping history save failed",error);return false;}}
-  function renderHistory(){const month=historyMonthInput.value||localDateKey().slice(0,7);const selected=purchaseHistory.filter(item=>localDateKey(new Date(item.purchasedAt)).slice(0,7)===month);historySummaryEl.textContent=month+"の購入実績："+selected.length+"件（累計保存 "+purchaseHistory.length+"件）";historyBreakdownEl.replaceChildren();historyListEl.replaceChildren();if(!selected.length){const empty=document.createElement("p");empty.textContent="この月の購入履歴はありません。商品を購入済みにすると記録されます。";historyListEl.append(empty);return;}const categoriesCount=new Map();const assigneeCount=new Map();selected.forEach(item=>{categoriesCount.set(categories[item.category],(categoriesCount.get(categories[item.category])||0)+1);const owner=item.assignee||"担当未設定";assigneeCount.set(owner,(assigneeCount.get(owner)||0)+1);});const breakdown=document.createElement("div");breakdown.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0";[...categoriesCount].forEach(([name,count])=>{const card=document.createElement("div");card.style.cssText="padding:9px;border:1px solid #e4e7ef;border-radius:9px";card.textContent=name+"："+count+"件";breakdown.append(card);});[...assigneeCount].sort((a,b)=>b[1]-a[1]).forEach(([name,count])=>{const card=document.createElement("div");card.style.cssText="padding:9px;border:1px solid #e4e7ef;border-radius:9px";card.textContent="担当 "+name+"："+count+"件";breakdown.append(card);});historyBreakdownEl.append(breakdown);selected.slice(0,30).forEach(item=>{const li=document.createElement("li");const time=new Date(item.purchasedAt);li.textContent=time.toLocaleDateString("ja-JP")+"："+item.name+(item.quantity?" × "+item.quantity:"")+"（"+categories[item.category]+"・"+(item.assignee||"担当未設定")+"）";historyListEl.append(li);});if(selected.length>30){const more=document.createElement("li");more.textContent="ほか "+(selected.length-30)+"件（履歴は最新30件を表示）";historyListEl.append(more);}}
+  function renderHistory(){
+    const month=historyMonthInput.value||localDateKey().slice(0,7);
+    const selected=purchaseHistory.filter(item=>localDateKey(new Date(item.purchasedAt)).slice(0,7)===month);
+    historySummaryEl.textContent=month+"の購入実績："+selected.length+"件（累計保存 "+purchaseHistory.length+"件）";
+    historyBreakdownEl.replaceChildren();historyListEl.replaceChildren();
+    const frequentEl=document.getElementById("familyShoppingFrequentItems");
+    const frequentStatusEl=document.getElementById("familyShoppingFrequentStatus");
+    frequentEl.replaceChildren();frequentStatusEl.textContent="";
+    const groups=new Map();
+    purchaseHistory.forEach(item=>{
+      const key=[item.name.trim().toLocaleLowerCase(),item.category,item.quantity.trim().toLocaleLowerCase()].join("\u0000");
+      if(!groups.has(key))groups.set(key,{name:item.name,category:item.category,quantity:item.quantity,count:0,last:item.purchasedAt,assignees:new Map()});
+      const group=groups.get(key);group.count++;if(item.purchasedAt>group.last)group.last=item.purchasedAt;
+      const owner=item.assignee||"";if(owner)group.assignees.set(owner,(group.assignees.get(owner)||0)+1);
+    });
+    const frequent=[...groups.values()].sort((a,b)=>b.count-a.count||b.last.localeCompare(a.last)).slice(0,12);
+    if(!frequent.length){const empty=document.createElement("p");empty.textContent="購入履歴が増えると、よく買う商品がここに表示されます。";frequentEl.append(empty);}
+    frequent.forEach(group=>{
+      const card=document.createElement("div");card.style.cssText="padding:10px;border:1px solid #e4e7ef;border-radius:10px;display:grid;gap:5px";
+      const title=document.createElement("strong");title.textContent=group.name;
+      const detail=document.createElement("small");detail.style.color="#667085";detail.textContent=categories[group.category]+(group.quantity?"・"+group.quantity:"")+"・購入 "+group.count+"回";
+      const button=document.createElement("button");button.type="button";button.textContent="＋ リストに再登録";
+      button.addEventListener("click",()=>{
+        if(!ready){frequentStatusEl.textContent="買い物リストの準備ができていません。";return;}
+        if(entries.length>=LIMIT){frequentStatusEl.textContent="リストが上限100件のため追加できません。購入済み商品を整理してください。";return;}
+        const duplicate=entries.find(item=>!item.bought&&item.name.trim().toLocaleLowerCase()===group.name.trim().toLocaleLowerCase()&&item.category===group.category&&item.quantity.trim().toLocaleLowerCase()===group.quantity.trim().toLocaleLowerCase());
+        if(duplicate){frequentStatusEl.textContent="「"+group.name+"」は未購入リストに登録済みです。重複追加はしませんでした。";filterInput.value="needed";searchInput.value=group.name;render();return;}
+        const assignee=[...group.assignees].sort((a,b)=>b[1]-a[1])[0]?.[0]||"";
+        const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
+        const next=[...entries,{id,name:group.name,quantity:group.quantity,category:group.category,assignee,plannedDate:"",purchaseMemo:"",bought:false,createdAt:Date.now()}];
+        if(save(next)){frequentStatusEl.textContent="「"+group.name+"」を買い物リストに再登録しました。購入予定日は必要に応じて設定してください。";filterInput.value="needed";searchInput.value=group.name;render();}
+        else frequentStatusEl.textContent="再登録できませんでした。保存容量を確認してください。";
+      });
+      card.append(title,detail,button);frequentEl.append(card);
+    });
+    if(!selected.length){const empty=document.createElement("p");empty.textContent="この月の購入履歴はありません。商品を購入済みにすると記録されます。";historyListEl.append(empty);return;}
+    const categoriesCount=new Map(),assigneeCount=new Map();
+    selected.forEach(item=>{categoriesCount.set(categories[item.category],(categoriesCount.get(categories[item.category])||0)+1);const owner=item.assignee||"担当未設定";assigneeCount.set(owner,(assigneeCount.get(owner)||0)+1);});
+    const breakdown=document.createElement("div");breakdown.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0";
+    [...categoriesCount].forEach(([name,count])=>{const card=document.createElement("div");card.style.cssText="padding:9px;border:1px solid #e4e7ef;border-radius:9px";card.textContent=name+"："+count+"件";breakdown.append(card);});
+    [...assigneeCount].sort((a,b)=>b[1]-a[1]).forEach(([name,count])=>{const card=document.createElement("div");card.style.cssText="padding:9px;border:1px solid #e4e7ef;border-radius:9px";card.textContent="担当 "+name+"："+count+"件";breakdown.append(card);});
+    historyBreakdownEl.append(breakdown);
+    selected.slice(0,30).forEach(item=>{const li=document.createElement("li");const time=new Date(item.purchasedAt);li.textContent=time.toLocaleDateString("ja-JP")+"："+item.name+(item.quantity?" × "+item.quantity:"")+"（"+categories[item.category]+"・"+(item.assignee||"担当未設定")+"）";historyListEl.append(li);});
+    if(selected.length>30){const more=document.createElement("li");more.textContent="ほか "+(selected.length-30)+"件（履歴は最新30件を表示）";historyListEl.append(more);}
+  }
   function readEntries() {
     const raw = localStorage.getItem(KEY);
     if (raw === null) return [];
