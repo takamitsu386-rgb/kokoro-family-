@@ -60,6 +60,21 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
  label{max-width:100%;flex-wrap:wrap}
 }
 @media(min-width:900px){main{max-width:1100px}.room{height:420px}}
+@media print{
+ @page{size:A4;margin:14mm}
+ body{background:#fff!important;color:#111!important}
+ body *{visibility:hidden!important}
+ #familyWeeklyPlanReport,#familyWeeklyPlanReport *{visibility:visible!important}
+ #familyWeeklyPlanReport{position:absolute!important;left:0!important;top:0!important;width:100%!important;display:block!important}
+ #familyWeeklyPlanReport h3{font-size:16pt;margin:0 0 6pt;border-bottom:1px solid #555;padding-bottom:4pt}
+ #familyWeeklyPlanReport ul{margin:0 0 12pt;padding-left:18pt}
+ #familyWeeklyPlanReport li{break-inside:avoid;margin:2pt 0;font-size:10pt}
+ #familyWeeklyPlanReport .weekly-plan-empty{color:#555;font-style:italic}
+ #familyWeeklyPlanReport .weekly-plan-day{break-inside:avoid;border:1px solid #bbb;border-radius:6px;padding:8pt;margin:0 0 8pt}
+ #familyWeeklyPlanReport .weekly-plan-section{break-inside:avoid;margin:0 0 12pt}
+ #familyWeeklyPlanReport .weekly-plan-heading{font-size:11pt;font-weight:700;margin:0 0 4pt}
+ #familyWeeklyPlanReport .weekly-plan-meta{font-size:8pt;color:#555;margin:0 0 10pt}
+}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
 
@@ -78,13 +93,23 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <p>自分だけのお部屋をつくろう！</p>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-meals">献立</a><a href="#family-recipes">レシピ</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">ホーム</a><a href="#family-weekly-plan">週間まとめ</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-meals">献立</a><a href="#family-recipes">レシピ</a><a href="#family-shopping">買い物</a><a href="#sns">SNS</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
 <h2>🏡 マイホーム</h2>
 <p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
 <div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a class="secondary" href="#family-meals">🍱 献立を考える</a><a class="secondary" href="#family-recipes">📖 レシピを保存</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+</section>
+<section class="panel" id="family-weekly-plan">
+<h2>🗓️ 家族の週間まとめ</h2>
+<p>今後7日間のやること・家族の予定・献立と、未購入の買い物を1枚にまとめて確認できます。印刷して冷蔵庫などに貼るときにも使えます。</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button type="button" class="primary" id="familyWeeklyPlanRefresh">最新の内容に更新</button>
+<button type="button" id="familyWeeklyPlanPrint">週間まとめを印刷</button>
+</div>
+<p id="familyWeeklyPlanStatus" role="status" aria-live="polite">読み込み中です。</p>
+<div id="familyWeeklyPlanReport" style="display:grid;gap:14px"></div>
 </section>
 <section class="panel" id="family-tasks">
 <h2>📝 家族のやることリスト</h2>
@@ -7190,6 +7215,58 @@ snsRefreshPosts.addEventListener("click", async () => {
 })();
 
 </script>
+
+
+// 家族の週間まとめ：各機能のローカル保存データを読み取り専用で集約
+(() => {
+  const report=document.getElementById("familyWeeklyPlanReport");
+  const status=document.getElementById("familyWeeklyPlanStatus");
+  const refresh=document.getElementById("familyWeeklyPlanRefresh");
+  const printButton=document.getElementById("familyWeeklyPlanPrint");
+  if(!report||!status||!refresh||!printButton)return;
+  const keys={tasks:"kokoroFamilyTasksV1",calendar:"kokoroFamilyCalendarV1",meals:"kokoroFamilyMealsV1",shopping:"kokoroFamilyShoppingV1"};
+  const dateText=value=>{const [y,m,d]=value.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",weekday:"short"});};
+  const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const addDays=(value,n)=>{const [y,m,d]=value.split("-").map(Number),date=new Date(y,m-1,d);date.setDate(date.getDate()+n);return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");};
+  const read=(key,validate,limit)=>{const raw=localStorage.getItem(key);if(raw===null)return [];const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>limit||!data.every(validate)||new Set(data.map(x=>x.id)).size!==data.length)throw new Error("保存データを確認できません");return data;};
+  const idOk=x=>typeof x.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(x.id);
+  const validTask=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.title==="string"&&x.title.trim()&&x.title.length<=80&&["household","cleaning","study","other"].includes(x.category)&&["low","normal","high"].includes(x.priority)&&(x.dueDate===""||(typeof x.dueDate==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.dueDate)&&!Number.isNaN(Date.parse(x.dueDate))))&&typeof x.completed==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+  const validEvent=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.title==="string"&&x.title.trim()&&x.title.length<=80&&typeof x.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&!Number.isNaN(Date.parse(x.date))&&typeof x.time==="string"&&(x.time===""||/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time))&&typeof x.place==="string"&&x.place.length<=60&&typeof x.done==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+  const validMeal=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&!Number.isNaN(Date.parse(x.date))&&["breakfast","lunch","dinner","snack"].includes(x.type)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=80&&typeof x.note==="string"&&x.note.length<=60&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+  const validShopping=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&["food","daily","stationery","other"].includes(x.category)&&typeof x.bought==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+  const section=(heading,items,empty)=>{const wrap=document.createElement("section");wrap.className="weekly-plan-section";const h=document.createElement("h3");h.textContent=heading;wrap.append(h);if(!items.length){const p=document.createElement("p");p.className="weekly-plan-empty";p.textContent=empty;wrap.append(p);}else{const ul=document.createElement("ul");items.forEach(value=>{const li=document.createElement("li");li.textContent=value;ul.append(li);});wrap.append(ul);}return wrap;};
+  const render=()=>{
+    report.replaceChildren();const start=today(),end=addDays(start,6),days=Array.from({length:7},(_,i)=>addDays(start,i));let warnings=[];
+    let tasks=[],events=[],meals=[],shopping=[];
+    try{tasks=read(keys.tasks,validTask,100);}catch(e){warnings.push("やること");}
+    try{events=read(keys.calendar,validEvent,100);}catch(e){warnings.push("家族カレンダー");}
+    try{meals=read(keys.meals,validMeal,200);}catch(e){warnings.push("献立");}
+    try{shopping=read(keys.shopping,validShopping,100);}catch(e){warnings.push("買い物リスト");}
+    const heading=document.createElement("h2");heading.textContent="こころファミリー｜週間まとめ";report.append(heading);
+    const meta=document.createElement("p");meta.className="weekly-plan-meta";meta.textContent=dateText(start)+"〜"+dateText(end)+"（7日間）";report.append(meta);
+    const overdue=tasks.filter(x=>!x.completed&&x.dueDate&&x.dueDate<start).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+    if(overdue.length)report.append(section("期限を過ぎたやること",overdue.map(x=>dateText(x.dueDate)+"｜"+x.title),"ありません"));
+    days.forEach(day=>{
+      const wrap=document.createElement("section");wrap.className="weekly-plan-day";
+      const h=document.createElement("h3");h.textContent=dateText(day);wrap.append(h);
+      const dayTasks=tasks.filter(x=>!x.completed&&x.dueDate===day).sort((a,b)=>({high:0,normal:1,low:2}[a.priority]-({high:0,normal:1,low:2}[b.priority])));
+      const dayEvents=events.filter(x=>x.date===day).sort((a,b)=>a.time.localeCompare(b.time));
+      const dayMeals=meals.filter(x=>x.date===day).sort((a,b)=>["breakfast","lunch","dinner","snack"].indexOf(a.type)-["breakfast","lunch","dinner","snack"].indexOf(b.type));
+      const mealNames={breakfast:"朝",lunch:"昼",dinner:"夜",snack:"おやつ"};
+      wrap.append(section("やること",dayTasks.map(x=>x.title+"（"+({high:"優先",normal:"通常",low:"低め"}[x.priority])+"）"),"予定なし"));
+      wrap.append(section("家族の予定",dayEvents.map(x=>(x.time?x.time+" ":"")+x.title+(x.place?"｜"+x.place:"")+(x.done?"［完了］":"")),"予定なし"));
+      wrap.append(section("献立",dayMeals.map(x=>mealNames[x.type]+"："+x.name+(x.note?"（"+x.note+"）":"")),"登録なし"));
+      report.append(wrap);
+    });
+    const unbought=shopping.filter(x=>!x.bought).sort((a,b)=>["food","daily","stationery","other"].indexOf(a.category)-["food","daily","stationery","other"].indexOf(b.category)||a.name.localeCompare(b.name,"ja"));
+    const categoryNames={food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
+    report.append(section("未購入の買い物",unbought.map(x=>x.name+(x.quantity?"（"+x.quantity+"）":"")+"｜"+categoryNames[x.category]),"買うものはありません"));
+    status.textContent=warnings.length?"一部のデータを読み込めませんでした："+warnings.join("・")+"。該当する一覧は表示を省略しています。":"週間まとめを更新しました。各一覧の保存内容を読み取り専用で集約しています。";
+  };
+  refresh.addEventListener("click",render);
+  printButton.addEventListener("click",()=>{render();window.print();});
+  render();
+})();
 
 </body>
 </html>
