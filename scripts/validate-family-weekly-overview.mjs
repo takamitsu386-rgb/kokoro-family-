@@ -5,6 +5,7 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 
 assert.match(html, /id="family-weekly-plan"/, "weekly overview section exists");
+assert.match(html, /<script>\\s*\\/\\/ 家族の週間まとめ/, "weekly overview logic is executable JavaScript");
 assert.match(html, /id="familyWeeklyPlanRefresh"/, "manual refresh control exists");
 assert.match(html, /id="familyWeeklyPlanPrint"/, "print control exists");
 assert.match(html, /kokoroFamilyTasksV1/, "tasks are included");
