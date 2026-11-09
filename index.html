@@ -6314,15 +6314,13 @@ snsRefreshPosts.addEventListener("click", async () => {
     const planned=entries.filter(item=>!item.bought&&Number.isSafeInteger(item.amount)).reduce((sum,item)=>sum+item.amount,0);
     const budgetText=budget===""?"予算未設定":("予算 "+Number(budget).toLocaleString("ja-JP")+"円");
     budgetSummaryEl.textContent=budgetText+"・"+month+"の購入実績 "+actual.toLocaleString("ja-JP")+"円（金額記録 "+knownAmounts.length+"件）・未購入リストの予定金額 "+planned.toLocaleString("ja-JP")+"円"+(budget===""?"": "・予算残り "+(Number(budget)-actual).toLocaleString("ja-JP")+"円");
-    const overBudgetOwners=[];
-    for(const [owner,stat] of ownerStats){const limit=ownerBudgets[owner];if(Number.isSafeInteger(limit)&&stat.amount>limit)overBudgetOwners.push(owner+"："+(stat.amount-limit).toLocaleString("ja-JP")+"円超過");}
     const alerts=[];
     if(budget!==""&&actual>Number(budget))alerts.push("家族全体の予算を"+(actual-Number(budget)).toLocaleString("ja-JP")+"円超過しています。");
     else if(budget!==""&&actual===Number(budget))alerts.push("家族全体の月間予算を使い切りました。");
-    if(overBudgetOwners.length)alerts.push("担当者別："+overBudgetOwners.join("、"));
+    
     if(!knownAmounts.length&&selected.length)alerts.push("購入金額が未記録の履歴があります。金額が分かる購入だけを集計しています。");
     budgetAlertEl.textContent=alerts.length?alerts.join(" "):(budget===""?"予算を設定すると超過状況をここに表示します。":"予算内です。");
-    budgetAlertEl.style.cssText="margin-top:8px;padding:9px;border-radius:9px;"+((budget!==""&&actual>Number(budget))||overBudgetOwners.length?"background:#fff1f0;color:#9b1c1c":"background:#eef8f0;color:#245b32");
+    budgetAlertEl.style.cssText="margin-top:8px;padding:9px;border-radius:9px;"+(budget!==""&&actual>Number(budget)?"background:#fff1f0;color:#9b1c1c":"background:#eef8f0;color:#245b32");
     monthlySpendChartEl.replaceChildren();
     const daily=new Map();
     selected.forEach(item=>{if(!Number.isSafeInteger(item.amount))return;const day=new Date(item.purchasedAt).getDate();daily.set(day,(daily.get(day)||0)+item.amount);});
@@ -6337,6 +6335,10 @@ snsRefreshPosts.addEventListener("click", async () => {
     assigneeBudgetList.replaceChildren();assigneeSpendingRank.replaceChildren();
     const ownerStats=new Map();
     selected.forEach(item=>{const owner=item.assignee||"担当未設定";if(!ownerStats.has(owner))ownerStats.set(owner,{amount:0,count:0,known:0});const stat=ownerStats.get(owner);stat.count++;if(Number.isSafeInteger(item.amount)){stat.amount+=item.amount;stat.known++;}});
+    const overBudgetOwners=[];
+    for(const [owner,stat] of ownerStats){const limit=ownerBudgets[owner];if(Number.isSafeInteger(limit)&&stat.amount>limit)overBudgetOwners.push(owner+"："+(stat.amount-limit).toLocaleString("ja-JP")+"円超過");}
+    if(overBudgetOwners.length){budgetAlertEl.textContent+=(budgetAlertEl.textContent?" ":"")+"担当者別："+overBudgetOwners.join("、");budgetAlertEl.style.cssText="margin-top:8px;padding:9px;border-radius:9px;background:#fff1f0;color:#9b1c1c";}
+
     const owners=new Set([...ownerStats.keys(),...Object.keys(ownerBudgets)]);
     if(!owners.size){const empty=document.createElement("p");empty.textContent="購入履歴または担当者予算を登録すると、担当者別の集計が表示されます。";assigneeSpendingRank.append(empty);}
     [...owners].sort((a,b)=>(ownerStats.get(b)?.amount||0)-(ownerStats.get(a)?.amount||0)).forEach((owner,index)=>{
