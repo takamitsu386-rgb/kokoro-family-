@@ -246,6 +246,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <section class="panel" id="family-shopping">
 <h2>🛒 家族のお買い物リスト</h2>
 <p>Googleアカウントでログインすると、買い物リスト・購入履歴・予算を別の端末へ同期できます。同じGoogleアカウントで利用してください。</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button type="button" id="familyShoppingCloudUpload" disabled>☁️ 買い物データをクラウドへ保存</button><button type="button" id="familyShoppingCloudDownload" disabled>☁️ クラウドから買い物データを読み込む</button></div><p id="familyShoppingCloudStatus" role="status" aria-live="polite">Googleログイン後に同期できます。</p>
+<div style="margin-top:12px;padding:12px;border:1px solid #d8deea;border-radius:10px">
+<strong>👨‍👩‍👧 家族メンバーと共有</strong>
+<p style="font-size:13px;color:#667085">友達申請が承認済みの相手と買い物リスト・購入履歴・予算を共有できます。共有先を選んでください。</p>
+<label for="familyShoppingSharedFriend">共有する家族メンバー</label>
+<select id="familyShoppingSharedFriend" style="display:block;width:100%;padding:10px;border:1px solid #cbd2e1;border-radius:8px;font:inherit"><option value="">友達一覧から選択</option></select>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+<button type="button" id="familyShoppingShareUpload" disabled>共有データを保存</button>
+<button type="button" id="familyShoppingShareDownload" disabled>共有データを読み込む</button>
+</div>
+<p id="familyShoppingShareStatus" role="status" aria-live="polite">承認済みの友達が表示されます。</p>
+</div>
 <p>買うものと数量をメモして、買い物中にチェックできます。この端末のブラウザー内に保存されます（クラウド同期・家族間共有には未対応です）。</p>
 <form id="familyShoppingForm" style="display:grid;gap:8px">
 <label for="familyShoppingName">買うもの（60文字以内）</label>
@@ -3940,6 +3951,8 @@ const firebaseConfig = {
 
 const statusEl = document.getElementById("cloudSyncStatus");
 const shoppingCloudUploadButton=document.getElementById("familyShoppingCloudUpload"),shoppingCloudDownloadButton=document.getElementById("familyShoppingCloudDownload"),shoppingCloudStatus=document.getElementById("familyShoppingCloudStatus");
+const shoppingSharedFriend=document.getElementById("familyShoppingSharedFriend"),shoppingShareUpload=document.getElementById("familyShoppingShareUpload"),shoppingShareDownload=document.getElementById("familyShoppingShareDownload"),shoppingShareStatus=document.getElementById("familyShoppingShareStatus");
+
 const loginButton = document.getElementById("cloudGoogleLogin");
 const syncButton = document.getElementById("cloudSyncNow");
 const downloadButton = document.getElementById("cloudDownload");
@@ -3955,6 +3968,53 @@ function status(message) {
 }
 function shoppingStatus(message){if(shoppingCloudStatus)shoppingCloudStatus.textContent=message;}
 function setShoppingCloudButtons(){const disabled=!currentUser||!navigator.onLine||syncInProgress||logoutInProgress;if(shoppingCloudUploadButton)shoppingCloudUploadButton.disabled=disabled;if(shoppingCloudDownloadButton)shoppingCloudDownloadButton.disabled=disabled;}
+function setShoppingShareButtons(){const disabled=!currentUser||!navigator.onLine||!shoppingSharedFriend?.value||syncInProgress||logoutInProgress;if(shoppingShareUpload)shoppingShareUpload.disabled=disabled;if(shoppingShareDownload)shoppingShareDownload.disabled=disabled;}
+function shoppingShareMessage(message){if(shoppingShareStatus)shoppingShareStatus.textContent=message;}
+window.addEventListener("kokoro-family-friends-updated",event=>{
+  if(!shoppingSharedFriend)return;
+  const selected=shoppingSharedFriend.value;
+  shoppingSharedFriend.replaceChildren();
+  const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="友達一覧から選択";shoppingSharedFriend.appendChild(placeholder);
+  for(const friend of (Array.isArray(event.detail?.friends)?event.detail.friends:[])){
+    if(typeof friend.uid!=="string"||typeof friend.name!=="string")continue;
+    const option=document.createElement("option");option.value=friend.uid;option.textContent=friend.name;shoppingSharedFriend.appendChild(option);
+  }
+  if([...shoppingSharedFriend.options].some(option=>option.value===selected))shoppingSharedFriend.value=selected;
+  setShoppingShareButtons();
+});
+shoppingSharedFriend?.addEventListener("change",setShoppingShareButtons);
+function sharedShoppingId(uidA,uidB){return [uidA,uidB].sort().join("_");}
+async function uploadShoppingToFriend(){
+  const user=currentUser,peerUid=shoppingSharedFriend?.value;
+  if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
+  const payload=readShoppingCloudPayload(),ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)),snapshot=await getDoc(ref);
+  if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  let ownerUid=user.uid,recipientUid=peerUid;
+  if(snapshot.exists()){
+    const old=snapshot.data();
+    if(!Array.isArray(old.members)||!old.members.includes(user.uid)||!old.members.includes(peerUid)||old.members.length!==2)throw new Error("この共有データにはアクセスできません。");
+    ownerUid=old.ownerUid;recipientUid=old.recipientUid;
+    if(!confirm("共有中の買い物データを、この端末の内容で置き換えます。相手の内容も更新されます。続けますか？"))return;
+  }else if(!confirm("選択した友達と買い物リスト・購入履歴・予算を共有します。続けますか？"))return;
+  if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  await setDoc(ref,{version:1,ownerUid,recipientUid,members:[user.uid,peerUid].sort(),items:payload.items,history:payload.history,budgets:payload.budgets,assigneeBudgets:payload.assigneeBudgets,updatedBy:user.uid,updatedAt:serverTimestamp()});
+  shoppingShareMessage("選択した友達と買い物データを共有しました。相手も共有データを読み込めます。");
+}
+async function downloadShoppingFromFriend(){
+  const user=currentUser,peerUid=shoppingSharedFriend?.value;
+  if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
+  const snapshot=await getDoc(doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)));
+  if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  if(!snapshot.exists()){shoppingShareMessage("共有データがありません。相手に先に共有データを保存してもらってください。");return;}
+  const data=snapshot.data();
+  if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data))throw new Error("共有データを確認できません。端末内データは変更しませんでした。");
+  if(!confirm("共有データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
+  const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"],values=[data.items,data.history,data.budgets,data.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
+  try{keys.forEach((key,index)=>localStorage.setItem(key,JSON.stringify(values[index])));}
+  catch(error){let restored=true;keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]);}catch(rollback){restored=false;console.error("Shared shopping rollback failed",rollback);}});throw new Error(restored?"端末への保存に失敗しました。元のデータは保持しました。":"保存と元データへの復元に失敗しました。");}
+  location.reload();
+}
+
 function readShoppingCloudPayload(){
   const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
   const defaults=[[],[],{},{}];let values=[];
@@ -4450,6 +4510,9 @@ try {
   syncButton.addEventListener("click", syncNow);
   shoppingCloudUploadButton?.addEventListener("click",async()=>{shoppingCloudUploadButton.disabled=true;try{await uploadShoppingCloud();}catch(error){shoppingStatus("保存できませんでした："+(error.code||error.message));}finally{setShoppingCloudButtons();}});
   shoppingCloudDownloadButton?.addEventListener("click",async()=>{shoppingCloudDownloadButton.disabled=true;try{await downloadShoppingCloud();}catch(error){shoppingStatus("読み込めませんでした："+(error.code||error.message));}finally{setShoppingCloudButtons();}});
+  shoppingShareUpload?.addEventListener("click",async()=>{shoppingShareUpload.disabled=true;try{await uploadShoppingToFriend();}catch(error){shoppingShareMessage("共有できませんでした："+(error.code||error.message));}finally{setShoppingShareButtons();}});
+  shoppingShareDownload?.addEventListener("click",async()=>{shoppingShareDownload.disabled=true;try{await downloadShoppingFromFriend();}catch(error){shoppingShareMessage("読み込めませんでした："+(error.code||error.message));}finally{setShoppingShareButtons();}});
+
 
   downloadButton.addEventListener("click", async () => {
     const user = currentUser;
@@ -4521,6 +4584,7 @@ try {
     }
     currentUser = user;
     setShoppingCloudButtons();
+    setShoppingShareButtons();
     if(!user)shoppingStatus("Googleログイン後に同期できます。");
     else shoppingStatus("ログイン済みです。同じGoogleアカウントの端末と買い物データを同期できます。");
     loginButton.disabled = !!user || !navigator.onLine || logoutInProgress || loginInProgress;
@@ -5148,6 +5212,8 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     row.appendChild(removeFriend);
     snsFriendList.appendChild(row);
   }
+  window.dispatchEvent(new CustomEvent("kokoro-family-friends-updated",{detail:{friends:[...friendRows.keys()].map(uid=>({uid,name:peerNames.get(uid)||"ユーザー"}))}}));
+
   if (!incomingVisible.length) addEmpty(snsIncomingFriends, "届いている申請はありません。")
   for (const snap of incomingVisible) {
     const data = snap.data();
