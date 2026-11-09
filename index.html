@@ -7331,10 +7331,15 @@ snsRefreshPosts.addEventListener("click", async () => {
     });
     const unbought=shopping.filter(x=>!x.bought).sort((a,b)=>["food","daily","stationery","other"].indexOf(a.category)-["food","daily","stationery","other"].indexOf(b.category)||a.name.localeCompare(b.name,"ja"));
     const categoryNames={food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
+    const bought=shopping.filter(x=>x.bought).sort((a,b)=>["food","daily","stationery","other"].indexOf(a.category)-["food","daily","stationery","other"].indexOf(b.category)||a.name.localeCompare(b.name,"ja"));
+    const shoppingSummary=document.createElement("p");shoppingSummary.className="weekly-plan-meta";shoppingSummary.textContent="買い物状況：全"+shopping.length+"件／未購入"+unbought.length+"件／購入済み"+bought.length+"件";report.append(shoppingSummary);
     report.append(section("未購入の買い物",unbought.map(x=>x.name+(x.quantity?"（"+x.quantity+"）":"")+"｜"+categoryNames[x.category]),"買うものはありません"));
+    report.append(section("購入済みの買い物",bought.map(x=>x.name+(x.quantity?"（"+x.quantity+"）":"")+"｜"+categoryNames[x.category]),"購入済みの品物はありません"));
     status.textContent=warnings.length?"一部のデータを読み込めませんでした："+warnings.join("・")+"。該当する一覧は表示を省略しています。":"週間まとめを更新しました。各一覧の保存内容を読み取り専用で集約しています。";
   };
   refresh.addEventListener("click",render);
+  window.addEventListener("kokoro-family-shopping-updated",render);
+  window.addEventListener("storage",event=>{if(!event.key||Object.values(keys).includes(event.key))render();});
   shoppingAddButton.addEventListener("click",()=>{
     const form=document.getElementById("familyShoppingForm");
     const name=document.getElementById("familyShoppingName");
