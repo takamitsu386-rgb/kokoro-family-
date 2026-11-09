@@ -245,6 +245,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 </section>
 <section class="panel" id="family-shopping">
 <h2>🛒 家族のお買い物リスト</h2>
+<p>Googleアカウントでログインすると、買い物リスト・購入履歴・予算を別の端末へ同期できます。同じGoogleアカウントで利用してください。</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button type="button" id="familyShoppingCloudUpload">☁️ 買い物データをクラウドへ保存</button><button type="button" id="familyShoppingCloudDownload">☁️ クラウドから買い物データを読み込む</button></div><p id="familyShoppingCloudStatus" role="status" aria-live="polite">Googleログイン後に同期できます。</p>
 <p>買うものと数量をメモして、買い物中にチェックできます。この端末のブラウザー内に保存されます（クラウド同期・家族間共有には未対応です）。</p>
 <form id="familyShoppingForm" style="display:grid;gap:8px">
 <label for="familyShoppingName">買うもの（60文字以内）</label>
@@ -3938,6 +3939,7 @@ const firebaseConfig = {
 };
 
 const statusEl = document.getElementById("cloudSyncStatus");
+const shoppingCloudUploadButton=document.getElementById("familyShoppingCloudUpload"),shoppingCloudDownloadButton=document.getElementById("familyShoppingCloudDownload"),shoppingCloudStatus=document.getElementById("familyShoppingCloudStatus");
 const loginButton = document.getElementById("cloudGoogleLogin");
 const syncButton = document.getElementById("cloudSyncNow");
 const downloadButton = document.getElementById("cloudDownload");
@@ -3951,6 +3953,63 @@ let initializedSyncForUid = null;
 function status(message) {
   if (statusEl) statusEl.textContent = message;
 }
+function shoppingStatus(message){if(shoppingCloudStatus)shoppingCloudStatus.textContent=message;}
+function setShoppingCloudButtons(){const disabled=!currentUser||!navigator.onLine||syncInProgress||logoutInProgress;if(shoppingCloudUploadButton)shoppingCloudUploadButton.disabled=disabled;if(shoppingCloudDownloadButton)shoppingCloudDownloadButton.disabled=disabled;}
+function readShoppingCloudPayload(){
+  const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
+  const defaults=[[],[],{},{}];let values=[];
+  try{values=keys.map((key,index)=>{const raw=localStorage.getItem(key);return raw===null?defaults[index]:JSON.parse(raw);});}catch(error){throw new Error("端末内の買い物データを読み取れません。");}
+  const [items,history,budgets,assigneeBudgets]=values;
+  const validItem=x=>!!x&&typeof x==="object"&&typeof x.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(x.id)&&typeof x.name==="string"&&x.name.trim().length>=1&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&["food","daily","stationery","other"].includes(x.category)&&typeof x.bought==="boolean"&&(x.assignee===undefined||(typeof x.assignee==="string"&&x.assignee.length<=30))&&(x.plannedDate===undefined||x.plannedDate===""||/^\d{4}-\d{2}-\d{2}$/.test(x.plannedDate))&&(x.purchaseMemo===undefined||(typeof x.purchaseMemo==="string"&&x.purchaseMemo.length<=120))&&(x.amount===undefined||(Number.isSafeInteger(x.amount)&&x.amount>=0&&x.amount<=100000000))&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+  const validHistory=x=>!!x&&typeof x==="object"&&typeof x.id==="string"&&x.id.length<=64&&typeof x.name==="string"&&x.name.length<=60&&["food","daily","stationery","other"].includes(x.category)&&typeof x.quantity==="string"&&x.quantity.length<=20&&typeof x.assignee==="string"&&x.assignee.length<=30&&typeof x.purchasedAt==="string"&&!Number.isNaN(Date.parse(x.purchasedAt))&&(x.amount===null||x.amount===undefined||(Number.isSafeInteger(x.amount)&&x.amount>=0&&x.amount<=100000000));
+  const validBudgetMap=x=>!!x&&typeof x==="object"&&!Array.isArray(x)&&Object.keys(x).length<=120&&Object.entries(x).every(([month,value])=>/^\d{4}-\d{2}$/.test(month)&&Number.isSafeInteger(value)&&value>=0&&value<=100000000);
+  const validAssigneeBudgets=x=>!!x&&typeof x==="object"&&!Array.isArray(x)&&Object.keys(x).length<=120&&Object.entries(x).every(([month,map])=>/^\d{4}-\d{2}$/.test(month)&&!!map&&typeof map==="object"&&!Array.isArray(map)&&Object.keys(map).length<=30&&Object.entries(map).every(([name,value])=>name.trim().length>0&&name.length<=30&&Number.isSafeInteger(value)&&value>=0&&value<=100000000));
+  if(!Array.isArray(items)||items.length>100||!items.every(validItem)||new Set(items.map(x=>x.id)).size!==items.length||!Array.isArray(history)||history.length>500||!history.every(validHistory)||!validBudgetMap(budgets)||!validAssigneeBudgets(assigneeBudgets))throw new Error("買い物データの形式を確認できません。端末内データは変更しませんでした。");
+  const payload={version:1,items,history,budgets,assigneeBudgets};
+  if(new TextEncoder().encode(JSON.stringify(payload)).length>500000)throw new Error("買い物データが大きすぎるため同期できません。");
+  return payload;
+}
+function validShoppingCloudPayload(data){
+  if(!data||data.version!==1||!Array.isArray(data.items)||!Array.isArray(data.history)||!data.budgets||!data.assigneeBudgets)return false;
+  try{
+    const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
+    const payload={version:1,items:data.items,history:data.history,budgets:data.budgets,assigneeBudgets:data.assigneeBudgets};
+    const test=new Map(keys.map((key,index)=>[key,JSON.stringify([payload.items,payload.history,payload.budgets,payload.assigneeBudgets][index])]));
+    const [items,history,budgets,assigneeBudgets]=[...test.values()].map(x=>JSON.parse(x));
+    const validItem=x=>!!x&&typeof x==="object"&&typeof x.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(x.id)&&typeof x.name==="string"&&x.name.trim().length>=1&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&["food","daily","stationery","other"].includes(x.category)&&typeof x.bought==="boolean"&&(x.assignee===undefined||(typeof x.assignee==="string"&&x.assignee.length<=30))&&(x.plannedDate===undefined||x.plannedDate===""||/^\d{4}-\d{2}-\d{2}$/.test(x.plannedDate))&&(x.purchaseMemo===undefined||(typeof x.purchaseMemo==="string"&&x.purchaseMemo.length<=120))&&(x.amount===undefined||(Number.isSafeInteger(x.amount)&&x.amount>=0&&x.amount<=100000000))&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+    const validHistory=x=>!!x&&typeof x==="object"&&typeof x.id==="string"&&x.id.length<=64&&typeof x.name==="string"&&x.name.length<=60&&["food","daily","stationery","other"].includes(x.category)&&typeof x.quantity==="string"&&x.quantity.length<=20&&typeof x.assignee==="string"&&x.assignee.length<=30&&typeof x.purchasedAt==="string"&&!Number.isNaN(Date.parse(x.purchasedAt))&&(x.amount===null||x.amount===undefined||(Number.isSafeInteger(x.amount)&&x.amount>=0&&x.amount<=100000000));
+    const validBudgetMap=x=>!!x&&typeof x==="object"&&!Array.isArray(x)&&Object.keys(x).length<=120&&Object.entries(x).every(([m,v])=>/^\d{4}-\d{2}$/.test(m)&&Number.isSafeInteger(v)&&v>=0&&v<=100000000);
+    const validAssigneeBudgets=x=>!!x&&typeof x==="object"&&!Array.isArray(x)&&Object.keys(x).length<=120&&Object.entries(x).every(([m,map])=>/^\d{4}-\d{2}$/.test(m)&&!!map&&typeof map==="object"&&!Array.isArray(map)&&Object.keys(map).length<=30&&Object.entries(map).every(([n,v])=>n.trim().length>0&&n.length<=30&&Number.isSafeInteger(v)&&v>=0&&v<=100000000));
+    return items.length<=100&&items.every(validItem)&&new Set(items.map(x=>x.id)).size===items.length&&history.length<=500&&history.every(validHistory)&&validBudgetMap(budgets)&&validAssigneeBudgets(assigneeBudgets)&&new TextEncoder().encode(JSON.stringify(payload)).length<=500000;
+  }catch(error){return false;}
+}
+async function uploadShoppingCloud(){
+  if(!currentUser||!navigator.onLine)throw new Error("ログインとインターネット接続が必要です。");
+  const uid=currentUser.uid,payload=readShoppingCloudPayload(),ref=doc(db,"users",uid,"kokoro","shopping");
+  const snapshot=await getDoc(ref);
+  if(snapshot.exists()&&!confirm("クラウドに保存済みの買い物データを、この端末の内容で置き換えます。続けますか？"))return;
+  if(!currentUser||currentUser.uid!==uid)throw new Error("ログインアカウントが変わりました。");
+  await setDoc(ref,{...payload,updatedAt:serverTimestamp()});
+  shoppingStatus("買い物リスト・購入履歴・月間予算をクラウドに保存しました。同じGoogleアカウントの端末で読み込めます。");
+}
+async function downloadShoppingCloud(){
+  if(!currentUser||!navigator.onLine)throw new Error("ログインとインターネット接続が必要です。");
+  const uid=currentUser.uid,snapshot=await getDoc(doc(db,"users",uid,"kokoro","shopping"));
+  if(!currentUser||currentUser.uid!==uid)throw new Error("ログインアカウントが変わりました。");
+  if(!snapshot.exists()){shoppingStatus("クラウドに買い物データがありません。");return;}
+  const data=snapshot.data();
+  if(!validShoppingCloudPayload(data))throw new Error("クラウドの買い物データが正しくありません。端末内データは変更しませんでした。");
+  if(!confirm("この端末の買い物リスト・購入履歴・予算をクラウドの内容で置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
+  const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
+  const values=[data.items,data.history,data.budgets,data.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
+  try{keys.forEach((key,index)=>localStorage.setItem(key,JSON.stringify(values[index])));}
+  catch(error){
+    let restored=true;keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]);}catch(rollbackError){restored=false;console.error("Shopping cloud rollback failed",rollbackError);}});
+    throw new Error(restored?"端末への保存に失敗しました。元のデータは保持しました。":"保存と元データへの復元に失敗しました。ブラウザの保存領域を消去せず、復旧を確認してください。");
+  }
+  location.reload();
+}
+
 function authErrorDetail(error) {
   switch (error?.code) {
     case "auth/api-key-not-valid":
@@ -4389,6 +4448,9 @@ try {
     }
   });
   syncButton.addEventListener("click", syncNow);
+  shoppingCloudUploadButton?.addEventListener("click",async()=>{shoppingCloudUploadButton.disabled=true;try{await uploadShoppingCloud();}catch(error){shoppingStatus("保存できませんでした："+(error.code||error.message));}finally{setShoppingCloudButtons();}});
+  shoppingCloudDownloadButton?.addEventListener("click",async()=>{shoppingCloudDownloadButton.disabled=true;try{await downloadShoppingCloud();}catch(error){shoppingStatus("読み込めませんでした："+(error.code||error.message));}finally{setShoppingCloudButtons();}});
+
   downloadButton.addEventListener("click", async () => {
     const user = currentUser;
     if (!user) return;
@@ -4458,6 +4520,9 @@ try {
       initializedSyncForUid = null;
     }
     currentUser = user;
+    setShoppingCloudButtons();
+    if(!user)shoppingStatus("Googleログイン後に同期できます。");
+    else shoppingStatus("ログイン済みです。同じGoogleアカウントの端末と買い物データを同期できます。");
     loginButton.disabled = !!user || !navigator.onLine || logoutInProgress || loginInProgress;
     setSyncBusy(syncInProgress);
     logoutButton.disabled = syncInProgress || logoutInProgress || !user;
@@ -4475,6 +4540,7 @@ try {
     }
   });
   window.addEventListener("offline", () => {
+    setShoppingCloudButtons();
     loginButton.disabled = true;
     if (syncRetryTimer) {
       clearTimeout(syncRetryTimer);
@@ -4487,6 +4553,7 @@ try {
       : "オフラインです。端末内の保存は続けられます。Googleログインとクラウド同期には通信が必要です。");
   });
   window.addEventListener("online", () => {
+    setShoppingCloudButtons();
     loginButton.disabled = !!currentUser || logoutInProgress || loginInProgress;
     clearTimeout(syncRetryTimer);
     syncRetryTimer = null;
