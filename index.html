@@ -253,6 +253,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <label>数量・メモ（20文字以内）<input id="familyShoppingQuantity" maxlength="20" placeholder="例：2本"></label>
 <label>分類<select id="familyShoppingCategory"><option value="food">食べもの</option><option value="daily">日用品</option><option value="stationery">文房具</option><option value="other">その他</option></select></label>
 </div>
+<div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+<label for="familyShoppingAssignee">担当者（30文字以内）<input id="familyShoppingAssignee" maxlength="30" placeholder="例：お父さん"></label>
+<label for="familyShoppingPlannedDate">購入予定日<input id="familyShoppingPlannedDate" type="date"></label>
+</div>
+<label for="familyShoppingMemo">購入メモ（120文字以内）</label><textarea id="familyShoppingMemo" maxlength="120" rows="2" placeholder="例：特売日を確認、無糖タイプ"></textarea>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" type="submit" id="familyShoppingSubmit">買い物リストに追加</button><button type="button" id="familyShoppingCancel" hidden>編集をやめる</button></div>
 </form>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" id="familyShoppingExport">CSVを書き出す</button></div>
@@ -6237,6 +6242,9 @@ snsRefreshPosts.addEventListener("click", async () => {
   const nameInput = document.getElementById("familyShoppingName");
   const quantityInput = document.getElementById("familyShoppingQuantity");
   const categoryInput = document.getElementById("familyShoppingCategory");
+  const assigneeInput = document.getElementById("familyShoppingAssignee");
+  const plannedDateInput = document.getElementById("familyShoppingPlannedDate");
+  const purchaseMemoInput = document.getElementById("familyShoppingMemo");
   const filterInput = document.getElementById("familyShoppingFilter");
   const categoryFilterInput = document.getElementById("familyShoppingCategoryFilter");
   const searchInput = document.getElementById("familyShoppingSearch");
@@ -6256,12 +6264,16 @@ snsRefreshPosts.addEventListener("click", async () => {
   const categories = {food:"食べもの",daily:"日用品",stationery:"文房具",other:"その他"};
   let entries = [], ready = false, editingId = null;
   function resetEditor(){editingId=null;form.reset();submitButton.textContent="買い物リストに追加";cancelButton.hidden=true;render();}
+  function validDate(value){if(value==="")return true;if(typeof value!=="string"||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value))return false;const [y,m,d]=value.split("-").map(Number);const date=new Date(Date.UTC(y,m-1,d));return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;}
   function validEntry(item) {
     return !!item && typeof item === "object" &&
       typeof item.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(item.id) &&
       typeof item.name === "string" && item.name.trim().length >= 1 && item.name.length <= 60 &&
       typeof item.quantity === "string" && item.quantity.length <= 20 &&
       Object.hasOwn(categories,item.category) && typeof item.bought === "boolean" &&
+      (item.assignee===undefined||(typeof item.assignee==="string"&&item.assignee.length<=30)) &&
+      (item.plannedDate===undefined||(typeof item.plannedDate==="string"&&validDate(item.plannedDate))) &&
+      (item.purchaseMemo===undefined||(typeof item.purchaseMemo==="string"&&item.purchaseMemo.length<=120)) &&
       Number.isSafeInteger(item.createdAt) && item.createdAt > 0;
   }
   function readEntries() {
@@ -6325,14 +6337,19 @@ snsRefreshPosts.addEventListener("click", async () => {
       row.append(checkbox,name);
       const meta=document.createElement("small");meta.style.color="#667085";
       meta.textContent=categories[item.category]+(item.quantity?"・"+item.quantity:"");
+      const details=[];
+      if(item.assignee)details.push("担当："+item.assignee);
+      if(item.plannedDate)details.push("購入予定："+item.plannedDate);
+      if(item.purchaseMemo)details.push("メモ："+item.purchaseMemo);
+      const detail=document.createElement("small");detail.style.cssText="color:#475467;white-space:pre-wrap;overflow-wrap:anywhere";detail.textContent=details.join("　｜　");detail.hidden=!details.length;
       const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
       const edit=document.createElement("button");edit.type="button";edit.textContent="編集";
-      edit.addEventListener("click",()=>{editingId=item.id;nameInput.value=item.name;quantityInput.value=item.quantity;categoryInput.value=item.category;submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
+      edit.addEventListener("click",()=>{editingId=item.id;nameInput.value=item.name;quantityInput.value=item.quantity;categoryInput.value=item.category;assigneeInput.value=item.assignee||"";plannedDateInput.value=item.plannedDate||"";purchaseMemoInput.value=item.purchaseMemo||"";submitButton.textContent="変更を保存";cancelButton.hidden=false;nameInput.focus();form.scrollIntoView({behavior:"smooth",block:"start"});});
       const remove=document.createElement("button");remove.type="button";remove.textContent="削除";
       remove.addEventListener("click",()=>{if(confirm("「"+item.name+"」を削除しますか？"))save(entries.filter(entry=>entry.id!==item.id));});
       if(!shoppingMode)actions.append(edit,remove);
       else {li.style.padding="16px";meta.style.fontSize="1rem";}
-      actions.append();li.append(row,meta,actions);listEl.append(li);
+      actions.append();li.append(row,meta);if(details.length)li.append(detail);li.append(actions);listEl.append(li);
     }
     clearButton.disabled=bought===0;
     modeToggle.textContent=shoppingMode?"通常表示に戻る":"🛍️ 買い物中モードを開始";
@@ -6340,7 +6357,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     modeStatus.textContent=shoppingMode?"買うものだけを分類・品物名順で表示中。チェックすると一覧から外れます。":"通常表示";
     filterInput.disabled=shoppingMode;categoryFilterInput.disabled=shoppingMode;searchInput.disabled=shoppingMode;sortInput.disabled=shoppingMode;resetFiltersButton.disabled=shoppingMode;
     const full=entries.length>=LIMIT&&!editingId;
-    nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;submitButton.disabled=full;
+    nameInput.disabled=full;quantityInput.disabled=full;categoryInput.disabled=full;assigneeInput.disabled=full;plannedDateInput.disabled=full;purchaseMemoInput.disabled=full;submitButton.disabled=full;
   }
   try { entries=readEntries();ready=true;render(); }
   catch(error) {
@@ -6352,16 +6369,17 @@ snsRefreshPosts.addEventListener("click", async () => {
   modeToggle.addEventListener("click",()=>{shoppingMode=!shoppingMode;render();});
   form.addEventListener("submit",event=>{
     event.preventDefault();
-    const name=nameInput.value.trim(),quantity=quantityInput.value.trim();
-    if(!name||name.length>60||quantity.length>20||!Object.hasOwn(categories,categoryInput.value))return;
+    const name=nameInput.value.trim(),quantity=quantityInput.value.trim(),assignee=assigneeInput.value.trim(),plannedDate=plannedDateInput.value,purchaseMemo=purchaseMemoInput.value.trim();
+    if(!name||name.length>60||quantity.length>20||assignee.length>30||purchaseMemo.length>120||!validDate(plannedDate)||!Object.hasOwn(categories,categoryInput.value)){summaryEl.textContent="入力内容を確認してください。購入予定日は正しい日付を指定してください。";return;}
+    const metadata={assignee,plannedDate,purchaseMemo};
     if(editingId){
       const current=entries.find(item=>item.id===editingId);if(!current)return;
-      const next=entries.map(item=>item.id===editingId?{...item,name,quantity,category:categoryInput.value}:item);
+      const next=entries.map(item=>item.id===editingId?{...item,name,quantity,category:categoryInput.value,...metadata}:item);
       if(save(next))resetEditor();
     }else{
       if(entries.length>=LIMIT)return;
       const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"shop_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10);
-      if(save([...entries,{id,name,quantity,category:categoryInput.value,bought:false,createdAt:Date.now()}])){nameInput.value="";quantityInput.value="";nameInput.focus();}
+      if(save([...entries,{id,name,quantity,category:categoryInput.value,...metadata,bought:false,createdAt:Date.now()}])){nameInput.value="";quantityInput.value="";assigneeInput.value="";plannedDateInput.value="";purchaseMemoInput.value="";nameInput.focus();}
     }
   });
   exportButton.addEventListener("click",()=>{
@@ -6371,9 +6389,9 @@ snsRefreshPosts.addEventListener("click", async () => {
       return /^[\s]*[=+\-@]/.test(text)?"'"+text:text;
     };
     const quote=value=>'"'+safe(value).replace(/"/g,'""')+'"';
-    const rows=[["品物","数量・メモ","分類","購入状況","登録日時"],...entries
+    const rows=[["品物","数量・メモ","分類","購入状況","登録日時","担当者","購入予定日","購入メモ"],...entries
       .slice().sort((a,b)=>a.createdAt-b.createdAt)
-      .map(item=>[item.name,item.quantity,categories[item.category],item.bought?"購入済み":"未購入",new Date(item.createdAt).toLocaleString("ja-JP")])];
+      .map(item=>[item.name,item.quantity,categories[item.category],item.bought?"購入済み":"未購入",new Date(item.createdAt).toLocaleString("ja-JP"),item.assignee||"",item.plannedDate||"",item.purchaseMemo||""])];
     const csv="\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\r\n");
     try{
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
@@ -6413,18 +6431,20 @@ snsRefreshPosts.addEventListener("click", async () => {
         return rows;
       };
       const rows=parseCSV(source);
-      const header=["品物","数量・メモ","分類","購入状況","登録日時"];
-      if(!rows.length||rows[0].length!==header.length||!header.every((value,index)=>rows[0][index]===value))
-        throw new Error("unexpected CSV header");
+      const legacyHeader=["品物","数量・メモ","分類","購入状況","登録日時"];
+      const extendedHeader=[...legacyHeader,"担当者","購入予定日","購入メモ"];
+      const extended=rows.length>0&&rows[0].length===extendedHeader.length&&extendedHeader.every((value,index)=>rows[0][index]===value);
+      const legacy=rows.length>0&&rows[0].length===legacyHeader.length&&legacyHeader.every((value,index)=>rows[0][index]===value);
+      if(!extended&&!legacy)throw new Error("unexpected CSV header");
       if(rows.length>101)throw new Error("too many rows");
       const categoryByLabel={"食べもの":"food","日用品":"daily","文房具":"stationery","その他":"other"};
       const imported=rows.slice(1).map(row=>{
-        if(row.length!==5)throw new Error("invalid CSV columns");
-        const [name,quantity,category,bought]=row;
-        if(typeof name!=="string"||!name.trim()||name.trim().length>60||quantity.length>20||
+        if(row.length!==(extended?8:5))throw new Error("invalid CSV columns");
+        const [name,quantity,category,bought,,assignee="",plannedDate="",purchaseMemo=""]=row;
+        if(typeof name!=="string"||!name.trim()||name.trim().length>60||quantity.length>20||assignee.length>30||purchaseMemo.length>120||!validDate(plannedDate)||
           !Object.hasOwn(categoryByLabel,category)||!["購入済み","未購入"].includes(bought))
           throw new Error("invalid CSV value");
-        return {name:name.trim(),quantity:quantity.trim(),category:categoryByLabel[category],bought:bought==="購入済み"};
+        return {name:name.trim(),quantity:quantity.trim(),category:categoryByLabel[category],bought:bought==="購入済み",assignee:assignee.trim(),plannedDate,purchaseMemo:purchaseMemo.trim()};
       });
       if(!imported.length){exportStatus.textContent="CSVに取り込める品物がありません。";return;}
       const existing=new Set(entries.map(item=>item.name.trim().toLocaleLowerCase()));
@@ -7310,7 +7330,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   const validTask=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.title==="string"&&x.title.trim()&&x.title.length<=80&&["household","cleaning","study","other"].includes(x.category)&&["low","normal","high"].includes(x.priority)&&(x.dueDate===""||(typeof x.dueDate==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.dueDate)&&!Number.isNaN(Date.parse(x.dueDate))))&&typeof x.completed==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
   const validEvent=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.title==="string"&&x.title.trim()&&x.title.length<=80&&typeof x.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&!Number.isNaN(Date.parse(x.date))&&typeof x.time==="string"&&(x.time===""||/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time))&&typeof x.place==="string"&&x.place.length<=60&&typeof x.done==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
   const validMeal=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&!Number.isNaN(Date.parse(x.date))&&["breakfast","lunch","dinner","snack"].includes(x.type)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=80&&typeof x.note==="string"&&x.note.length<=60&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
-  const validShopping=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&["food","daily","stationery","other"].includes(x.category)&&typeof x.bought==="boolean"&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
+  const validShopping=x=>x&&typeof x==="object"&&idOk(x)&&typeof x.name==="string"&&x.name.trim()&&x.name.length<=60&&typeof x.quantity==="string"&&x.quantity.length<=20&&["food","daily","stationery","other"].includes(x.category)&&typeof x.bought==="boolean"&&(x.assignee===undefined||(typeof x.assignee==="string"&&x.assignee.length<=30))&&(x.plannedDate===undefined||(typeof x.plannedDate==="string"&&/^(|[0-9]{4}-[0-9]{2}-[0-9]{2})$/.test(x.plannedDate)&&(!x.plannedDate||!Number.isNaN(Date.parse(x.plannedDate)))))&&(x.purchaseMemo===undefined||(typeof x.purchaseMemo==="string"&&x.purchaseMemo.length<=120))&&Number.isSafeInteger(x.createdAt)&&x.createdAt>0;
   const section=(heading,items,empty)=>{const wrap=document.createElement("section");wrap.className="weekly-plan-section";const h=document.createElement("h3");h.textContent=heading;wrap.append(h);if(!items.length){const p=document.createElement("p");p.className="weekly-plan-empty";p.textContent=empty;wrap.append(p);}else{const ul=document.createElement("ul");items.forEach(value=>{const li=document.createElement("li");li.textContent=value;ul.append(li);});wrap.append(ul);}return wrap;};
   const renderOutingPrep=(events,shopping)=>{
     const target=document.getElementById("familyOutingPrepReport");if(!target)return;
