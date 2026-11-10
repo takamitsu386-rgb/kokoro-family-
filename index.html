@@ -4613,7 +4613,7 @@ try {
     returnToAi = sessionStorage.getItem("kokoroReturnToAiAfterLogin") === "1";
     if (returnToAi) sessionStorage.removeItem("kokoroReturnToAiAfterLogin");
   } catch (storageError) {}
-  if (returnToAi && (redirectResult?.user || auth.currentUser)) {
+  if (returnToAi && redirectResult?.user) {
     location.hash = "ai-consultation";
     requestAnimationFrame(() => document.getElementById("ai-consultation")?.scrollIntoView({ behavior: "auto", block: "start" }));
   }
