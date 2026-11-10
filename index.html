@@ -6804,7 +6804,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     if(!purchaseHistory.length){status.textContent="書き出す購入履歴がありません。";return;}
     const safe=value=>{const text=String(value??"");return /^[\\s]*[=+\\-@]/.test(text)?"'"+text:text;};
     const quote=value=>'"'+safe(value).replace(/"/g,'""')+'"';
-    const rows=[["購入日時","品物","数量","分類","担当者","購入予定日","購入金額（円）"],...purchaseHistory.map(item=>[item.purchasedAt,item.name,item.quantity,categoryLabels[item.category]||item.category,item.assignee||"未設定",item.plannedDate||"",Number.isSafeInteger(item.amount)?item.amount:"未記録"])];
+    const rows=[["購入日時","品物","数量","分類","担当者","購入予定日","購入金額（円）"],...purchaseHistory.map(item=>[item.purchasedAt,item.name,item.quantity,item.category,item.assignee||"未設定",item.plannedDate||"",Number.isSafeInteger(item.amount)?item.amount:"未記録"])];
     const csv="\\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\\r\\n");
     try{const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="kokoro-family-purchase-history-"+new Date().toISOString().slice(0,10)+".csv";link.hidden=true;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);status.textContent=purchaseHistory.length+"件の購入履歴を書き出しました。";}
     catch(error){console.error("Purchase history CSV export failed",error);status.textContent="購入履歴CSVを書き出せませんでした。";}
