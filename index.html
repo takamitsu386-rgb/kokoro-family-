@@ -4013,7 +4013,10 @@ shoppingSharedFriend?.addEventListener("change",()=>{stopSharedShoppingListener(
 function sharedShoppingId(uidA,uidB){return [uidA,uidB].sort().join("_");}
 function applySharedShoppingData(data){
   if(!validShoppingCloudPayload(data))throw new Error("共有データの形式が正しくありません。");
-  applySharedShoppingData(data);
+  const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"],values=[data.items,data.history,data.budgets,data.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
+  try{keys.forEach((key,index)=>localStorage.setItem(key,JSON.stringify(values[index])));}
+  catch(error){let restored=true;keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]);}catch(rollback){restored=false;console.error("Shared shopping rollback failed",rollback);}});throw new Error(restored?"端末への保存に失敗しました。元のデータは保持しました。":"保存と元データへの復元に失敗しました。");}
+  location.reload();
 }
 async function uploadShoppingToFriend(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
@@ -4040,12 +4043,8 @@ async function downloadShoppingFromFriend(){
   const data=snapshot.data();
   if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data))throw new Error("共有データを確認できません。端末内データは変更しませんでした。");
   if(!confirm("共有データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
-  const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"],values=[data.items,data.history,data.budgets,data.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
-  try{keys.forEach((key,index)=>localStorage.setItem(key,JSON.stringify(values[index])));}
-  catch(error){let restored=true;keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]);}catch(rollback){restored=false;console.error("Shared shopping rollback failed",rollback);}});throw new Error(restored?"端末への保存に失敗しました。元のデータは保持しました。":"保存と元データへの復元に失敗しました。");}
-  location.reload();
+  applySharedShoppingData(data);
 }
-
 function readShoppingCloudPayload(){
   const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
   const defaults=[[],[],{},{}];let values=[];
