@@ -4531,13 +4531,13 @@ async function syncNow() {
     if (!navigator.onLine) throw new Error("同期中に通信が切れたため、クラウドデータの反映・上書きを中止しました。端末内データはそのままです。");
     const alreadyInitialized = localStorage.getItem("kokoroCloudSyncUid") === uid;
     if (snapshot.exists() && !alreadyInitialized) {
+      const localSnapshot = captureRoomLocalSnapshot();
       const useCloud = confirm("このアカウントにはクラウドデータがあります。OK：クラウドから読み込む／キャンセル：この端末のデータをクラウドへ保存する");
       if (useCloud) {
         const data = snapshot.data();
         if (!validCloudData(data)) {
           throw new Error("クラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
         }
-        const localSnapshot = captureRoomLocalSnapshot();
         if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
         if (!navigator.onLine) throw new Error("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
         if (!roomLocalSnapshotMatches(localSnapshot)) throw new Error("確認中にこの端末のお部屋データが変更されました。上書きを防ぐため初回読み込みを中止しました。");
