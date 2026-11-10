@@ -6905,7 +6905,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       link.href=url;link.download="kokoro-family-shopping-"+new Date().toISOString().slice(0,10)+".csv";
-      link.hidden=true;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      link.hidden=true;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       exportStatus.textContent=entries.length+"件の買い物リストをCSVに書き出しました。";
     }catch(error){console.error("Shopping CSV export failed",error);exportStatus.textContent="CSVを書き出せませんでした。";}
   });
