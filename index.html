@@ -3959,7 +3959,7 @@ const syncButton = document.getElementById("cloudSyncNow");
 const downloadButton = document.getElementById("cloudDownload");
 const logoutButton = document.getElementById("cloudLogout");
 let auth, db, currentUser = null;
-let sharedShoppingUnsubscribe=null, pendingSharedShopping=null, sharedShoppingSubscriptionKey="";
+let sharedShoppingUnsubscribe=null, pendingSharedShopping=null, sharedShoppingSubscriptionKey="", sharedShoppingListenerGeneration=0;
 let loginInProgress = false;
 let authStateGeneration = 0;
 let authErrorMessage = null;
@@ -3985,7 +3985,7 @@ window.addEventListener("kokoro-family-friends-updated",event=>{
   startSharedShoppingListener();
   setShoppingShareButtons();
 });
-function stopSharedShoppingListener(){if(sharedShoppingUnsubscribe){sharedShoppingUnsubscribe();sharedShoppingUnsubscribe=null;}sharedShoppingSubscriptionKey="";pendingSharedShopping=null;if(shoppingShareApply)shoppingShareApply.disabled=true;}
+function stopSharedShoppingListener(){sharedShoppingListenerGeneration+=1;if(sharedShoppingUnsubscribe){sharedShoppingUnsubscribe();sharedShoppingUnsubscribe=null;}sharedShoppingSubscriptionKey="";pendingSharedShopping=null;if(shoppingShareApply)shoppingShareApply.disabled=true;}
 function startSharedShoppingListener(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
   const key=user&&peerUid&&peerUid!==user.uid?user.uid+":"+peerUid:"";
@@ -3993,9 +3993,9 @@ function startSharedShoppingListener(){
   stopSharedShoppingListener();
   if(!key||!navigator.onLine||!db)return;
   sharedShoppingSubscriptionKey=key;
-  const generation=authStateGeneration,ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid));
+  const generation=authStateGeneration,listenerGeneration=sharedShoppingListenerGeneration,ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid));
   sharedShoppingUnsubscribe=onSnapshot(ref,snapshot=>{
-    if(!currentUser||currentUser.uid!==user.uid||authStateGeneration!==generation||shoppingSharedFriend?.value!==peerUid)return;
+    if(listenerGeneration!==sharedShoppingListenerGeneration||!currentUser||currentUser.uid!==user.uid||authStateGeneration!==generation||shoppingSharedFriend?.value!==peerUid)return;
     if(!snapshot.exists()){pendingSharedShopping=null;shoppingShareMessage("共有データはまだありません。相手が保存すると、ここに通知されます。");setShoppingShareButtons();return;}
     const data=snapshot.data();
     if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data)){
