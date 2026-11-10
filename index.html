@@ -4091,15 +4091,24 @@ async function downloadShoppingFromFriend(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
   if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
   const generation=authStateGeneration,isCurrentSession=()=>!!currentUser&&currentUser.uid===user.uid&&authStateGeneration===generation;
-  const snapshot=await getDoc(doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)));
-  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、読み込みを中止しました。");
+  const localSnapshot=captureShoppingLocalSnapshot();
+  const ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid));
+  const snapshot=await getDoc(ref);
+  if(!isCurrentSession()||!navigator.onLine)throw new Error("ログイン状態または通信状態が変わったため、読み込みを中止しました。");
   if(shoppingSharedFriend?.value!==peerUid)throw new Error("共有先が変更されたため、読み込みを中止しました。もう一度共有先を選んでください。");
   if(!snapshot.exists()){shoppingShareMessage("共有データがありません。相手に先に共有データを保存してもらってください。");return;}
   const data=snapshot.data();
   if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data))throw new Error("共有データを確認できません。端末内データは変更しませんでした。");
   if(!confirm("共有データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
-  if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、読み込みを中止しました。");
-  applySharedShoppingData(data);
+  if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid||!navigator.onLine)throw new Error("ログイン状態・共有先または通信状態が変わったため、読み込みを中止しました。");
+  const latestSnapshot=await getDoc(ref);
+  if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid||!navigator.onLine)throw new Error("再確認中にログイン状態・共有先または通信状態が変わったため、読み込みを中止しました。");
+  if(!latestSnapshot.exists())throw new Error("確認中に共有データが削除されました。端末内データは変更していません。");
+  const latest=latestSnapshot.data();
+  if(!Array.isArray(latest.members)||latest.members.length!==2||!latest.members.includes(user.uid)||!latest.members.includes(peerUid)||!validShoppingCloudPayload(latest))throw new Error("最新の共有データを確認できません。端末内データは変更していません。");
+  if(!data.updatedAt||!latest.updatedAt||typeof data.updatedAt.isEqual!=="function"||!data.updatedAt.isEqual(latest.updatedAt))throw new Error("確認中に相手が共有データを更新しました。最新内容を確認して、もう一度読み込んでください。");
+  if(!shoppingLocalSnapshotMatches(localSnapshot))throw new Error("確認中にこの端末の買い物データが変更されました。上書きを防ぐため読み込みを中止しました。");
+  applySharedShoppingData(latest);
 }
 function captureShoppingLocalSnapshot(){
   const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
