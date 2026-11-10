@@ -6567,7 +6567,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     
     if(knownAmounts.length<selected.length)alerts.push("購入金額が未記録の履歴があります。金額が分かる購入だけを集計しているため、予算残額は未確定です。");
     budgetAlertEl.textContent=alerts.length?alerts.join(" "):(budget===""?"予算を設定すると超過状況をここに表示します。":"予算内です。");
-    budgetAlertEl.style.cssText="margin-top:8px;padding:9px;border-radius:9px;"+(budget!==""&&actual>Number(budget)?"background:#fff1f0;color:#9b1c1c":"background:#eef8f0;color:#245b32");
+    budgetAlertEl.style.cssText="margin-top:8px;padding:9px;border-radius:9px;"+(budget!==""&&actual>Number(budget)?"background:#fff1f0;color:#9b1c1c":knownAmounts.length<selected.length?"background:#fff8e8;color:#7a4b00":"background:#eef8f0;color:#245b32");
     monthlySpendChartEl.replaceChildren();
     const daily=new Map();
     selected.forEach(item=>{if(!Number.isSafeInteger(item.amount))return;const day=new Date(item.purchasedAt).getDate();daily.set(day,(daily.get(day)||0)+item.amount);});
