@@ -3982,6 +3982,7 @@ window.addEventListener("kokoro-family-friends-updated",event=>{
     const option=document.createElement("option");option.value=friend.uid;option.textContent=friend.name;shoppingSharedFriend.appendChild(option);
   }
   if([...shoppingSharedFriend.options].some(option=>option.value===selected))shoppingSharedFriend.value=selected;
+  startSharedShoppingListener();
   setShoppingShareButtons();
 });
 function stopSharedShoppingListener(){if(sharedShoppingUnsubscribe){sharedShoppingUnsubscribe();sharedShoppingUnsubscribe=null;}sharedShoppingSubscriptionKey="";pendingSharedShopping=null;if(shoppingShareApply)shoppingShareApply.disabled=true;}
@@ -4000,7 +4001,7 @@ function startSharedShoppingListener(){
     if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data)){
       pendingSharedShopping=null;shoppingShareMessage("共有データを安全に確認できません。");setShoppingShareButtons();return;
     }
-    if(data.updatedBy===user.uid){setShoppingShareButtons();return;}
+    if(data.updatedBy===user.uid){pendingSharedShopping=null;setShoppingShareButtons();return;}
     pendingSharedShopping={peerUid,data};
     shoppingShareMessage("相手が買い物データを更新しました。内容を確認して「受信した最新データを適用」を押してください。端末内の変更は自動で上書きしません。");
     setShoppingShareButtons();
