@@ -4051,6 +4051,7 @@ async function uploadShoppingToFriend(){
   if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、保存を中止しました。");
   await runTransaction(db,async transaction=>{
     const latest=await transaction.get(ref);
+    if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、保存を中止しました。");
     if(latest.exists()!==existed)throw new Error("共有データの状態が変わりました。最新内容を読み直してから再度保存してください。");
     if(existed){
       const latestData=latest.data();
