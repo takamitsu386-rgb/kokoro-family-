@@ -5506,7 +5506,14 @@ async function snsRemoveFriend(requestId) {
     }
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-    snsFriendNotice.textContent = "友達関係を解除し、この相手とのお部屋共有も削除しました。";
+    // Remove the shopping-share document only after the friendship record is gone.
+    // Either member may clean it up once Firestore confirms they are no longer friends.
+    try {
+      await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
+    } catch (cleanupError) {
+      console.warn("Shared shopping cleanup was not permitted or is already complete", cleanupError);
+    }
+    snsFriendNotice.textContent = "友達関係を解除し、この相手との共有データも削除しました。";
     await Promise.all([snsLoadFriendRequests(user, authGeneration), snsLoadSharedRooms(user, authGeneration)]);
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
