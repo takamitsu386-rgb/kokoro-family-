@@ -3892,12 +3892,15 @@ return;
 }
 if(!confirm(keys.label+"の状態に戻します。現在のお部屋・保存一覧・配色は復元用に別途退避します。Googleでログイン中の場合、復元した内容はクラウド同期の対象になります。続けますか？"))return;
 let currentRoom,currentSaved,currentPrefs,currentPalettes;
+const recoveryKeys=["kokoroRoomBeforeRecovery","kokoroSavedRoomsBeforeRecovery","kokoroSavedRoomPrefsBeforeRecovery","kokoroCustomRoomPalettesBeforeRecovery"];
+let previousRecoverySnapshot;
 const currentDisplay=roomData(),currentDisplayPrefs=readSavedRoomPrefs(),currentDisplayPalettes=readCustomRoomPalettes();
 try{
 currentRoom=localStorage.getItem("kokoroRoom");
 currentSaved=localStorage.getItem("kokoroSavedRooms");
 currentPrefs=localStorage.getItem("kokoroSavedRoomPrefs");
 currentPalettes=localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
+previousRecoverySnapshot=recoveryKeys.map(key=>localStorage.getItem(key));
 }catch(error){
 message.textContent="現在のデータを安全に退避できないため、復元を中止しました.";
 return;
@@ -3924,6 +3927,7 @@ message.textContent="✅ "+keys.label+"のデータに戻しました。復元�
 console.error("Previous data recovery failed",error);
 let rollbackOK=true;
 try{
+recoveryKeys.forEach((key,index)=>{if(previousRecoverySnapshot[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previousRecoverySnapshot[index]);});
 if(currentRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",currentRoom);
 if(currentSaved===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",currentSaved);
 if(currentPrefs===null)localStorage.removeItem("kokoroSavedRoomPrefs");else localStorage.setItem("kokoroSavedRoomPrefs",currentPrefs);
