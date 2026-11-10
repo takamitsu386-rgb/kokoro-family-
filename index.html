@@ -3938,7 +3938,7 @@ message.textContent=rollbackOK
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ODyTj06wZvJ9t1UQxQ56YfHMqcfj6Y",
@@ -4018,6 +4018,24 @@ function applySharedShoppingData(data){
   catch(error){let restored=true;keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]);}catch(rollback){restored=false;console.error("Shared shopping rollback failed",rollback);}});throw new Error(restored?"端末への保存に失敗しました。元のデータは保持しました。":"保存と元データへの復元に失敗しました。");}
   location.reload();
 }
+async function applyPendingSharedShopping(){
+  const pending=pendingSharedShopping,user=currentUser,peerUid=shoppingSharedFriend?.value;
+  if(!pending||!user||pending.peerUid!==peerUid||!peerUid||!navigator.onLine)throw new Error("受信データまたは通信状態を確認してください。");
+  if(!confirm("相手から受信した最新データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
+  const generation=authStateGeneration,snapshot=await getDoc(doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)));
+  if(!currentUser||currentUser.uid!==user.uid||authStateGeneration!==generation||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、適用を中止しました。");
+  if(!snapshot.exists())throw new Error("共有データが削除されました。");
+  const latest=snapshot.data();
+  if(!Array.isArray(latest.members)||latest.members.length!==2||!latest.members.includes(user.uid)||!latest.members.includes(peerUid)||!validShoppingCloudPayload(latest))throw new Error("最新の共有データを確認できません。");
+  const sameVersion=typeof pending.data.updatedAt?.isEqual==="function"&&pending.data.updatedAt.isEqual(latest.updatedAt);
+  if(!sameVersion){
+    pendingSharedShopping={peerUid,data:latest};
+    shoppingShareMessage("相手がさらにデータを更新しました。新しい受信内容を確認してから、もう一度適用してください。");
+    setShoppingShareButtons();
+    return;
+  }
+  applySharedShoppingData(latest);
+}
 async function uploadShoppingToFriend(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
   if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
@@ -4025,17 +4043,24 @@ async function uploadShoppingToFriend(){
   const payload=readShoppingCloudPayload(),ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)),snapshot=await getDoc(ref);
   if(!isCurrentSession())throw new Error("ログイン状態が変わったため、共有を中止しました。");
   if(shoppingSharedFriend?.value!==peerUid)throw new Error("共有先が変更されたため、保存を中止しました。もう一度共有先を選んでください。");
-  let ownerUid=user.uid,recipientUid=peerUid;
-  if(snapshot.exists()){
-    const old=snapshot.data();
-    if(!Array.isArray(old.members)||!old.members.includes(user.uid)||!old.members.includes(peerUid)||old.members.length!==2)throw new Error("この共有データにはアクセスできません。");
-    ownerUid=old.ownerUid;recipientUid=old.recipientUid;
+  const existed=snapshot.exists(),baseline=snapshot.data(),ownerUid=existed?baseline.ownerUid:user.uid,recipientUid=existed?baseline.recipientUid:peerUid;
+  if(existed){
+    if(!Array.isArray(baseline.members)||baseline.members.length!==2||!baseline.members.includes(user.uid)||!baseline.members.includes(peerUid))throw new Error("この共有データにはアクセスできません。");
     if(!confirm("共有中の買い物データを、この端末の内容で置き換えます。相手の内容も更新されます。続けますか？"))return;
   }else if(!confirm("選択した友達と買い物リスト・購入履歴・予算を共有します。続けますか？"))return;
-  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、共有を中止しました。");
-  await setDoc(ref,{version:1,ownerUid,recipientUid,members:[user.uid,peerUid].sort(),items:payload.items,history:payload.history,budgets:payload.budgets,assigneeBudgets:payload.assigneeBudgets,updatedBy:user.uid,updatedAt:serverTimestamp()});
+  if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、保存を中止しました。");
+  await runTransaction(db,async transaction=>{
+    const latest=await transaction.get(ref);
+    if(latest.exists()!==existed)throw new Error("共有データの状態が変わりました。最新内容を読み直してから再度保存してください。");
+    if(existed){
+      const latestData=latest.data();
+      if(!baseline.updatedAt||!latestData.updatedAt||typeof baseline.updatedAt.isEqual!=="function"||!baseline.updatedAt.isEqual(latestData.updatedAt))throw new Error("相手が先に共有データを更新しました。上書きを防ぐため保存を中止しました。最新データを読み込んでから再度お試しください。");
+      if(!Array.isArray(latestData.members)||latestData.members.length!==2||!latestData.members.includes(user.uid)||!latestData.members.includes(peerUid))throw new Error("共有メンバーが変わったため保存できません。");
+    }
+    transaction.set(ref,{version:1,ownerUid,recipientUid,members:[user.uid,peerUid].sort(),items:payload.items,history:payload.history,budgets:payload.budgets,assigneeBudgets:payload.assigneeBudgets,updatedBy:user.uid,updatedAt:serverTimestamp()});
+  });
   if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わりました。保存結果を画面に反映しませんでした。");
-  shoppingShareMessage("選択した友達と買い物データを共有しました。相手も共有データを読み込めます。");
+  shoppingShareMessage("共有データを保存しました。保存前に相手の更新があった場合は、上書きを中止します。");
 }
 async function downloadShoppingFromFriend(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
@@ -4553,7 +4578,7 @@ try {
   shoppingCloudDownloadButton?.addEventListener("click",async()=>{shoppingCloudDownloadButton.disabled=true;try{await downloadShoppingCloud();}catch(error){shoppingStatus("読み込めませんでした："+(error.code||error.message));}finally{setShoppingCloudButtons();}});
   shoppingShareUpload?.addEventListener("click",async()=>{shoppingShareUpload.disabled=true;try{await uploadShoppingToFriend();}catch(error){shoppingShareMessage("共有できませんでした："+(error.code||error.message));}finally{setShoppingShareButtons();}});
   shoppingShareDownload?.addEventListener("click",async()=>{shoppingShareDownload.disabled=true;try{await downloadShoppingFromFriend();}catch(error){shoppingShareMessage("読み込めませんでした："+(error.code||error.message));}finally{setShoppingShareButtons();}});
-  shoppingShareApply?.addEventListener("click",()=>{const pending=pendingSharedShopping;if(!pending||pending.peerUid!==shoppingSharedFriend?.value)return;if(!confirm("相手から受信した最新データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;try{applySharedShoppingData(pending.data);}catch(error){shoppingShareMessage("適用できませんでした："+error.message);}});
+  shoppingShareApply?.addEventListener("click",async()=>{shoppingShareApply.disabled=true;try{await applyPendingSharedShopping();}catch(error){shoppingShareMessage("適用できませんでした："+error.message);}finally{setShoppingShareButtons();}});
 
 
   downloadButton.addEventListener("click", async () => {
