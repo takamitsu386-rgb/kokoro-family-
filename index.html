@@ -3796,6 +3796,8 @@ const previousRoom=localStorage.getItem("kokoroRoom");
 const previousSavedRooms=localStorage.getItem("kokoroSavedRooms");
 const previousPrefs=localStorage.getItem("kokoroSavedRoomPrefs");
 const previousPalettes=localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
+const importBackupKeys=["kokoroRoomBeforeImport","kokoroSavedRoomsBeforeImport","kokoroSavedRoomPrefsBeforeImport","kokoroCustomRoomPalettesBeforeImport"];
+const previousImportBackup=importBackupKeys.map(key=>localStorage.getItem(key));
 const previousDisplayRoom=roomData();
 const previousDisplayPrefs=readSavedRoomPrefs();
 const previousDisplayPalettes=readCustomRoomPalettes();
@@ -3816,6 +3818,7 @@ renderCustomRoomPalettes();
 importCommitted=true;
 }catch(importError){
 try{
+importBackupKeys.forEach((key,index)=>{if(previousImportBackup[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previousImportBackup[index]);});
 if(previousRoom===null)localStorage.removeItem("kokoroRoom");else localStorage.setItem("kokoroRoom",previousRoom);
 if(previousSavedRooms===null)localStorage.removeItem("kokoroSavedRooms");else localStorage.setItem("kokoroSavedRooms",previousSavedRooms);
 if(previousPrefs===null)localStorage.removeItem("kokoroSavedRoomPrefs");else localStorage.setItem("kokoroSavedRoomPrefs",previousPrefs);
