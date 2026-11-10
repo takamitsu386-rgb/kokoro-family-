@@ -127,7 +127,20 @@ service cloud.firestore {
         && (
           (
             !exists(/databases/$(database)/documents/sharedShopping/$(shareId))
-            && shareId.matches('.*' + request.auth.uid + '.*')
+            && shareId.split('_').size() == 2
+            && request.auth.uid in shareId.split('_')
+            && acceptedFriend(
+              request.auth.uid,
+              shareId.split('_')[0] == request.auth.uid
+                ? shareId.split('_')[1]
+                : shareId.split('_')[0]
+            )
+            && !blockedBetween(
+              request.auth.uid,
+              shareId.split('_')[0] == request.auth.uid
+                ? shareId.split('_')[1]
+                : shareId.split('_')[0]
+            )
           )
           || (
             request.auth.uid in resource.data.members
