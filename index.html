@@ -5437,7 +5437,7 @@ async function snsRemoveFriend(requestId) {
     if (!peerUid || peerUid === user.uid) throw new Error("友達情報を確認できません。");
     const [ownedShares, receivedShares] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(124))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(124)))
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid), limit(50)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShares = new Map();
@@ -5956,7 +5956,7 @@ snsAddBlock.addEventListener("click", async () => {
   try {
     const [ownedShares, receivedShares] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(124))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(124)))
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid), limit(50)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShares = new Map();
