@@ -127,9 +127,13 @@ service cloud.firestore {
         && (
           (
             !exists(/databases/$(database)/documents/sharedShopping/$(shareId))
-            && (
-              shareId.matches('^' + request.auth.uid + '_.*')
-              || shareId.matches('.*_' + request.auth.uid + '
+            && shareId.matches('.*' + request.auth.uid + '.*')
+          )
+          || (
+            request.auth.uid in resource.data.members
+            && areMembersFriends(resource.data)
+          )
+        );
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.recipientUid is string
