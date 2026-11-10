@@ -4021,8 +4021,9 @@ function applySharedShoppingData(data){
 async function uploadShoppingToFriend(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
   if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
+  const generation=authStateGeneration,isCurrentSession=()=>!!currentUser&&currentUser.uid===user.uid&&authStateGeneration===generation;
   const payload=readShoppingCloudPayload(),ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)),snapshot=await getDoc(ref);
-  if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、共有を中止しました。");
   if(shoppingSharedFriend?.value!==peerUid)throw new Error("共有先が変更されたため、保存を中止しました。もう一度共有先を選んでください。");
   let ownerUid=user.uid,recipientUid=peerUid;
   if(snapshot.exists()){
@@ -4031,20 +4032,23 @@ async function uploadShoppingToFriend(){
     ownerUid=old.ownerUid;recipientUid=old.recipientUid;
     if(!confirm("共有中の買い物データを、この端末の内容で置き換えます。相手の内容も更新されます。続けますか？"))return;
   }else if(!confirm("選択した友達と買い物リスト・購入履歴・予算を共有します。続けますか？"))return;
-  if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、共有を中止しました。");
   await setDoc(ref,{version:1,ownerUid,recipientUid,members:[user.uid,peerUid].sort(),items:payload.items,history:payload.history,budgets:payload.budgets,assigneeBudgets:payload.assigneeBudgets,updatedBy:user.uid,updatedAt:serverTimestamp()});
+  if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わりました。保存結果を画面に反映しませんでした。");
   shoppingShareMessage("選択した友達と買い物データを共有しました。相手も共有データを読み込めます。");
 }
 async function downloadShoppingFromFriend(){
   const user=currentUser,peerUid=shoppingSharedFriend?.value;
   if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
+  const generation=authStateGeneration,isCurrentSession=()=>!!currentUser&&currentUser.uid===user.uid&&authStateGeneration===generation;
   const snapshot=await getDoc(doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)));
-  if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、読み込みを中止しました。");
   if(shoppingSharedFriend?.value!==peerUid)throw new Error("共有先が変更されたため、読み込みを中止しました。もう一度共有先を選んでください。");
   if(!snapshot.exists()){shoppingShareMessage("共有データがありません。相手に先に共有データを保存してもらってください。");return;}
   const data=snapshot.data();
   if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data))throw new Error("共有データを確認できません。端末内データは変更しませんでした。");
   if(!confirm("共有データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
+  if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、読み込みを中止しました。");
   applySharedShoppingData(data);
 }
 function readShoppingCloudPayload(){
@@ -4077,21 +4081,26 @@ function validShoppingCloudPayload(data){
 }
 async function uploadShoppingCloud(){
   if(!currentUser||!navigator.onLine)throw new Error("ログインとインターネット接続が必要です。");
-  const uid=currentUser.uid,payload=readShoppingCloudPayload(),ref=doc(db,"users",uid,"kokoro","shopping");
+  const uid=currentUser.uid,generation=authStateGeneration,payload=readShoppingCloudPayload(),ref=doc(db,"users",uid,"kokoro","shopping");
+  const isCurrentSession=()=>!!currentUser&&currentUser.uid===uid&&authStateGeneration===generation;
   const snapshot=await getDoc(ref);
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、保存を中止しました。");
   if(snapshot.exists()&&!confirm("クラウドに保存済みの買い物データを、この端末の内容で置き換えます。続けますか？"))return;
-  if(!currentUser||currentUser.uid!==uid)throw new Error("ログインアカウントが変わりました。");
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、保存を中止しました。");
   await setDoc(ref,{...payload,updatedAt:serverTimestamp()});
+  if(!isCurrentSession())throw new Error("ログイン状態が変わりました。保存結果を画面に反映しませんでした。");
   shoppingStatus("買い物リスト・購入履歴・月間予算をクラウドに保存しました。同じGoogleアカウントの端末で読み込めます。");
 }
 async function downloadShoppingCloud(){
   if(!currentUser||!navigator.onLine)throw new Error("ログインとインターネット接続が必要です。");
-  const uid=currentUser.uid,snapshot=await getDoc(doc(db,"users",uid,"kokoro","shopping"));
-  if(!currentUser||currentUser.uid!==uid)throw new Error("ログインアカウントが変わりました。");
+  const uid=currentUser.uid,generation=authStateGeneration,snapshot=await getDoc(doc(db,"users",uid,"kokoro","shopping"));
+  const isCurrentSession=()=>!!currentUser&&currentUser.uid===uid&&authStateGeneration===generation;
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、読み込みを中止しました。");
   if(!snapshot.exists()){shoppingStatus("クラウドに買い物データがありません。");return;}
   const data=snapshot.data();
   if(!validShoppingCloudPayload(data))throw new Error("クラウドの買い物データが正しくありません。端末内データは変更しませんでした。");
   if(!confirm("この端末の買い物リスト・購入履歴・予算をクラウドの内容で置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
+  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、読み込みを中止しました。");
   const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
   const values=[data.items,data.history,data.budgets,data.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
   try{keys.forEach((key,index)=>localStorage.setItem(key,JSON.stringify(values[index])));}
