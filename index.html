@@ -6480,7 +6480,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       (item.assignee===undefined||(typeof item.assignee==="string"&&item.assignee.length<=30)) &&
       (item.plannedDate===undefined||(typeof item.plannedDate==="string"&&validDate(item.plannedDate))) &&
       (item.purchaseMemo===undefined||(typeof item.purchaseMemo==="string"&&item.purchaseMemo.length<=120)) &&
-      (item.amount===undefined||(Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=100000000)) &&
+      (item.amount===undefined||item.amount===null||(Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=100000000)) &&
       Number.isSafeInteger(item.createdAt) && item.createdAt > 0;
   }
   function validPurchaseRecord(item){return !!item&&typeof item==="object"&&typeof item.id==="string"&&item.id.length<=64&&typeof item.name==="string"&&item.name.length<=60&&typeof item.category==="string"&&Object.hasOwn(categories,item.category)&&typeof item.quantity==="string"&&item.quantity.length<=20&&typeof item.assignee==="string"&&item.assignee.length<=30&&typeof item.purchasedAt==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(item.purchasedAt)&&(!item.plannedDate||validDate(item.plannedDate))&&(item.amount===undefined||item.amount===null||(Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=100000000));}
