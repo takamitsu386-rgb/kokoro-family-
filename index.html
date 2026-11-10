@@ -5508,12 +5508,16 @@ async function snsRemoveFriend(requestId) {
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     // Remove the shopping-share document only after the friendship record is gone.
     // Either member may clean it up once Firestore confirms they are no longer friends.
+    let shoppingShareRemoved = false;
     try {
       await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
+      shoppingShareRemoved = true;
     } catch (cleanupError) {
       console.warn("Shared shopping cleanup was not permitted or is already complete", cleanupError);
     }
-    snsFriendNotice.textContent = "友達関係を解除し、この相手との共有データも削除しました。";
+    snsFriendNotice.textContent = shoppingShareRemoved
+      ? "友達関係を解除し、この相手との買い物共有データも削除しました。"
+      : "友達関係を解除しました。買い物共有へのアクセスは停止しましたが、共有データの削除は完了しませんでした。";
     await Promise.all([snsLoadFriendRequests(user, authGeneration), snsLoadSharedRooms(user, authGeneration)]);
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
