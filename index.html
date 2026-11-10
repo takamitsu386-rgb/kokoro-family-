@@ -4023,6 +4023,7 @@ async function uploadShoppingToFriend(){
   if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
   const payload=readShoppingCloudPayload(),ref=doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)),snapshot=await getDoc(ref);
   if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  if(shoppingSharedFriend?.value!==peerUid)throw new Error("共有先が変更されたため、保存を中止しました。もう一度共有先を選んでください。");
   let ownerUid=user.uid,recipientUid=peerUid;
   if(snapshot.exists()){
     const old=snapshot.data();
@@ -4039,6 +4040,7 @@ async function downloadShoppingFromFriend(){
   if(!user||!peerUid||peerUid===user.uid||!navigator.onLine)throw new Error("ログイン・共有先・通信状態を確認してください。");
   const snapshot=await getDoc(doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)));
   if(!currentUser||currentUser.uid!==user.uid)throw new Error("ログインアカウントが変わりました。");
+  if(shoppingSharedFriend?.value!==peerUid)throw new Error("共有先が変更されたため、読み込みを中止しました。もう一度共有先を選んでください。");
   if(!snapshot.exists()){shoppingShareMessage("共有データがありません。相手に先に共有データを保存してもらってください。");return;}
   const data=snapshot.data();
   if(!Array.isArray(data.members)||data.members.length!==2||!data.members.includes(user.uid)||!data.members.includes(peerUid)||!validShoppingCloudPayload(data))throw new Error("共有データを確認できません。端末内データは変更しませんでした。");
