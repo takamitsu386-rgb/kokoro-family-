@@ -4425,6 +4425,34 @@ async function uploadLocal(uid = currentUser?.uid) {
   uploadQueue = task;
   await task;
 }
+function captureRoomLocalSnapshot() {
+  const keys = ["kokoroRoom", "kokoroSavedRooms", "kokoroSavedRoomPrefs", CUSTOM_ROOM_PALETTE_KEY];
+  try {
+    return { keys, values: keys.map(key => localStorage.getItem(key)) };
+  } catch (error) {
+    throw new Error("端末内データの変更を確認できないため、クラウド読み込みを中止しました。");
+  }
+}
+function roomLocalSnapshotMatches(snapshot) {
+  try {
+    return !!snapshot && snapshot.keys.every((key, index) => localStorage.getItem(key) === snapshot.values[index]);
+  } catch (error) {
+    return false;
+  }
+}
+function sameRoomCloudVersion(firstSnapshot, latestSnapshot) {
+  try {
+    if (!firstSnapshot.exists() || !latestSnapshot.exists()) return false;
+    const first = firstSnapshot.data();
+    const latest = latestSnapshot.data();
+    if (first.updatedAt && latest.updatedAt && typeof first.updatedAt.isEqual === "function") {
+      return first.updatedAt.isEqual(latest.updatedAt);
+    }
+    return JSON.stringify(first) === JSON.stringify(latest);
+  } catch (error) {
+    return false;
+  }
+}
 async function downloadCloud() {
   if (!currentUser) throw new Error("ログインしてください。");
   if (syncInProgress) { status("別の同期処理が進行中です。完了してからお試しください。"); return false; }
@@ -4451,10 +4479,19 @@ async function downloadCloud() {
   if (!validCloudData(data)) {
     throw new Error("クラウドデータの形式またはサイズを確認できません。端末内データは変更していません。");
   }
+  const localSnapshot = captureRoomLocalSnapshot();
   if (!confirm("クラウドのデータをこの端末に読み込みます。現在の端末データは置き換わります。続けますか？")) return false;
   if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
   if (!navigator.onLine) throw new Error("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
-  applyCloudDataSafely(data);
+  if (!roomLocalSnapshotMatches(localSnapshot)) throw new Error("確認中にこの端末のお部屋データが変更されました。上書きを防ぐため読み込みを中止しました。最新内容を確認して、もう一度操作してください。");
+  const latestSnapshot = await getDoc(cloudRef(uid));
+  if (!isCurrentAccount()) throw new Error("再確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+  if (!navigator.onLine) throw new Error("再確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
+  if (!sameRoomCloudVersion(snapshot, latestSnapshot)) throw new Error("確認中にクラウドのお部屋データが更新または削除されました。上書きを防ぐため読み込みを中止しました。もう一度最新データを確認してください。");
+  const latestData = latestSnapshot.data();
+  if (!validCloudData(latestData)) throw new Error("最新のクラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
+  if (!roomLocalSnapshotMatches(localSnapshot)) throw new Error("読み込み直前にこの端末のお部屋データが変更されました。上書きを防ぐため中止しました。");
+  applyCloudDataSafely(latestData);
   initializedSyncForUid = uid;
   markCloudSync(uid);
   clearTimeout(syncRetryTimer);
@@ -4500,9 +4537,18 @@ async function syncNow() {
         if (!validCloudData(data)) {
           throw new Error("クラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
         }
+        const localSnapshot = captureRoomLocalSnapshot();
         if (!isCurrentAccount()) throw new Error("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
         if (!navigator.onLine) throw new Error("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
-        applyCloudDataSafely(data);
+        if (!roomLocalSnapshotMatches(localSnapshot)) throw new Error("確認中にこの端末のお部屋データが変更されました。上書きを防ぐため初回読み込みを中止しました。");
+        const latestSnapshot = await getDoc(cloudRef(uid));
+        if (!isCurrentAccount()) throw new Error("再確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。");
+        if (!navigator.onLine) throw new Error("再確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。");
+        if (!sameRoomCloudVersion(snapshot, latestSnapshot)) throw new Error("確認中にクラウドのお部屋データが更新または削除されました。上書きを防ぐため初回読み込みを中止しました。もう一度同期してください。");
+        const latestData = latestSnapshot.data();
+        if (!validCloudData(latestData)) throw new Error("最新のクラウドデータの形式またはサイズが正しくありません。端末内データは変更していません。");
+        if (!roomLocalSnapshotMatches(localSnapshot)) throw new Error("読み込み直前にこの端末のお部屋データが変更されました。上書きを防ぐため中止しました。");
+        applyCloudDataSafely(latestData);
         status("クラウドのデータを読み込みました。端末内にも保存済みです。");
       } else {
         await uploadLocal(uid);
