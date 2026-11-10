@@ -4006,7 +4006,7 @@ function startSharedShoppingListener(){
     shoppingShareMessage("相手が買い物データを更新しました。内容を確認して「受信した最新データを適用」を押してください。端末内の変更は自動で上書きしません。");
     setShoppingShareButtons();
   },error=>{
-    if(currentUser?.uid===user.uid&&shoppingSharedFriend?.value===peerUid)shoppingShareMessage("リアルタイム通知を受信できません："+(error.code||error.message));
+    if(listenerGeneration===sharedShoppingListenerGeneration&&currentUser?.uid===user.uid&&authStateGeneration===generation&&shoppingSharedFriend?.value===peerUid)shoppingShareMessage("リアルタイム通知を受信できません："+(error.code||error.message));
   });
 }
 shoppingSharedFriend?.addEventListener("change",()=>{stopSharedShoppingListener();startSharedShoppingListener();setShoppingShareButtons();});
