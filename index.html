@@ -6528,7 +6528,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   }
   function validPurchaseRecord(item){return !!item&&typeof item==="object"&&typeof item.id==="string"&&item.id.length<=64&&typeof item.name==="string"&&item.name.length<=60&&typeof item.category==="string"&&Object.hasOwn(categories,item.category)&&typeof item.quantity==="string"&&item.quantity.length<=20&&typeof item.assignee==="string"&&item.assignee.length<=30&&typeof item.purchasedAt==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(item.purchasedAt)&&(!item.plannedDate||validDate(item.plannedDate))&&(item.amount===undefined||item.amount===null||(Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=100000000));}
   function readHistory(){const raw=localStorage.getItem(HISTORY_KEY);if(raw===null)return [];const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>HISTORY_LIMIT||!data.every(validPurchaseRecord))throw new Error("invalid shopping history");return data;}
-  function recordPurchase(item){const record={id:item.id,name:item.name,category:item.category,quantity:item.quantity,assignee:(item.assignee||"").trim(),plannedDate:item.plannedDate||"",amount:Number.isSafeInteger(item.amount)?item.amount:null,purchasedAt:new Date().toISOString()};const next=[record,...purchaseHistory].slice(0,HISTORY_LIMIT);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(next));purchaseHistory=next;renderHistory();return true;}catch(error){console.error("Shopping history save failed",error);return false;}}
+  function recordPurchase(item){let latest;try{latest=readHistory();}catch(error){console.error("Shopping history refresh failed",error);historySummaryEl.textContent="購入履歴を最新状態に更新できないため、購入記録を保留しました。画面を再読み込みして確認してください。";return false;}if(JSON.stringify(latest)!==JSON.stringify(purchaseHistory)){purchaseHistory=latest;renderHistory();historySummaryEl.textContent="別のタブで購入履歴が更新されました。最新内容を読み込みました。もう一度購入済みにしてください。";return false;}const record={id:item.id,name:item.name,category:item.category,quantity:item.quantity,assignee:(item.assignee||"").trim(),plannedDate:item.plannedDate||"",amount:Number.isSafeInteger(item.amount)?item.amount:null,purchasedAt:new Date().toISOString()};const next=[record,...latest].slice(0,HISTORY_LIMIT);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(next));purchaseHistory=next;renderHistory();return true;}catch(error){console.error("Shopping history save failed",error);return false;}}
   function recordPurchaseAndSaveList(item,nextEntries){
     const previousHistory=JSON.stringify(purchaseHistory);
     if(!recordPurchase(item))return false;
@@ -6550,6 +6550,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     }
     return false;
   }
+  window.addEventListener("storage",event=>{if(event.key!==HISTORY_KEY)return;try{purchaseHistory=readHistory();renderHistory();historySummaryEl.textContent="別のタブで購入履歴が更新されました。最新の内容を表示しています。";}catch(error){console.error("External shopping history update rejected",error);historySummaryEl.textContent="別のタブの購入履歴を確認できません。画面を再読み込みしてデータを確認してください。";}});
   function renderHistory(){
     const month=historyMonthInput.value||localDateKey().slice(0,7);
     const selected=purchaseHistory.filter(item=>localDateKey(new Date(item.purchasedAt)).slice(0,7)===month);
