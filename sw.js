@@ -1,5 +1,5 @@
 // Keep this app's offline cache isolated from other apps on the same origin.
-const CACHE_NAME="kokoro-family-v267";
+const CACHE_NAME="kokoro-family-v268";
 const CACHE_PREFIX="kokoro-family-";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
