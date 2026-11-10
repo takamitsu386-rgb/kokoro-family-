@@ -4564,6 +4564,8 @@ try {
     const logoutUid = logoutUser.uid;
     const logoutGeneration = authStateGeneration;
     logoutInProgress = true;
+    setShoppingCloudButtons();
+    setShoppingShareButtons();
     clearTimeout(window.__kokoroSyncTimer); window.__kokoroSyncTimer = null;
     clearTimeout(syncRetryTimer); syncRetryTimer = null;
     syncRetryCount = 0; syncPending = false;
@@ -4582,7 +4584,9 @@ try {
       status("ログアウトできません：" + (error.code || error.message));
     } finally {
       logoutInProgress = false;
-      loginButton.disabled = !!currentUser || !navigator.onLine;
+      loginButton.disabled = !!currentUser || !navigator.onLine || loginInProgress;
+      setShoppingCloudButtons();
+      setShoppingShareButtons();
       setSyncBusy(syncInProgress);
     }
   });
