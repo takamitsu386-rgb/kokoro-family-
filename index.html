@@ -4111,24 +4111,39 @@ async function uploadShoppingCloud(){
   const isCurrentSession=()=>!!currentUser&&currentUser.uid===uid&&authStateGeneration===generation;
   const snapshot=await getDoc(ref);
   if(!isCurrentSession())throw new Error("ログイン状態が変わったため、保存を中止しました。");
-  if(snapshot.exists()&&!confirm("クラウドに保存済みの買い物データを、この端末の内容で置き換えます。続けますか？"))return;
+  const existed=snapshot.exists(),baseline=snapshot.data();
+  if(existed&&!confirm("クラウドに保存済みの買い物データを、この端末の内容で置き換えます。続けますか？"))return;
   if(!isCurrentSession())throw new Error("ログイン状態が変わったため、保存を中止しました。");
-  await setDoc(ref,{...payload,updatedAt:serverTimestamp()});
+  await runTransaction(db,async transaction=>{
+    const latest=await transaction.get(ref);
+    if(!isCurrentSession())throw new Error("ログイン状態が変わったため、保存を中止しました。");
+    if(latest.exists()!==existed)throw new Error("クラウドの保存状態が変わりました。最新データを読み直してください。");
+    if(existed){
+      const latestData=latest.data();
+      if(!baseline.updatedAt||!latestData.updatedAt||typeof baseline.updatedAt.isEqual!=="function"||!baseline.updatedAt.isEqual(latestData.updatedAt))throw new Error("別の端末が先に買い物データを更新しました。上書きを防ぐため保存を中止しました。先にクラウドから最新データを読み込んでください。");
+    }
+    transaction.set(ref,{...payload,updatedAt:serverTimestamp()});
+  });
   if(!isCurrentSession())throw new Error("ログイン状態が変わりました。保存結果を画面に反映しませんでした。");
-  shoppingStatus("買い物リスト・購入履歴・月間予算をクラウドに保存しました。同じGoogleアカウントの端末で読み込めます。");
+  shoppingStatus("買い物リスト・購入履歴・月間予算をクラウドに保存しました。同じGoogleアカウントの別端末が先に更新した場合は上書きを中止します。");
 }
 async function downloadShoppingCloud(){
   if(!currentUser||!navigator.onLine)throw new Error("ログインとインターネット接続が必要です。");
-  const uid=currentUser.uid,generation=authStateGeneration,snapshot=await getDoc(doc(db,"users",uid,"kokoro","shopping"));
+  const uid=currentUser.uid,generation=authStateGeneration,ref=doc(db,"users",uid,"kokoro","shopping"),snapshot=await getDoc(ref);
   const isCurrentSession=()=>!!currentUser&&currentUser.uid===uid&&authStateGeneration===generation;
   if(!isCurrentSession())throw new Error("ログイン状態が変わったため、読み込みを中止しました。");
   if(!snapshot.exists()){shoppingStatus("クラウドに買い物データがありません。");return;}
   const data=snapshot.data();
   if(!validShoppingCloudPayload(data))throw new Error("クラウドの買い物データが正しくありません。端末内データは変更しませんでした。");
   if(!confirm("この端末の買い物リスト・購入履歴・予算をクラウドの内容で置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
-  if(!isCurrentSession())throw new Error("ログイン状態が変わったため、読み込みを中止しました。");
+  if(!isCurrentSession()||!navigator.onLine)throw new Error("ログイン状態または通信状態が変わったため、読み込みを中止しました。");
+  const latestSnapshot=await getDoc(ref);
+  if(!isCurrentSession()||!navigator.onLine)throw new Error("ログイン状態または通信状態が変わったため、読み込みを中止しました。");
+  if(!latestSnapshot.exists())throw new Error("確認中にクラウドデータが削除されました。端末内データは変更していません。");
+  const latest=latestSnapshot.data();
+  if(!validShoppingCloudPayload(latest)||!data.updatedAt||!latest.updatedAt||typeof data.updatedAt.isEqual!=="function"||!data.updatedAt.isEqual(latest.updatedAt))throw new Error("確認中に別の端末が買い物データを更新しました。端末内データは変更していません。最新内容を読み直してください。");
   const keys=["kokoroFamilyShoppingV1","kokoroFamilyShoppingHistoryV1","kokoroFamilyShoppingBudgetsV1","kokoroFamilyShoppingAssigneeBudgetsV1"];
-  const values=[data.items,data.history,data.budgets,data.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
+  const values=[latest.items,latest.history,latest.budgets,latest.assigneeBudgets],previous=keys.map(key=>localStorage.getItem(key));
   try{keys.forEach((key,index)=>localStorage.setItem(key,JSON.stringify(values[index])));}
   catch(error){
     let restored=true;keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]);}catch(rollbackError){restored=false;console.error("Shopping cloud rollback failed",rollbackError);}});
