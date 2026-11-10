@@ -4290,7 +4290,12 @@ function markCloudSync(uid) {
 }
 function applyCloudDataSafely(data) {
   const previousRoom = window.roomData();
-  const previousPrefsRaw = localStorage.getItem("kokoroSavedRoomPrefs");
+  let previousLocalSnapshot;
+  try {
+    previousLocalSnapshot = ["kokoroRoom", "kokoroSavedRooms", "kokoroSavedRoomPrefs", CUSTOM_ROOM_PALETTE_KEY].map(key => localStorage.getItem(key));
+  } catch (snapshotError) {
+    throw new Error("端末内データを安全に退避できないため、クラウドデータは反映しませんでした。");
+  }
   if (!validRoomData(previousRoom)) {
     throw new Error("現在のお部屋を安全に退避できないため、クラウドデータは反映しませんでした。");
   }
@@ -4310,14 +4315,19 @@ function applyCloudDataSafely(data) {
     storeCloudDataSafely(data, previousRoom);
   } catch (error) {
     const restored = restorePreviousRoom();
+    let storageRestored = true;
     try {
-      if (previousPrefsRaw === null) localStorage.removeItem("kokoroSavedRoomPrefs");
-      else localStorage.setItem("kokoroSavedRoomPrefs", previousPrefsRaw);
+      ["kokoroRoom", "kokoroSavedRooms", "kokoroSavedRoomPrefs", CUSTOM_ROOM_PALETTE_KEY].forEach((key, index) => {
+        if (previousLocalSnapshot[index] === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, previousLocalSnapshot[index]);
+      });
       if (typeof window.refreshSavedRooms === "function") window.refreshSavedRooms();
-    } catch (prefsRestoreError) {
-      console.error("Saved room preferences rollback failed", prefsRestoreError);
+      if (typeof window.renderCustomRoomPalettes === "function") window.renderCustomRoomPalettes();
+    } catch (storageRestoreError) {
+      console.error("Cloud local data rollback failed", storageRestoreError);
+      storageRestored = false;
     }
-    if (!restored) {
+    if (!restored || !storageRestored) {
       throw new Error("クラウドの読み込みに失敗し、元のお部屋表示も復元できませんでした。端末の保存データは確認せずに消去しないでください。");
     }
     throw error;
