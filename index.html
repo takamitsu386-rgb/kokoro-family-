@@ -2711,11 +2711,12 @@ return false;
 }
 }
 function undoSavedRoomChange(){
-let snapshot,currentRaw;
+let snapshot,currentRaw,undoRaw;
+let undoSnapshotUpdated=false;
 try{
-const raw=localStorage.getItem('kokoroSavedRoomsUndo');
-if(raw===null){document.getElementById('message').textContent='取り消せる操作はありません。';return;}
-snapshot=JSON.parse(raw);
+undoRaw=localStorage.getItem('kokoroSavedRoomsUndo');
+if(undoRaw===null){document.getElementById('message').textContent='取り消せる操作はありません。';return;}
+snapshot=JSON.parse(undoRaw);
 currentRaw=localStorage.getItem('kokoroSavedRooms');
 if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||!Object.prototype.hasOwnProperty.call(snapshot,'raw'))throw new Error('invalid undo snapshot');
 const previous=snapshot.raw===null?{}:JSON.parse(snapshot.raw);
@@ -2723,8 +2724,13 @@ if(!validSavedRooms(previous))throw new Error('invalid previous saved rooms');
 if(currentRaw!==null&&!validSavedRooms(JSON.parse(currentRaw)))throw new Error('invalid current saved rooms');
 const currentSnapshot=JSON.stringify({raw:currentRaw});
 localStorage.setItem('kokoroSavedRoomsUndo',currentSnapshot);
+undoSnapshotUpdated=true;
 localStorage.setItem('kokoroSavedRooms',JSON.stringify(previous));
 }catch(error){
+if(undoSnapshotUpdated){
+try{if(undoRaw===null)localStorage.removeItem('kokoroSavedRoomsUndo');else localStorage.setItem('kokoroSavedRoomsUndo',undoRaw);}
+catch(restoreError){console.warn('Undo history rollback failed',restoreError);}
+}
 document.getElementById('message').textContent='取り消しデータを確認できないか、保存できませんでした。現在のデータは保護しています。';
 return;
 }
