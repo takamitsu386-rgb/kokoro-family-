@@ -4330,6 +4330,8 @@ function applyCloudDataSafely(data) {
 }
 function storeCloudDataSafely(data, previousDisplayRoom) {
   let previousRoom, previousSavedRooms, previousPrefs, previousPalettes;
+  const cloudBackupKeys = ["kokoroRoomBeforeCloudImport", "kokoroSavedRoomsBeforeCloudImport", "kokoroSavedRoomPrefsBeforeCloudImport", "kokoroCustomRoomPalettesBeforeCloudImport"];
+  let previousCloudBackup;
   const incomingPrefs = data.savedRoomPrefs === undefined ? defaultSavedRoomPrefs() : data.savedRoomPrefs;
   const incomingPalettes = data.customRoomPalettes === undefined ? [] : data.customRoomPalettes;
   if (!validSavedRoomPrefs(incomingPrefs) || !validCustomRoomPalettes(incomingPalettes)) throw new Error("クラウドのお気に入り・配色データの形式が正しくありません。端末内データは変更していません。");
@@ -4338,6 +4340,7 @@ function storeCloudDataSafely(data, previousDisplayRoom) {
     previousSavedRooms = localStorage.getItem("kokoroSavedRooms");
     previousPrefs = localStorage.getItem("kokoroSavedRoomPrefs");
     previousPalettes = localStorage.getItem(CUSTOM_ROOM_PALETTE_KEY);
+    previousCloudBackup = cloudBackupKeys.map(key => localStorage.getItem(key));
   } catch (readError) {
     throw new Error("端末内の保存データを読み取れないため、クラウドの内容は反映しませんでした。");
   }
@@ -4354,6 +4357,10 @@ function storeCloudDataSafely(data, previousDisplayRoom) {
     return true;
   } catch (writeError) {
     try {
+      cloudBackupKeys.forEach((key, index) => {
+        if (previousCloudBackup[index] === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, previousCloudBackup[index]);
+      });
       if (previousRoom === null) localStorage.removeItem("kokoroRoom");
       else localStorage.setItem("kokoroRoom", previousRoom);
       if (previousSavedRooms === null) localStorage.removeItem("kokoroSavedRooms");
