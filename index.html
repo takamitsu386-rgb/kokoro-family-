@@ -6046,8 +6046,8 @@ snsAddBlock.addEventListener("click", async () => {
   const operationGeneration = snsSetBusy(true);
   try {
     const [ownedShares, receivedShares] = await Promise.all([
-      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(124))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid), limit(50)))
+      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", targetUid))),
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShares = new Map();
@@ -6055,15 +6055,31 @@ snsAddBlock.addEventListener("click", async () => {
     receivedShares.docs.filter(snap => snap.data().ownerUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     const batch = writeBatch(snsDb);
     batch.set(doc(snsDb, "users", user.uid, "blocks", targetUid), { createdAt: serverTimestamp() });
-    for (const [shareId, share] of revokedShares) {
-      batch.delete(doc(snsDb, "sharedRooms", shareId));
-      batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
-    }
     await batch.commit();
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const revokedShareEntries = [...revokedShares.entries()];
+    for (let offset = 0; offset < revokedShareEntries.length; offset += 200) {
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      const cleanupBatch = writeBatch(snsDb);
+      for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 200)) {
+        cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+        cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+      }
+      await cleanupBatch.commit();
+    }
+    let shoppingShareRemoved = false;
+    try {
+      await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, targetUid].sort().join("_")));
+      shoppingShareRemoved = true;
+    } catch (cleanupError) {
+      console.warn("Blocked shared shopping cleanup was not permitted or is already complete", cleanupError);
+    }
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsBlockUid.value = "";
     await Promise.all([snsLoadBlocks(user), snsLoadSharedRooms(user, authGeneration)]);
-    snsMessage("ブロックしました。相手の公開プロフィールや投稿に加え、お部屋の共有も解除しました。");
+    snsMessage(shoppingShareRemoved
+      ? "ブロックしました。お部屋と買い物の共有も削除しました。"
+      : "ブロックしました。共有へのアクセスは停止しましたが、買い物共有データの削除は完了しませんでした。");
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     console.error("SNS block failed", error);
