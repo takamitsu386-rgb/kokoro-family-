@@ -6045,9 +6045,11 @@ snsAddBlock.addEventListener("click", async () => {
   const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
   try {
-    const [ownedShares, receivedShares] = await Promise.all([
+    const [ownedShares, receivedShares, forwardRequest, reverseRequest] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", targetUid))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid)))
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid))),
+      getDoc(doc(snsDb, "friendRequests", user.uid + "_" + targetUid)),
+      getDoc(doc(snsDb, "friendRequests", targetUid + "_" + user.uid))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShares = new Map();
@@ -6055,6 +6057,18 @@ snsAddBlock.addEventListener("click", async () => {
     receivedShares.docs.filter(snap => snap.data().ownerUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     const batch = writeBatch(snsDb);
     batch.set(doc(snsDb, "users", user.uid, "blocks", targetUid), { createdAt: serverTimestamp() });
+    // Remove accepted friendship records in the same operation as the block.
+    // Otherwise deleting the block later could make the old friendship active again.
+    for (const requestSnap of [forwardRequest, reverseRequest]) {
+      if (!requestSnap.exists()) continue;
+      const requestData = requestSnap.data();
+      const isExpectedPair =
+        (requestData.fromUid === user.uid && requestData.toUid === targetUid) ||
+        (requestData.fromUid === targetUid && requestData.toUid === user.uid);
+      if (isExpectedPair && requestData.status === "accepted") {
+        batch.delete(doc(snsDb, "friendRequests", requestSnap.id));
+      }
+    }
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShareEntries = [...revokedShares.entries()];
@@ -6076,7 +6090,11 @@ snsAddBlock.addEventListener("click", async () => {
     }
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsBlockUid.value = "";
-    await Promise.all([snsLoadBlocks(user), snsLoadSharedRooms(user, authGeneration)]);
+    await Promise.all([
+      snsLoadBlocks(user),
+      snsLoadSharedRooms(user, authGeneration),
+      snsLoadFriendRequests(user, authGeneration)
+    ]);
     snsMessage(shoppingShareRemoved
       ? "ブロックしました。お部屋と買い物の共有も削除しました。"
       : "ブロックしました。共有へのアクセスは停止しましたが、買い物共有データの削除は完了しませんでした。");
