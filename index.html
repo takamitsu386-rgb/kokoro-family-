@@ -5490,16 +5490,34 @@ async function snsRemoveFriend(requestId) {
     const requestData = requestSnap.data();
     const peerUid = requestData.fromUid === user.uid ? requestData.toUid : requestData.toUid === user.uid ? requestData.fromUid : null;
     if (!peerUid || peerUid === user.uid) throw new Error("友達情報を確認できません。");
-    const [ownedShares, receivedShares] = await Promise.all([
+    const [forwardRequest, reverseRequest, ownedShares, receivedShares] = await Promise.all([
+      getDoc(doc(snsDb, "friendRequests", user.uid + "_" + peerUid)),
+      getDoc(doc(snsDb, "friendRequests", peerUid + "_" + user.uid)),
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(124))),
       getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid), limit(50)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const friendshipRequests = [forwardRequest, reverseRequest].filter(snap => {
+      if (!snap.exists()) return false;
+      const data = snap.data();
+      return data.fromUid === (snap.id === user.uid + "_" + peerUid ? user.uid : peerUid)
+        && data.toUid === (snap.id === user.uid + "_" + peerUid ? peerUid : user.uid);
+    });
+    if (!friendshipRequests.some(snap => snap.data().status === "accepted")) {
+      throw new Error("現在の友達関係を確認できません。友達一覧を更新してください。");
+    }
     const revokedShares = new Map();
     ownedShares.docs.filter(snap => snap.data().recipientUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     receivedShares.docs.filter(snap => snap.data().ownerUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     const batch = writeBatch(snsDb);
-    batch.delete(doc(snsDb, "friendRequests", requestId));
+    for (const snap of friendshipRequests) {
+      const data = snap.data();
+      if (data.status === "accepted" || (data.status === "pending" && data.fromUid === user.uid)) {
+        batch.delete(doc(snsDb, "friendRequests", snap.id));
+      } else if (data.status === "pending" && data.toUid === user.uid) {
+        batch.update(doc(snsDb, "friendRequests", snap.id), { status: "declined", updatedAt: serverTimestamp() });
+      }
+    }
     for (const [shareId, share] of revokedShares) {
       batch.delete(doc(snsDb, "sharedRooms", shareId));
       batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
