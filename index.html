@@ -5493,8 +5493,8 @@ async function snsRemoveFriend(requestId) {
     const [forwardRequest, reverseRequest, ownedShares, receivedShares] = await Promise.all([
       getDoc(doc(snsDb, "friendRequests", user.uid + "_" + peerUid)),
       getDoc(doc(snsDb, "friendRequests", peerUid + "_" + user.uid)),
-      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(124))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid), limit(50)))
+      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", peerUid))),
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const friendshipRequests = [forwardRequest, reverseRequest].filter(snap => {
@@ -5518,11 +5518,18 @@ async function snsRemoveFriend(requestId) {
         batch.update(doc(snsDb, "friendRequests", snap.id), { status: "declined", updatedAt: serverTimestamp() });
       }
     }
-    for (const [shareId, share] of revokedShares) {
-      batch.delete(doc(snsDb, "sharedRooms", shareId));
-      batch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
-    }
     await batch.commit();
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    const revokedShareEntries = [...revokedShares.entries()];
+    for (let offset = 0; offset < revokedShareEntries.length; offset += 200) {
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      const cleanupBatch = writeBatch(snsDb);
+      for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 200)) {
+        cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+        cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+      }
+      await cleanupBatch.commit();
+    }
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     // Remove the shopping-share document only after the friendship record is gone.
     // Either member may clean it up once Firestore confirms they are no longer friends.
