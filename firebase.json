@@ -1,0 +1,96 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**",
+      "**/*.md",
+      "firestore.rules"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/ai-consultation",
+        "function": {
+          "functionId": "aiConsultation",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "/api/sns-public-timeline",
+        "function": {
+          "functionId": "publicTimeline",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "/api/sns-search-profiles",
+        "function": {
+          "functionId": "searchPublicProfiles",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "/api/submit-report",
+        "function": {
+          "functionId": "submitReport",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "/api/admin/reports",
+        "function": {
+          "functionId": "adminListReports",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "/api/admin/update-report",
+        "function": {
+          "functionId": "adminUpdateReport",
+          "region": "asia-northeast1"
+        }
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=()"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
+}

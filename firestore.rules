@@ -1,10 +1,690 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function blockedBetween(viewerUid, ownerUid) {
+      return viewerUid != ownerUid
+        && (
+          exists(/databases/$(database)/documents/users/$(viewerUid)/blocks/$(ownerUid))
+          || exists(/databases/$(database)/documents/users/$(ownerUid)/blocks/$(viewerUid))
+        );
+    }
+
+    function validProfile(data) {
+      return data.keys().hasAll([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.nickname is string
+        && data.nickname.size() >= 1
+        && data.nickname.size() <= 24
+        && data.nickname.matches('.*\\S.*')
+        && data.avatarId in ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']
+        && data.visibility in ['private', 'public', 'friends']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function acceptedFriend(uidA, uidB) {
+      return (
+        exists(/databases/$(database)/documents/friendRequests/$(uidA + '_' + uidB))
+        && get(/databases/$(database)/documents/friendRequests/$(uidA + '_' + uidB)).data.status == 'accepted'
+      ) || (
+        exists(/databases/$(database)/documents/friendRequests/$(uidB + '_' + uidA))
+        && get(/databases/$(database)/documents/friendRequests/$(uidB + '_' + uidA)).data.status == 'accepted'
+      );
+    }
+
+    function canInteractWithPost(postId) {
+      let post = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return signedIn()
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && post.status == 'active'
+        && !blockedBetween(request.auth.uid, post.authorUid)
+        && (
+          post.authorUid == request.auth.uid
+          || (
+            post.visibility == 'public'
+            && get(/databases/$(database)/documents/profiles/$(post.authorUid)).data.visibility == 'public'
+          )
+          || (
+            post.visibility == 'friends'
+            && acceptedFriend(request.auth.uid, post.authorUid)
+          )
+        );
+    }
+
+    function validComment(data) {
+      return data.keys().hasAll(['authorUid', 'text', 'status', 'createdAt'])
+        && data.keys().hasOnly(['authorUid', 'text', 'status', 'createdAt'])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 300
+        && data.text.matches('.*\\S.*')
+        && data.status == 'active'
+        && data.createdAt is timestamp;
+    }
+
+    function validPost(data) {
+      return data.keys().hasAll([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 500
+        && data.text.matches('.*\\S.*')
+        && data.visibility in ['private', 'public']
+        && data.status in ['active', 'deleted']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Existing private room data: keep this path owner-only and unchanged.
     match /users/{userId}/kokoro/{documentId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId
-                         && documentId == "data";
+      allow read, write: if owns(userId) && documentId in ["data", "shopping"];
+    }
+
+
+    // Shared shopping data is accessible only to two mutually accepted friends.
+    match /sharedShopping/{shareId} {
+      function validSharedShopping(data) {
+        return data.keys().hasAll(['version', 'ownerUid', 'recipientUid', 'members', 'items', 'history', 'budgets', 'assigneeBudgets', 'updatedBy', 'updatedAt'])
+          && data.keys().hasOnly(['version', 'ownerUid', 'recipientUid', 'members', 'items', 'history', 'budgets', 'assigneeBudgets', 'updatedBy', 'updatedAt'])
+          && data.version == 1
+          && data.ownerUid is string
+          && data.recipientUid is string
+          && data.ownerUid != data.recipientUid
+          && data.members is list
+          && data.members.size() == 2
+          && data.members.hasAll([data.ownerUid, data.recipientUid])
+          && data.items is list && data.items.size() <= 100
+          && data.history is list && data.history.size() <= 500
+          && data.budgets is map && data.assigneeBudgets is map
+          && data.updatedBy is string
+          && data.updatedAt is timestamp
+          && data.updatedBy in data.members
+          && request.resource.size() <= 750000;
+      }
+      function areMembersFriends(data) {
+        return acceptedFriend(data.ownerUid, data.recipientUid)
+          && !blockedBetween(data.ownerUid, data.recipientUid);
+      }
+      allow get: if signedIn()
+        && (
+          (
+            !exists(/databases/$(database)/documents/sharedShopping/$(shareId))
+            && shareId.split('_').size() == 2
+            && request.auth.uid in shareId.split('_')
+            && acceptedFriend(
+              request.auth.uid,
+              shareId.split('_')[0] == request.auth.uid
+                ? shareId.split('_')[1]
+                : shareId.split('_')[0]
+            )
+            && !blockedBetween(
+              request.auth.uid,
+              shareId.split('_')[0] == request.auth.uid
+                ? shareId.split('_')[1]
+                : shareId.split('_')[0]
+            )
+          )
+          || (
+            request.auth.uid in resource.data.members
+            && areMembersFriends(resource.data)
+          )
+        );
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid != request.auth.uid
+        && shareId == (request.auth.uid < request.resource.data.recipientUid
+          ? request.auth.uid + '_' + request.resource.data.recipientUid
+          : request.resource.data.recipientUid + '_' + request.auth.uid)
+        && request.resource.data.members[0] < request.resource.data.members[1]
+        && areMembersFriends(request.resource.data)
+        && validSharedShopping(request.resource.data);
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.recipientUid == resource.data.recipientUid
+        && request.resource.data.members == resource.data.members
+        && request.resource.data.updatedBy == request.auth.uid
+        && areMembersFriends(resource.data)
+        && areMembersFriends(request.resource.data)
+        && validSharedShopping(request.resource.data);
+      allow delete: if signedIn() && request.auth.uid in resource.data.members && !areMembersFriends(resource.data);
+    }
+
+    // A user may create or remove only their own block records.
+    // Block records contain no profile or private user information.
+    match /users/{userId}/blocks/{targetUid} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && targetUid != userId
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.keys().hasAll(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if owns(userId);
+    }
+
+    // Public-facing profile contains only an explicit allowlist of fields.
+    match /profiles/{uid} {
+      allow get, list: if owns(uid)
+        || (
+          signedIn()
+          && !blockedBetween(request.auth.uid, uid)
+          && (
+            resource.data.visibility == 'public'
+            || (resource.data.visibility == 'friends' && acceptedFriend(request.auth.uid, uid))
+          )
+        );
+
+      allow create: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    // Posts are private by default; only explicit public + active posts are readable by others.
+    match /posts/{postId} {
+      // Public posts are visible to everyone; friends-only posts require an accepted request.
+      allow get: if signedIn()
+        && (
+          resource.data.authorUid == request.auth.uid
+          || (
+            resource.data.status == 'active'
+            && !blockedBetween(request.auth.uid, resource.data.authorUid)
+            && (
+              (resource.data.visibility == 'public')
+              || (resource.data.visibility == 'friends'
+                && acceptedFriend(request.auth.uid, resource.data.authorUid))
+            )
+          )
+        );
+
+      // Collection queries are owner-only until a block-aware feed endpoint is implemented.
+      allow list: if signedIn()
+        && resource.data.authorUid == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && validPost(request.resource.data)
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && resource.data.status == 'active'
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'status', 'updatedAt'])
+        && validPost(request.resource.data);
+
+      // Use status='deleted' so deleted posts disappear from all read paths.
+      allow delete: if false;
+
+      // Interactions require an active public post or an accepted-friend post; blocks override both.
+      match /comments/{commentId} {
+        allow get, list: if canInteractWithPost(postId);
+        allow create: if canInteractWithPost(postId)
+          && request.resource.data.authorUid == request.auth.uid
+          && validComment(request.resource.data)
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if signedIn()
+          && exists(/databases/$(database)/documents/posts/$(postId))
+          && (
+            resource.data.authorUid == request.auth.uid
+            || get(/databases/$(database)/documents/posts/$(postId)).data.authorUid == request.auth.uid
+          );
+      }
+      match /likes/{likerUid} {
+        allow get, list: if canInteractWithPost(postId);
+        allow create: if canInteractWithPost(postId)
+          && likerUid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.keys().hasAll(['createdAt'])
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if signedIn() && likerUid == request.auth.uid;
+      }
+    }
+
+    // AI consultation quota counters are written only by the authenticated server function.
+    match /users/{userId}/aiUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Report documents and daily usage counters are server-only.
+    // Callable Cloud Functions use the Admin SDK; clients must never access these paths.
+    match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/reportUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // A request is addressed to one user; only its two participants can read it.
+    // The recipient alone may accept or decline. Blocking either direction closes access.
+    match /friendRequests/{requestId} {
+      allow get: if signedIn()
+        && (
+          !exists(/databases/$(database)/documents/friendRequests/$(requestId))
+          || (
+            (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+          )
+        );
+      allow list: if signedIn()
+        && (
+          resource.data.toUid == request.auth.uid
+          || resource.data.fromUid == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['fromUid', 'toUid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['fromUid', 'toUid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid.size() >= 1
+        && request.resource.data.toUid.size() <= 128
+        && request.resource.data.toUid != request.auth.uid
+        && requestId == request.auth.uid + '_' + request.resource.data.toUid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.toUid))
+        && get(/databases/$(database)/documents/profiles/$(request.resource.data.toUid)).data.visibility == 'public'
+        && !blockedBetween(request.auth.uid, request.resource.data.toUid)
+        && !exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.toUid + '_' + request.auth.uid));
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if signedIn()
+        && (
+          (
+            resource.data.status == 'pending'
+            && resource.data.fromUid == request.auth.uid
+            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+          )
+          || (
+            resource.data.status == 'accepted'
+            && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+          )
+        );
+    }
+
+
+    // Recipient snapshots are listed only through recipientUid-filtered queries.
+    // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
+    match /sharedRooms/{shareId} {
+      allow get: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+      allow list: if signedIn() && resource.data.recipientUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid.size() >= 1
+        && request.resource.data.recipientUid.size() <= 128
+        && request.resource.data.recipientUid != request.auth.uid
+        && acceptedFriend(request.auth.uid, request.resource.data.recipientUid)
+        && !blockedBetween(request.auth.uid, request.resource.data.recipientUid)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 40
+        && request.resource.data.currentRoom is map
+        && request.resource.data.currentRoom.keys().hasAll(['wall', 'items'])
+        && request.resource.data.currentRoom.items is list
+        && request.resource.data.currentRoom.items.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && request.resource.size() <= 750000;
+      allow update: if false;
+      allow delete: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+    }
+
+    match /users/{userId}/sharedRooms/{shareId} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.ownerUid == userId
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid.size() >= 1
+        && request.resource.data.recipientUid.size() <= 128
+        && request.resource.data.recipientUid != userId
+        && acceptedFriend(userId, request.resource.data.recipientUid)
+        && !blockedBetween(userId, request.resource.data.recipientUid)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 40
+        && request.resource.data.currentRoom is map
+        && request.resource.data.currentRoom.keys().hasAll(['wall', 'items'])
+        && request.resource.data.currentRoom.items is list
+        && request.resource.data.currentRoom.items.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && request.resource.size() <= 750000;
+      allow update: if false;
+      allow delete: if owns(userId) || (signedIn() && resource.data.recipientUid == request.auth.uid);
+    }
+
+    // Friend lists are derived from accepted requests; no client-managed duplicate graph.
+    match /users/{userId}/following/{targetUid} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+            )
+            && acceptedFriend(
+              request.auth.uid,
+              shareId.matches('^' + request.auth.uid + '_.*')
+                ? shareId.split('_')[1]
+                : shareId.split('_')[0]
+            )
+            && !blockedBetween(
+              request.auth.uid,
+              shareId.matches('^' + request.auth.uid + '_.*')
+                ? shareId.split('_')[1]
+                : shareId.split('_')[0]
+            )
+          )
+          || (
+            request.auth.uid in resource.data.members
+            && areMembersFriends(resource.data)
+          )
+        );
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid != request.auth.uid
+        && shareId == (request.auth.uid < request.resource.data.recipientUid
+          ? request.auth.uid + '_' + request.resource.data.recipientUid
+          : request.resource.data.recipientUid + '_' + request.auth.uid)
+        && request.resource.data.members[0] < request.resource.data.members[1]
+        && areMembersFriends(request.resource.data)
+        && validSharedShopping(request.resource.data);
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.recipientUid == resource.data.recipientUid
+        && request.resource.data.members == resource.data.members
+        && request.resource.data.updatedBy == request.auth.uid
+        && areMembersFriends(resource.data)
+        && areMembersFriends(request.resource.data)
+        && validSharedShopping(request.resource.data);
+      allow delete: if signedIn() && request.auth.uid in resource.data.members && !areMembersFriends(resource.data);
+    }
+
+    // A user may create or remove only their own block records.
+    // Block records contain no profile or private user information.
+    match /users/{userId}/blocks/{targetUid} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && targetUid != userId
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.keys().hasAll(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if owns(userId);
+    }
+
+    // Public-facing profile contains only an explicit allowlist of fields.
+    match /profiles/{uid} {
+      allow get, list: if owns(uid)
+        || (
+          signedIn()
+          && !blockedBetween(request.auth.uid, uid)
+          && (
+            resource.data.visibility == 'public'
+            || (resource.data.visibility == 'friends' && acceptedFriend(request.auth.uid, uid))
+          )
+        );
+
+      allow create: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if owns(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    // Posts are private by default; only explicit public + active posts are readable by others.
+    match /posts/{postId} {
+      // Public posts are visible to everyone; friends-only posts require an accepted request.
+      allow get: if signedIn()
+        && (
+          resource.data.authorUid == request.auth.uid
+          || (
+            resource.data.status == 'active'
+            && !blockedBetween(request.auth.uid, resource.data.authorUid)
+            && (
+              (resource.data.visibility == 'public')
+              || (resource.data.visibility == 'friends'
+                && acceptedFriend(request.auth.uid, resource.data.authorUid))
+            )
+          )
+        );
+
+      // Collection queries are owner-only until a block-aware feed endpoint is implemented.
+      allow list: if signedIn()
+        && resource.data.authorUid == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && validPost(request.resource.data)
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && resource.data.status == 'active'
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'status', 'updatedAt'])
+        && validPost(request.resource.data);
+
+      // Use status='deleted' so deleted posts disappear from all read paths.
+      allow delete: if false;
+
+      // Interactions require an active public post or an accepted-friend post; blocks override both.
+      match /comments/{commentId} {
+        allow get, list: if canInteractWithPost(postId);
+        allow create: if canInteractWithPost(postId)
+          && request.resource.data.authorUid == request.auth.uid
+          && validComment(request.resource.data)
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if signedIn()
+          && exists(/databases/$(database)/documents/posts/$(postId))
+          && (
+            resource.data.authorUid == request.auth.uid
+            || get(/databases/$(database)/documents/posts/$(postId)).data.authorUid == request.auth.uid
+          );
+      }
+      match /likes/{likerUid} {
+        allow get, list: if canInteractWithPost(postId);
+        allow create: if canInteractWithPost(postId)
+          && likerUid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.keys().hasAll(['createdAt'])
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if signedIn() && likerUid == request.auth.uid;
+      }
+    }
+
+    // AI consultation quota counters are written only by the authenticated server function.
+    match /users/{userId}/aiUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Report documents and daily usage counters are server-only.
+    // Callable Cloud Functions use the Admin SDK; clients must never access these paths.
+    match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/reportUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // A request is addressed to one user; only its two participants can read it.
+    // The recipient alone may accept or decline. Blocking either direction closes access.
+    match /friendRequests/{requestId} {
+      allow get: if signedIn()
+        && (
+          !exists(/databases/$(database)/documents/friendRequests/$(requestId))
+          || (
+            (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+          )
+        );
+      allow list: if signedIn()
+        && (
+          resource.data.toUid == request.auth.uid
+          || resource.data.fromUid == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['fromUid', 'toUid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['fromUid', 'toUid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid.size() >= 1
+        && request.resource.data.toUid.size() <= 128
+        && request.resource.data.toUid != request.auth.uid
+        && requestId == request.auth.uid + '_' + request.resource.data.toUid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.toUid))
+        && get(/databases/$(database)/documents/profiles/$(request.resource.data.toUid)).data.visibility == 'public'
+        && !blockedBetween(request.auth.uid, request.resource.data.toUid)
+        && !exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.toUid + '_' + request.auth.uid));
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if signedIn()
+        && (
+          (
+            resource.data.status == 'pending'
+            && resource.data.fromUid == request.auth.uid
+            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+          )
+          || (
+            resource.data.status == 'accepted'
+            && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+          )
+        );
+    }
+
+
+    // Recipient snapshots are listed only through recipientUid-filtered queries.
+    // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
+    match /sharedRooms/{shareId} {
+      allow get: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+      allow list: if signedIn() && resource.data.recipientUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid.size() >= 1
+        && request.resource.data.recipientUid.size() <= 128
+        && request.resource.data.recipientUid != request.auth.uid
+        && acceptedFriend(request.auth.uid, request.resource.data.recipientUid)
+        && !blockedBetween(request.auth.uid, request.resource.data.recipientUid)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 40
+        && request.resource.data.currentRoom is map
+        && request.resource.data.currentRoom.keys().hasAll(['wall', 'items'])
+        && request.resource.data.currentRoom.items is list
+        && request.resource.data.currentRoom.items.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && request.resource.size() <= 750000;
+      allow update: if false;
+      allow delete: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+    }
+
+    match /users/{userId}/sharedRooms/{shareId} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
+        && request.resource.data.ownerUid == userId
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid.size() >= 1
+        && request.resource.data.recipientUid.size() <= 128
+        && request.resource.data.recipientUid != userId
+        && acceptedFriend(userId, request.resource.data.recipientUid)
+        && !blockedBetween(userId, request.resource.data.recipientUid)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 40
+        && request.resource.data.currentRoom is map
+        && request.resource.data.currentRoom.keys().hasAll(['wall', 'items'])
+        && request.resource.data.currentRoom.items is list
+        && request.resource.data.currentRoom.items.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && request.resource.size() <= 750000;
+      allow update: if false;
+      allow delete: if owns(userId) || (signedIn() && resource.data.recipientUid == request.auth.uid);
+    }
+
+    // Friend lists are derived from accepted requests; no client-managed duplicate graph.
+    match /users/{userId}/following/{targetUid} {
+      allow read, write: if false;
     }
   }
 }

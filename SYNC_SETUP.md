@@ -2,7 +2,7 @@
 
 ## 実装状況（2026-11-04）
 
-開発ブランチ `development-kokoro-app` の `index.html` に、Firebase Authentication と Cloud Firestore を使う同期機能の土台を実装済みです。
+開発ブランチ `feature/ai-consultation-integration` の `index.html` に、Firebase Authentication と Cloud Firestore を使う同期機能の土台を実装しています。
 
 - Googleログイン／ログアウト
 - 初回同期時に、既存クラウドデータを読み込むか端末データをアップロードするか確認
@@ -59,7 +59,7 @@
 
 1. Authentication の Sign-in method で Google プロバイダを有効化し、サポートメールを指定する。
 2. Firestore Database を作成する。
-3. このリポジトリの `firestore.rules` の内容を Firestore の Rules に反映して Publish する。
+3. Firebase Console上の現在のFirestore Rulesを先に確認し、既存ルールとデータアクセスへの影響を管理者が比較する。一致・安全性を確認できた場合に限り、必要な変更を承認してPublishする。
 4. Authentication の Settings にある承認済みドメインに、実際にアプリを配信するホスト名が登録されていることを確認する。
 
 Firestore のルールは、ログイン中の UID とパス内の UID が一致し、対象ドキュメント名が `data` の場合だけ読み書きを許可します。
@@ -165,9 +165,12 @@ Cloud room data uses the same strict room validator as local saves and backup im
 
 家具の移動ハンドルは、家具アイコンより前面に表示するようにしています。家具が重なった場合でも、移動用の手のマークを見つけて選択しやすくするための調整です。スマホでは家具カテゴリと追加ボタンのタップ領域も最低48px四方です。
 
-## Googleログインのポップアップ操作
+## Googleログインのスマートフォン対応（2026-11-06追記）
 
-Googleログインのポップアップがブラウザにブロックされた場合だけ、リダイレクト方式へ切り替えます。利用者がログイン画面を自分で閉じた場合は、意図しないページ遷移を起こさず、再ログインできる案内を表示します。
+- スマートフォン・タブレットでは、ポップアップに依存せずGoogleログインをリダイレクト方式で開始します。PCでは従来どおりポップアップ方式を使い、ポップアップがブロックされた場合などにリダイレクトへ切り替えます。
+- AI相談画面からログインを始めた場合だけ、ログイン完了後にAI相談へ戻します。同期画面からログインした場合に、意図せずAI相談へ移動しないようにします。
+- ログイン失敗時のエラーコードと案内を認証状態の更新で消さず、利用者が確認できるようにします。
+- これはソース上の改善です。Firebaseの実際の承認済みドメイン、Googleログイン成功、スマートフォン実機での動作は別途確認が必要です。
 
 
 ## オフライン時のログイン・同期ボタン
