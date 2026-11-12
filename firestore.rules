@@ -335,8 +335,16 @@ service cloud.firestore {
         && (
           (
             resource.data.status == 'pending'
-            && resource.data.fromUid == request.auth.uid
-            && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+            && (
+              (
+                resource.data.fromUid == request.auth.uid
+                && !blockedBetween(resource.data.fromUid, resource.data.toUid)
+              )
+              || (
+                (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+                && blockedBetween(resource.data.fromUid, resource.data.toUid)
+              )
+            )
           )
           || (
             resource.data.status == 'accepted'
