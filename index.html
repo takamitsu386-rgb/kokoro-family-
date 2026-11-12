@@ -5479,6 +5479,103 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     snsOutgoingFriends.appendChild(row);
   }
 }
+const SNS_SHARE_CLEANUP_QUEUE_PREFIX = "kokoro-sns-share-cleanup-v1:";
+function snsReadShareCleanupQueue(uid) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SNS_SHARE_CLEANUP_QUEUE_PREFIX + uid) || "[]");
+    return Array.isArray(parsed)
+      ? [...new Set(parsed.filter(peerUid => typeof peerUid === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(peerUid) && peerUid !== uid))]
+      : [];
+  } catch (error) {
+    console.warn("Pending shared-data cleanup queue could not be read", error);
+    return [];
+  }
+}
+function snsWriteShareCleanupQueue(uid, peers) {
+  try {
+    const safePeers = [...new Set(peers.filter(peerUid => typeof peerUid === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(peerUid) && peerUid !== uid))];
+    if (safePeers.length) localStorage.setItem(SNS_SHARE_CLEANUP_QUEUE_PREFIX + uid, JSON.stringify(safePeers));
+    else localStorage.removeItem(SNS_SHARE_CLEANUP_QUEUE_PREFIX + uid);
+    return true;
+  } catch (error) {
+    console.warn("Pending shared-data cleanup queue could not be saved", error);
+    return false;
+  }
+}
+function snsQueueShareCleanup(uid, peerUid) {
+  const peers = snsReadShareCleanupQueue(uid);
+  if (!peers.includes(peerUid)) peers.push(peerUid);
+  return snsWriteShareCleanupQueue(uid, peers);
+}
+function snsFinishShareCleanup(uid, peerUid) {
+  return snsWriteShareCleanupQueue(uid, snsReadShareCleanupQueue(uid).filter(value => value !== peerUid));
+}
+async function snsRetryPendingShareCleanup(user, authGeneration = snsAuthGeneration) {
+  if (!user || !snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const pendingPeers = snsReadShareCleanupQueue(user.uid);
+  if (!pendingPeers.length) return;
+  let incomplete = false;
+  for (const peerUid of pendingPeers) {
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    try {
+      const [blockSnap, incomingRequests, outgoingRequests] = await Promise.all([
+        getDoc(doc(snsDb, "users", user.uid, "blocks", peerUid)),
+        getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
+        getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
+      ]);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      const accepted = [...incomingRequests.docs, ...outgoingRequests.docs].some(snap => {
+        const data = snap.data();
+        return data.status === "accepted"
+          && ((data.fromUid === user.uid && data.toUid === peerUid) || (data.fromUid === peerUid && data.toUid === user.uid));
+      });
+      // Never delete data while our block remains or a new friendship is active.
+      if (blockSnap.exists() || accepted) {
+        incomplete = true;
+        continue;
+      }
+      const [ownedShares, receivedShares] = await Promise.all([
+        getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", peerUid)))
+          .catch(error => { console.warn("Pending owned-share cleanup could not list rooms", error); return null; }),
+        getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid)))
+          .catch(error => { console.warn("Pending received-share cleanup could not list rooms", error); return null; })
+      ]);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      if (!ownedShares || !receivedShares) {
+        incomplete = true;
+        continue;
+      }
+      const shares = new Map();
+      ownedShares.docs.forEach(snap => {
+        const data = snap.data();
+        if (data.ownerUid === user.uid && data.recipientUid === peerUid) shares.set(snap.id, data);
+      });
+      receivedShares.docs.forEach(snap => {
+        const data = snap.data();
+        if (data.ownerUid === peerUid && data.recipientUid === user.uid) shares.set(snap.id, data);
+      });
+      const entries = [...shares.entries()];
+      for (let offset = 0; offset < entries.length; offset += 200) {
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+        const cleanupBatch = writeBatch(snsDb);
+        for (const [shareId, data] of entries.slice(offset, offset + 200)) {
+          cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+          cleanupBatch.delete(doc(snsDb, "users", data.ownerUid, "sharedRooms", shareId));
+        }
+        await cleanupBatch.commit();
+      }
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
+      snsFinishShareCleanup(user.uid, peerUid);
+    } catch (error) {
+      incomplete = true;
+      console.warn("Pending shared-data cleanup remains incomplete", { peerUid, error });
+    }
+  }
+  if (incomplete && snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) {
+    snsRoomShareStatus.textContent = "前回中断した共有データの整理が一部残っています。ブロック状態や通信を確認し、次回ログイン時にも再確認します。";
+  }
+}
 async function snsRemoveFriend(requestId) {
   const user = snsUser;
   const authGeneration = snsAuthGeneration;
