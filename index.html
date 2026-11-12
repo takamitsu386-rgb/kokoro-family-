@@ -5864,14 +5864,36 @@ function snsRefreshShareRoomOptions() {
 }
 snsShareRoomSource.addEventListener("focus", snsRefreshShareRoomOptions);
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
-  const [owned, received] = await Promise.all([
+  const [owned, incoming, outgoing] = await Promise.all([
     getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
-    getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), limit(50)))
+    getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
+    getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const acceptedPeers = new Set([
+    ...incoming.docs.filter(snap => snap.data().status === "accepted").map(snap => snap.data().fromUid),
+    ...outgoing.docs.filter(snap => snap.data().status === "accepted").map(snap => snap.data().toUid)
+  ].filter(uid => typeof uid === "string" && uid !== user.uid));
+  // Query each friend separately so Firestore can enforce the block check per owner.
+  // A peer who has blocked this account is omitted rather than failing the whole list.
+  const receivedResults = await Promise.all([...acceptedPeers].map(async peerUid => {
+    try {
+      return await getDocs(query(
+        collection(snsDb, "sharedRooms"),
+        where("recipientUid", "==", user.uid),
+        where("ownerUid", "==", peerUid),
+        limit(50)
+      ));
+    } catch (error) {
+      console.warn("A friend's shared rooms were not available", error);
+      return null;
+    }
+  }));
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const receivedDocs = receivedResults.filter(Boolean).flatMap(result => result.docs);
   snsSharedRoomList.replaceChildren();
   const entries = new Map();
-  [...owned.docs, ...received.docs].forEach(snap => entries.set(snap.id, { id: snap.id, ...snap.data() }));
+  [...owned.docs, ...receivedDocs].forEach(snap => entries.set(snap.id, { id: snap.id, ...snap.data() }));
   if (!entries.size) {
     const empty = document.createElement("p"); empty.textContent = "共有されたお部屋はまだありません。"; snsSharedRoomList.appendChild(empty); return;
   }
