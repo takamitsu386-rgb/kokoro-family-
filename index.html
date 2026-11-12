@@ -5524,6 +5524,40 @@ async function snsRemoveFriend(requestId) {
     }
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+
+    // Re-list shares after the friendship is removed. This closes the race where
+    // a share was created after the initial listing but before the request deletion.
+    const [latestOwnedShares, latestReceivedShares] = await Promise.all([
+      getDocs(query(
+        collection(snsDb, "users", user.uid, "sharedRooms"),
+        where("recipientUid", "==", peerUid)
+      )).catch(error => {
+        console.warn("Owned shared rooms could not be re-listed after friend removal", error);
+        return null;
+      }),
+      getDocs(query(
+        collection(snsDb, "sharedRooms"),
+        where("recipientUid", "==", user.uid),
+        where("ownerUid", "==", peerUid)
+      )).catch(error => {
+        console.warn("Received shared rooms could not be re-listed after friend removal", error);
+        return null;
+      })
+    ]);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    if (!latestOwnedShares || !latestReceivedShares) roomCleanupComplete = false;
+    latestOwnedShares?.docs.forEach(snap => {
+      const share = snap.data();
+      if (share.ownerUid === user.uid && share.recipientUid === peerUid) {
+        revokedShares.set(snap.id, share);
+      }
+    });
+    latestReceivedShares?.docs.forEach(snap => {
+      const share = snap.data();
+      if (share.ownerUid === peerUid && share.recipientUid === user.uid) {
+        revokedShares.set(snap.id, share);
+      }
+    });
     const revokedShareEntries = [...revokedShares.entries()];
     try {
       for (let offset = 0; offset < revokedShareEntries.length; offset += 200) {
