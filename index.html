@@ -5619,7 +5619,7 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
         ]);
         snsMessage("ブロックを解除しました。友達申請は引き継がれません。");
       } catch (error) {
-        if (!snsUser || snsUser.uid !== activeUser.uid) return;
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
         console.error("SNS unblock failed", error);
         snsMessage("ブロック解除前の申請整理に失敗したため、ブロックは維持されています。通信状態を確認してください。");
       } finally { snsReleaseBusyFor(activeUser, operationGeneration); }
