@@ -5625,7 +5625,9 @@ async function snsRemoveFriend(requestId) {
     }
     // Persist a retry marker before changing the relationship. A later login
     // will only run cleanup after confirming there is no active friendship/block.
-    snsQueueShareCleanup(user.uid, peerUid);
+    if (!snsQueueShareCleanup(user.uid, peerUid)) {
+      throw new Error("共有データ整理の記録を端末に保存できないため、友達解除を中止しました。端末の空き容量とブラウザ設定を確認してください。");
+    }
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
 
@@ -5759,7 +5761,9 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
         }
         if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
         // Persist retry state before unblocking so an account switch cannot lose cleanup.
-        snsQueueShareCleanup(activeUser.uid, snapshot.id);
+        if (!snsQueueShareCleanup(activeUser.uid, snapshot.id)) {
+          throw new Error("共有データ整理の記録を端末に保存できないため、ブロック解除を中止しました。端末の空き容量とブラウザ設定を確認してください。");
+        }
         // If request cleanup fails, the block remains in place.
         await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
         unblockCommitted = true;
