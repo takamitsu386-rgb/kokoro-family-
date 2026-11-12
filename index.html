@@ -6092,7 +6092,7 @@ snsAddBlock.addEventListener("click", async () => {
   const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
   try {
-    const [ownedShares, receivedShares, forwardRequest, reverseRequest] = await Promise.all([
+    const [ownedShares, receivedShares] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", targetUid))),
       getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid)))
     ]);
