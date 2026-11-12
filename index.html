@@ -2393,8 +2393,12 @@ importFile.addEventListener("change",()=>{
    try{
     const data=JSON.parse(String(reader.result||""));
     if(!data||data.app!=="kokoro-family-today-tasks"||data.version!==1||!validStore({version:1,days:data.days}))throw new Error("invalid import");
-    pendingImportStore={version:1,days:data.days};
-    const dates=Object.keys(data.days),count=dates.reduce((sum,date)=>sum+data.days[date].length,0);
+    const safeDays={};
+    for(const [date,tasks] of Object.entries(data.days)){
+     safeDays[date]=tasks.map(task=>({id:task.id,title:task.title,isCompleted:task.isCompleted,createdAt:task.createdAt,updatedAt:task.updatedAt,completedAt:task.completedAt}));
+    }
+    pendingImportStore={version:1,days:safeDays};
+    const dates=Object.keys(safeDays),count=dates.reduce((sum,date)=>sum+safeDays[date].length,0);
     importPreview.textContent="読み込み確認：日付 "+dates.length+"日分、予定 "+count+"件。読み込むと、この端末にある現在の予定データは置き換わります。";
     importButton.disabled=false;
    }catch(error){importPreview.textContent="このファイルは対応する予定データではないか、内容に問題があります。現在のデータは変更していません。";}
