@@ -6094,9 +6094,7 @@ snsAddBlock.addEventListener("click", async () => {
   try {
     const [ownedShares, receivedShares, forwardRequest, reverseRequest] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", targetUid))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid))),
-      getDoc(doc(snsDb, "friendRequests", user.uid + "_" + targetUid)),
-      getDoc(doc(snsDb, "friendRequests", targetUid + "_" + user.uid))
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", targetUid)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShares = new Map();
@@ -6110,10 +6108,18 @@ snsAddBlock.addEventListener("click", async () => {
     // Once the block is active, remove accepted and pending requests separately.
     // Cleanup failure is reported, but cannot roll back the effective block.
     let requestsRemoved = true;
+    // Read both participant-filtered request lists after the block is active.
+    // This catches a request that committed between the initial share lookup
+    // and the block write; list access remains available to participants while blocked.
+    const [incomingRequests, outgoingRequests] = await Promise.all([
+      getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
+      getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
+    ]);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const requestCleanupBatch = writeBatch(snsDb);
     let requestCleanupCount = 0;
-    for (const requestSnap of [forwardRequest, reverseRequest]) {
-      if (!requestSnap.exists()) continue;
+    const requestSnapshots = new Map([...incomingRequests.docs, ...outgoingRequests.docs].map(snap => [snap.id, snap]));
+    for (const requestSnap of requestSnapshots.values()) {
       const requestData = requestSnap.data();
       const isExpectedPair =
         (requestData.fromUid === user.uid && requestData.toUid === targetUid) ||
