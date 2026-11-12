@@ -280,6 +280,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 <p id="todayTaskEmpty" class="today-empty" hidden>予定はまだありません。必要なら、ひとつ追加してみましょう。</p>
 <div class="today-data-tools" aria-label="予定データの管理">
  <button type="button" id="exportTodayTasks">予定データを書き出す</button>
+ <label for="importTodayTasksFile">予定データを読み込む（JSON）</label>
+ <input type="file" id="importTodayTasksFile" accept="application/json,.json">
+ <p id="importTodayTasksPreview" class="today-note" aria-live="polite">ファイルを選ぶと内容を確認できます。</p>
+ <button type="button" id="importTodayTasksButton" disabled>確認して読み込む</button>
  <button type="button" id="deleteTodayTasks">予定データをすべて削除</button>
 </div>
 <p class="today-note">予定データはこの端末内に保存されます。お部屋のバックアップには含まれません。</p>
@@ -2262,7 +2266,11 @@ const empty=document.getElementById("todayTaskEmpty");
 const summary=document.getElementById("todayMiniSummary");
 const dateLabel=document.getElementById("todayPlanDate");
 const exportButton=document.getElementById("exportTodayTasks");
+const importFile=document.getElementById("importTodayTasksFile");
+const importPreview=document.getElementById("importTodayTasksPreview");
+const importButton=document.getElementById("importTodayTasksButton");
 const deleteButton=document.getElementById("deleteTodayTasks");
+let pendingImportStore=null;
 function localDateKey(date=new Date()){
  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
  return y+"-"+m+"-"+d;
@@ -2371,6 +2379,36 @@ exportButton.addEventListener("click",()=>{
    setTimeout(()=>URL.revokeObjectURL(url),60000);
    announce("予定データを書き出しました。ファイルは安全な場所に保管してください。");
   }catch(error){announce("書き出しに失敗しました。");}
+ });
+importFile.addEventListener("change",()=>{
+  pendingImportStore=null;importButton.disabled=true;
+  const file=importFile.files&&importFile.files[0];
+  if(!file){importPreview.textContent="ファイルを選ぶと内容を確認できます。";return;}
+  if(file.size>512*1024){importPreview.textContent="ファイルが大きすぎます。512KB以下のJSONファイルを選んでください。";return;}
+  const reader=new FileReader();
+  reader.onload=()=>{
+   try{
+    const data=JSON.parse(String(reader.result||""));
+    if(!data||data.app!=="kokoro-family-today-tasks"||data.version!==1||!validStore({version:1,days:data.days}))throw new Error("invalid import");
+    pendingImportStore={version:1,days:data.days};
+    const dates=Object.keys(data.days),count=dates.reduce((sum,date)=>sum+data.days[date].length,0);
+    importPreview.textContent="読み込み確認：日付 "+dates.length+"日分、予定 "+count+"件。読み込むと、この端末にある現在の予定データは置き換わります。";
+    importButton.disabled=false;
+   }catch(error){importPreview.textContent="このファイルは対応する予定データではないか、内容に問題があります。現在のデータは変更していません。";}
+  };
+  reader.onerror=()=>{pendingImportStore=null;importPreview.textContent="ファイルを読み込めませんでした。";};
+  try{reader.readAsText(file);}catch(error){pendingImportStore=null;importPreview.textContent="ファイルの読み込みを開始できませんでした。";}
+ });
+importButton.addEventListener("click",()=>{
+  if(!pendingImportStore){announce("先に内容を確認できるJSONファイルを選んでください。");return;}
+  const current=readStore();
+  if(current===null){announce("現在の保存データを確認できないため、読み込みを中止しました。");return;}
+  const count=Object.values(pendingImportStore.days).reduce((sum,tasks)=>sum+tasks.length,0);
+  if(!confirm("ファイル内の予定 "+count+"件で、この端末の予定データ全体を置き換えます。必要なら先に現在のデータを書き出してください。続けますか？"))return;
+  if(!saveStore(pendingImportStore))return;
+  pendingImportStore=null;importFile.value="";importButton.disabled=true;
+  importPreview.textContent="読み込みが完了しました。";
+  announce("予定データを読み込みました。");render();
  });
 deleteButton.addEventListener("click",()=>{
   const store=readStore();
