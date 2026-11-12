@@ -2271,6 +2271,7 @@ const importPreview=document.getElementById("importTodayTasksPreview");
 const importButton=document.getElementById("importTodayTasksButton");
 const deleteButton=document.getElementById("deleteTodayTasks");
 let pendingImportStore=null;
+let importRequest=0;
 function localDateKey(date=new Date()){
  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
  return y+"-"+m+"-"+d;
@@ -2381,12 +2382,14 @@ exportButton.addEventListener("click",()=>{
   }catch(error){announce("書き出しに失敗しました。");}
  });
 importFile.addEventListener("change",()=>{
+  const request=++importRequest;
   pendingImportStore=null;importButton.disabled=true;
   const file=importFile.files&&importFile.files[0];
   if(!file){importPreview.textContent="ファイルを選ぶと内容を確認できます。";return;}
   if(file.size>512*1024){importPreview.textContent="ファイルが大きすぎます。512KB以下のJSONファイルを選んでください。";return;}
   const reader=new FileReader();
   reader.onload=()=>{
+   if(request!==importRequest)return;
    try{
     const data=JSON.parse(String(reader.result||""));
     if(!data||data.app!=="kokoro-family-today-tasks"||data.version!==1||!validStore({version:1,days:data.days}))throw new Error("invalid import");
@@ -2396,8 +2399,8 @@ importFile.addEventListener("change",()=>{
     importButton.disabled=false;
    }catch(error){importPreview.textContent="このファイルは対応する予定データではないか、内容に問題があります。現在のデータは変更していません。";}
   };
-  reader.onerror=()=>{pendingImportStore=null;importPreview.textContent="ファイルを読み込めませんでした。";};
-  try{reader.readAsText(file);}catch(error){pendingImportStore=null;importPreview.textContent="ファイルの読み込みを開始できませんでした。";}
+  reader.onerror=()=>{if(request!==importRequest)return;pendingImportStore=null;importPreview.textContent="ファイルを読み込めませんでした。";};
+  try{reader.readAsText(file);}catch(error){if(request===importRequest){pendingImportStore=null;importPreview.textContent="ファイルの読み込みを開始できませんでした。";}}
  });
 importButton.addEventListener("click",()=>{
   if(!pendingImportStore){announce("先に内容を確認できるJSONファイルを選んでください。");return;}
