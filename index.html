@@ -5593,8 +5593,8 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
         // While blocked, get() of an existing friend request is intentionally denied.
         // Use participant-filtered list queries, clean both directions, then unblock.
         const [incoming, outgoing] = await Promise.all([
-          getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", activeUser.uid), where("fromUid", "==", snapshot.id))),
-          getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", activeUser.uid), where("toUid", "==", snapshot.id)))
+          getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", activeUser.uid))),
+          getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", activeUser.uid)))
         ]);
         if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
         const requestDocs = [...incoming.docs, ...outgoing.docs].filter(requestSnap => {
