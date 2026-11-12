@@ -409,7 +409,9 @@ service cloud.firestore {
         && request.resource.size() <= 750000;
       allow update: if false;
       allow delete: if signedIn()
-        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid)
+        && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
+          || blockedBetween(resource.data.ownerUid, resource.data.recipientUid));
     }
 
     match /users/{userId}/sharedRooms/{shareId} {
@@ -434,7 +436,9 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.size() <= 750000;
       allow update: if false;
-      allow delete: if owns(userId) || (signedIn() && resource.data.recipientUid == request.auth.uid);
+      allow delete: if (owns(userId) || (signedIn() && resource.data.recipientUid == request.auth.uid))
+        && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
+          || blockedBetween(resource.data.ownerUid, resource.data.recipientUid));
     }
 
     // Friend lists are derived from accepted requests; no client-managed duplicate graph.
