@@ -6068,9 +6068,9 @@ if (snsApp) {
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadFriendRequests(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-      await snsLoadSharedRooms(user, authGeneration);
-      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsRetryPendingShareCleanup(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsLoadSharedRooms(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadPublicTimeline(user, authGeneration);
     } catch (error) {
