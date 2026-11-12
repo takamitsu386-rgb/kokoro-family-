@@ -5620,6 +5620,9 @@ async function snsRemoveFriend(requestId) {
         batch.update(doc(snsDb, "friendRequests", snap.id), { status: "declined", updatedAt: serverTimestamp() });
       }
     }
+    // Persist a retry marker before changing the relationship. A later login
+    // will only run cleanup after confirming there is no active friendship/block.
+    snsQueueShareCleanup(user.uid, peerUid);
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
 
@@ -5681,9 +5684,10 @@ async function snsRemoveFriend(requestId) {
     } catch (cleanupError) {
       console.warn("Shared shopping cleanup was not permitted or is already complete", cleanupError);
     }
+    if (roomCleanupComplete && shoppingShareRemoved) snsFinishShareCleanup(user.uid, peerUid);
     snsFriendNotice.textContent = roomCleanupComplete && shoppingShareRemoved
       ? "友達関係を解除し、この相手との共有ルームと買い物共有データも削除しました。"
-      : "友達関係を解除しました。共有データへのアクセスは停止しましたが、一部の共有データの削除は完了しませんでした。";
+      : "友達関係を解除しました。共有データへのアクセスは停止しましたが、一部の共有データの削除は完了しませんでした。次回ログイン時にも整理を再確認します。";
     await Promise.all([snsLoadFriendRequests(user, authGeneration), snsLoadSharedRooms(user, authGeneration)]);
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
@@ -5751,6 +5755,8 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
           await cleanupBatch.commit();
         }
         if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+        // Persist retry state before unblocking so an account switch cannot lose cleanup.
+        snsQueueShareCleanup(activeUser.uid, snapshot.id);
         // If request cleanup fails, the block remains in place.
         await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
         unblockCommitted = true;
@@ -5820,9 +5826,10 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
           snsLoadFriendRequests(activeUser, authGeneration),
           snsLoadSharedRooms(activeUser, authGeneration)
         ]);
+        if (roomCleanupComplete && shoppingShareRemoved) snsFinishShareCleanup(activeUser.uid, snapshot.id);
         snsMessage(roomCleanupComplete && shoppingShareRemoved
           ? "ブロックを解除しました。残っていた共有ルームと買い物共有データも整理しました。友達申請は引き継がれません。"
-          : "ブロックを解除しました。友達申請は引き継がれていません。一部の共有データは相手側のブロック状態などにより整理できませんでした。");
+          : "ブロックを解除しました。友達申請は引き継がれていません。一部の共有データは相手側のブロック状態などにより整理できませんでした。次回ログイン時にも整理を再確認します。");
       } catch (error) {
         if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
         console.error("SNS unblock failed", error);
@@ -6059,6 +6066,8 @@ if (snsApp) {
       await snsLoadFriendRequests(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadSharedRooms(user, authGeneration);
+      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+      await snsRetryPendingShareCleanup(user, authGeneration);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await snsLoadPublicTimeline(user, authGeneration);
     } catch (error) {
