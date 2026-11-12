@@ -278,6 +278,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 <p id="todayTaskStatus" class="today-status" role="status" aria-live="polite"></p>
 <ul id="todayTaskList" class="today-list" aria-label="今日の予定一覧"></ul>
 <p id="todayTaskEmpty" class="today-empty" hidden>予定はまだありません。必要なら、ひとつ追加してみましょう。</p>
+<div class="today-data-tools" aria-label="予定データの管理">
+ <button type="button" id="exportTodayTasks">予定データを書き出す</button>
+ <button type="button" id="deleteTodayTasks">予定データをすべて削除</button>
+</div>
+<p class="today-note">予定データはこの端末内に保存されます。お部屋のバックアップには含まれません。</p>
 </section>
 
 </main>
@@ -2256,6 +2261,8 @@ const status=document.getElementById("todayTaskStatus");
 const empty=document.getElementById("todayTaskEmpty");
 const summary=document.getElementById("todayMiniSummary");
 const dateLabel=document.getElementById("todayPlanDate");
+const exportButton=document.getElementById("exportTodayTasks");
+const deleteButton=document.getElementById("deleteTodayTasks");
 function localDateKey(date=new Date()){
  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
  return y+"-"+m+"-"+d;
@@ -2351,6 +2358,31 @@ function deleteTask(id){
  if(!confirm("この予定を削除しますか？"))return;
  mutate(tasks=>{const index=tasks.findIndex(item=>item.id===id);if(index>=0)tasks.splice(index,1);},"予定を削除しました。");
 }
+exportButton.addEventListener("click",()=>{
+  const store=readStore();
+  if(store===null){announce("保存データを確認できないため、書き出しを中止しました。");return;}
+  try{
+   const payload={app:"kokoro-family-today-tasks",version:1,exportedAt:new Date().toISOString(),days:store.days};
+   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+   if(blob.size>512*1024){announce("予定データが大きすぎるため、書き出せませんでした。");return;}
+   const url=URL.createObjectURL(blob),a=document.createElement("a");
+   a.href=url;a.download="kokoro-family-tasks-"+localDateKey()+".json";
+   document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),60000);
+   announce("予定データを書き出しました。ファイルは安全な場所に保管してください。");
+  }catch(error){announce("書き出しに失敗しました。");}
+ });
+deleteButton.addEventListener("click",()=>{
+  const store=readStore();
+  if(store===null){announce("保存データを確認できないため、削除を中止しました。");return;}
+  if(!Object.keys(store.days).length){announce("削除する予定データはありません。");return;}
+  if(!confirm("今日だけでなく、保存されている過去の日付を含むすべての予定データを、この端末から削除します。この操作は元に戻せません。書き出し済みのファイルは削除されません。続けますか？"))return;
+  try{
+   localStorage.removeItem(STORAGE_KEY);
+   announce("この端末の予定データをすべて削除しました。");
+   render();
+  }catch(error){announce("削除できませんでした。端末の保存領域を確認してください。");}
+ });
 form.addEventListener("submit",event=>{
  event.preventDefault();
  const title=input.value.trim();
