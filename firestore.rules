@@ -358,8 +358,16 @@ service cloud.firestore {
     // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
     match /sharedRooms/{shareId} {
       allow get: if signedIn()
-        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
-      allow list: if signedIn() && resource.data.recipientUid == request.auth.uid;
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || (
+            resource.data.recipientUid == request.auth.uid
+            && !blockedBetween(request.auth.uid, resource.data.ownerUid)
+          )
+        );
+      allow list: if signedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && !blockedBetween(request.auth.uid, resource.data.ownerUid);
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
         && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
