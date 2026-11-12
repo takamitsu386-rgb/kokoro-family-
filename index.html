@@ -5588,15 +5588,40 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
       if (!snsUser || snsBusy) return;
       const activeUser = snsUser;
       const operationGeneration = snsSetBusy(true);
+      const authGeneration = snsAuthGeneration;
       try {
+        // While blocked, get() of an existing friend request is intentionally denied.
+        // Use participant-filtered list queries, clean both directions, then unblock.
+        const [incoming, outgoing] = await Promise.all([
+          getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", activeUser.uid), where("fromUid", "==", snapshot.id))),
+          getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", activeUser.uid), where("toUid", "==", snapshot.id)))
+        ]);
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+        const requestDocs = [...incoming.docs, ...outgoing.docs].filter(requestSnap => {
+          const data = requestSnap.data();
+          return ((data.fromUid === activeUser.uid && data.toUid === snapshot.id)
+            || (data.fromUid === snapshot.id && data.toUid === activeUser.uid))
+            && ["accepted", "pending"].includes(data.status);
+        });
+        if (requestDocs.length) {
+          const cleanupBatch = writeBatch(snsDb);
+          requestDocs.forEach(requestSnap => cleanupBatch.delete(doc(snsDb, "friendRequests", requestSnap.id)));
+          await cleanupBatch.commit();
+        }
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+        // If request cleanup fails, the block remains in place.
         await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
-        if (!snsUser || snsUser.uid !== activeUser.uid) return;
-        await snsLoadBlocks(activeUser);
-        snsMessage("ブロックを解除しました。");
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+        await Promise.all([
+          snsLoadBlocks(activeUser),
+          snsLoadFriendRequests(activeUser, authGeneration),
+          snsLoadSharedRooms(activeUser, authGeneration)
+        ]);
+        snsMessage("ブロックを解除しました。友達申請は引き継がれません。");
       } catch (error) {
         if (!snsUser || snsUser.uid !== activeUser.uid) return;
         console.error("SNS unblock failed", error);
-        snsMessage("ブロックを解除できませんでした。");
+        snsMessage("ブロック解除前の申請整理に失敗したため、ブロックは維持されています。通信状態を確認してください。");
       } finally { snsReleaseBusyFor(activeUser, operationGeneration); }
     });
     row.append(label, unblock);
