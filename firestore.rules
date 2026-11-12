@@ -166,7 +166,27 @@ service cloud.firestore {
         && areMembersFriends(resource.data)
         && areMembersFriends(request.resource.data)
         && validSharedShopping(request.resource.data);
-      allow delete: if signedIn() && request.auth.uid in resource.data.members && !areMembersFriends(resource.data);
+      function otherMemberFromShareId() {
+        return shareId.split('_')[0] == request.auth.uid
+          ? shareId.split('_')[1]
+          : shareId.split('_')[0];
+      }
+      allow delete: if signedIn() && (
+        (
+          exists(/databases/$(database)/documents/sharedShopping/$(shareId))
+          && request.auth.uid in resource.data.members
+          && !areMembersFriends(resource.data)
+        )
+        || (
+          !exists(/databases/$(database)/documents/sharedShopping/$(shareId))
+          && shareId.split('_').size() == 2
+          && request.auth.uid in shareId.split('_')
+          && shareId == (request.auth.uid < otherMemberFromShareId()
+            ? request.auth.uid + '_' + otherMemberFromShareId()
+            : otherMemberFromShareId() + '_' + request.auth.uid)
+          && !acceptedFriend(request.auth.uid, otherMemberFromShareId())
+        )
+      );
     }
 
     // A user may create or remove only their own block records.
