@@ -5494,7 +5494,10 @@ async function snsRemoveFriend(requestId) {
       getDoc(doc(snsDb, "friendRequests", user.uid + "_" + peerUid)),
       getDoc(doc(snsDb, "friendRequests", peerUid + "_" + user.uid)),
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", peerUid))),
-      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid)))
+      getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid))).catch(error => {
+        console.warn("Received shared rooms could not be listed during friend removal", error);
+        return null;
+      })
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const friendshipRequests = [forwardRequest, reverseRequest].filter(snap => {
@@ -5507,8 +5510,9 @@ async function snsRemoveFriend(requestId) {
       throw new Error("現在の友達関係を確認できません。友達一覧を更新してください。");
     }
     const revokedShares = new Map();
+    let roomCleanupComplete = !!receivedShares;
     ownedShares.docs.filter(snap => snap.data().recipientUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
-    receivedShares.docs.filter(snap => snap.data().ownerUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    receivedShares?.docs.filter(snap => snap.data().ownerUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     const batch = writeBatch(snsDb);
     for (const snap of friendshipRequests) {
       const data = snap.data();
@@ -5521,14 +5525,19 @@ async function snsRemoveFriend(requestId) {
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     const revokedShareEntries = [...revokedShares.entries()];
-    for (let offset = 0; offset < revokedShareEntries.length; offset += 200) {
-      if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-      const cleanupBatch = writeBatch(snsDb);
-      for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 200)) {
-        cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
-        cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+    try {
+      for (let offset = 0; offset < revokedShareEntries.length; offset += 200) {
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+        const cleanupBatch = writeBatch(snsDb);
+        for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 200)) {
+          cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+          cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+        }
+        await cleanupBatch.commit();
       }
-      await cleanupBatch.commit();
+    } catch (cleanupError) {
+      roomCleanupComplete = false;
+      console.warn("Shared room cleanup did not fully complete after friend removal", cleanupError);
     }
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     // Remove the shopping-share document only after the friendship record is gone.
@@ -5540,9 +5549,9 @@ async function snsRemoveFriend(requestId) {
     } catch (cleanupError) {
       console.warn("Shared shopping cleanup was not permitted or is already complete", cleanupError);
     }
-    snsFriendNotice.textContent = shoppingShareRemoved
-      ? "友達関係を解除し、この相手との買い物共有データも削除しました。"
-      : "友達関係を解除しました。買い物共有へのアクセスは停止しましたが、共有データの削除は完了しませんでした。";
+    snsFriendNotice.textContent = roomCleanupComplete && shoppingShareRemoved
+      ? "友達関係を解除し、この相手との共有ルームと買い物共有データも削除しました。"
+      : "友達関係を解除しました。共有データへのアクセスは停止しましたが、一部の共有データの削除は完了しませんでした。";
     await Promise.all([snsLoadFriendRequests(user, authGeneration), snsLoadSharedRooms(user, authGeneration)]);
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
