@@ -6077,42 +6077,32 @@ snsAddBlock.addEventListener("click", async () => {
     const revokedShares = new Map();
     ownedShares.docs.filter(snap => snap.data().recipientUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     receivedShares.docs.filter(snap => snap.data().ownerUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
-    const batch = writeBatch(snsDb);
-    batch.set(doc(snsDb, "users", user.uid, "blocks", targetUid), { createdAt: serverTimestamp() });
-    // Remove accepted friendship records in the same operation as the block.
-    // Otherwise deleting the block later could make the old friendship active again.
+    // Commit the block independently first. A concurrent unfriend may already
+    // have deleted a friend-request document; such a cleanup race must never
+    // cancel the block itself.
+    await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), { createdAt: serverTimestamp() });
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    // Once the block is active, remove accepted and pending requests separately.
+    // Cleanup failure is reported, but cannot roll back the effective block.
+    let requestsRemoved = true;
+    const requestCleanupBatch = writeBatch(snsDb);
+    let requestCleanupCount = 0;
     for (const requestSnap of [forwardRequest, reverseRequest]) {
       if (!requestSnap.exists()) continue;
       const requestData = requestSnap.data();
       const isExpectedPair =
         (requestData.fromUid === user.uid && requestData.toUid === targetUid) ||
         (requestData.fromUid === targetUid && requestData.toUid === user.uid);
-      if (isExpectedPair && requestData.status === "accepted") {
-        batch.delete(doc(snsDb, "friendRequests", requestSnap.id));
+      if (isExpectedPair && ["accepted", "pending"].includes(requestData.status)) {
+        requestCleanupBatch.delete(doc(snsDb, "friendRequests", requestSnap.id));
+        requestCleanupCount += 1;
       }
     }
-    await batch.commit();
-    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-    // Once the block is active, remove any outstanding request in either direction.
-    let pendingRequestsRemoved = true;
-    const pendingRequestBatch = writeBatch(snsDb);
-    let pendingRequestCount = 0;
-    for (const requestSnap of [forwardRequest, reverseRequest]) {
-      if (!requestSnap.exists() || requestSnap.data().status !== "pending") continue;
-      const requestData = requestSnap.data();
-      const isExpectedPair =
-        (requestData.fromUid === user.uid && requestData.toUid === targetUid) ||
-        (requestData.fromUid === targetUid && requestData.toUid === user.uid);
-      if (isExpectedPair) {
-        pendingRequestBatch.delete(doc(snsDb, "friendRequests", requestSnap.id));
-        pendingRequestCount += 1;
-      }
-    }
-    if (pendingRequestCount) {
+    if (requestCleanupCount) {
       try {
-        await pendingRequestBatch.commit();
+        await requestCleanupBatch.commit();
       } catch (requestCleanupError) {
-        pendingRequestsRemoved = false;
+        requestsRemoved = false;
         console.warn("Blocked friend request cleanup failed", requestCleanupError);
       }
     }
@@ -6141,8 +6131,8 @@ snsAddBlock.addEventListener("click", async () => {
       snsLoadSharedRooms(user, authGeneration),
       snsLoadFriendRequests(user, authGeneration)
     ]);
-    snsMessage(!pendingRequestsRemoved
-      ? "ブロックしました。申請の整理は完了していません。ブロックは有効ですが、申請データの削除にはルール更新が必要です。"
+    snsMessage(!requestsRemoved
+      ? "ブロックしました。ブロックは有効ですが、友達申請データの整理は完了しませんでした。"
       : shoppingShareRemoved
         ? "ブロックしました。未処理の申請、お部屋、買い物の共有も削除しました。"
         : "ブロックしました。未処理の申請とお部屋共有は削除しました。買い物共有データの削除は完了しませんでした。");
