@@ -5621,12 +5621,74 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
         // If request cleanup fails, the block remains in place.
         await deleteDoc(doc(snsDb, "users", activeUser.uid, "blocks", snapshot.id));
         if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+
+        // Once our block is removed, retry cleanup of leftover shares.
+        // A block placed by the other account may still prevent listing incoming rooms.
+        let roomCleanupComplete = true;
+        const [ownedShares, receivedShares] = await Promise.all([
+          getDocs(query(
+            collection(snsDb, "users", activeUser.uid, "sharedRooms"),
+            where("recipientUid", "==", snapshot.id)
+          )).catch(error => {
+            console.warn("Owned shared rooms could not be listed after unblock", error);
+            roomCleanupComplete = false;
+            return null;
+          }),
+          getDocs(query(
+            collection(snsDb, "sharedRooms"),
+            where("recipientUid", "==", activeUser.uid),
+            where("ownerUid", "==", snapshot.id)
+          )).catch(error => {
+            console.warn("Incoming shared rooms remain inaccessible after unblock", error);
+            roomCleanupComplete = false;
+            return null;
+          })
+        ]);
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+        const leftoverShares = new Map();
+        ownedShares?.docs.forEach(shareSnap => {
+          const share = shareSnap.data();
+          if (share.ownerUid === activeUser.uid && share.recipientUid === snapshot.id) {
+            leftoverShares.set(shareSnap.id, share);
+          }
+        });
+        receivedShares?.docs.forEach(shareSnap => {
+          const share = shareSnap.data();
+          if (share.ownerUid === snapshot.id && share.recipientUid === activeUser.uid) {
+            leftoverShares.set(shareSnap.id, share);
+          }
+        });
+        try {
+          const entries = [...leftoverShares.entries()];
+          for (let offset = 0; offset < entries.length; offset += 200) {
+            if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
+            const cleanupBatch = writeBatch(snsDb);
+            for (const [shareId, share] of entries.slice(offset, offset + 200)) {
+              cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+              cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+            }
+            await cleanupBatch.commit();
+          }
+        } catch (cleanupError) {
+          roomCleanupComplete = false;
+          console.warn("Leftover shared room cleanup did not fully complete after unblock", cleanupError);
+        }
+        let shoppingShareRemoved = false;
+        try {
+          await deleteDoc(doc(snsDb, "sharedShopping", [activeUser.uid, snapshot.id].sort().join("_")));
+          shoppingShareRemoved = true;
+        } catch (cleanupError) {
+          console.warn("Leftover shared shopping cleanup did not complete after unblock", cleanupError);
+        }
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
         await Promise.all([
           snsLoadBlocks(activeUser),
           snsLoadFriendRequests(activeUser, authGeneration),
           snsLoadSharedRooms(activeUser, authGeneration)
         ]);
-        snsMessage("ブロックを解除しました。友達申請は引き継がれません。");
+        snsMessage(roomCleanupComplete && shoppingShareRemoved
+          ? "ブロックを解除しました。残っていた共有ルームと買い物共有データも整理しました。友達申請は引き継がれません。"
+          : "ブロックを解除しました。友達申請は引き継がれていません。一部の共有データは相手側のブロック状態などにより整理できませんでした。");
       } catch (error) {
         if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
         console.error("SNS unblock failed", error);
