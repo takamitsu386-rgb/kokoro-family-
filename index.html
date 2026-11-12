@@ -2287,8 +2287,8 @@ function validStore(value){
   if(year<1000||calendarDate.getUTCFullYear()!==year||calendarDate.getUTCMonth()!==month-1||calendarDate.getUTCDate()!==day)return false;
   const ids=new Set();
   for(const task of value.days[date]){
-   if(!task||typeof task!=="object"||Array.isArray(task)||typeof task.id!=="string"||!task.id.trim()||task.id.length>100||ids.has(task.id)||typeof task.title!=="string"||!task.title.trim()||task.title.length>80||typeof task.isCompleted!=="boolean"||!Number.isFinite(task.createdAt)||task.createdAt<0||!Number.isFinite(task.updatedAt)||task.updatedAt<task.createdAt)return false;
-   if(task.isCompleted?(!Number.isFinite(task.completedAt)||task.completedAt<task.createdAt||task.completedAt>task.updatedAt):(task.completedAt!==null))return false;
+   if(!task||typeof task!=="object"||Array.isArray(task)||typeof task.id!=="string"||!task.id.trim()||task.id.length>100||ids.has(task.id)||typeof task.title!=="string"||!task.title.trim()||task.title.length>80||typeof task.isCompleted!=="boolean"||!Number.isFinite(task.createdAt)||task.createdAt<0||!Number.isFinite(task.updatedAt)||task.updatedAt<0)return false;
+   if(task.isCompleted?(!Number.isFinite(task.completedAt)||task.completedAt<0):(task.completedAt!==null))return false;
    ids.add(task.id);
   }
  }
