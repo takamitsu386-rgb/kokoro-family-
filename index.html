@@ -5486,6 +5486,7 @@ async function snsRemoveFriend(requestId) {
   const operationGeneration = snsSetBusy(true);
   try {
     const requestSnap = await getDoc(doc(snsDb, "friendRequests", requestId));
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     if (!requestSnap.exists()) throw new Error("友達情報が見つかりません。");
     const requestData = requestSnap.data();
     const peerUid = requestData.fromUid === user.uid ? requestData.toUid : requestData.toUid === user.uid ? requestData.fromUid : null;
