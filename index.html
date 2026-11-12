@@ -5591,7 +5591,10 @@ async function snsRemoveFriend(requestId) {
     const [forwardRequest, reverseRequest, ownedShares, receivedShares] = await Promise.all([
       getDoc(doc(snsDb, "friendRequests", user.uid + "_" + peerUid)),
       getDoc(doc(snsDb, "friendRequests", peerUid + "_" + user.uid)),
-      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", peerUid))),
+      getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", peerUid))).catch(error => {
+        console.warn("Owned shared rooms could not be listed during friend removal", error);
+        return null;
+      }),
       getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid))).catch(error => {
         console.warn("Received shared rooms could not be listed during friend removal", error);
         return null;
@@ -5608,8 +5611,8 @@ async function snsRemoveFriend(requestId) {
       throw new Error("現在の友達関係を確認できません。友達一覧を更新してください。");
     }
     const revokedShares = new Map();
-    let roomCleanupComplete = !!receivedShares;
-    ownedShares.docs.filter(snap => snap.data().recipientUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    let roomCleanupComplete = !!ownedShares && !!receivedShares;
+    ownedShares?.docs.filter(snap => snap.data().recipientUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     receivedShares?.docs.filter(snap => snap.data().ownerUid === peerUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     const batch = writeBatch(snsDb);
     for (const snap of friendshipRequests) {
