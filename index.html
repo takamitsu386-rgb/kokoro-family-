@@ -6128,10 +6128,11 @@ function snsRefreshShareRoomOptions() {
 }
 snsShareRoomSource.addEventListener("focus", snsRefreshShareRoomOptions);
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
-  const [owned, incoming, outgoing] = await Promise.all([
+  const [owned, incoming, outgoing, hiddenShares] = await Promise.all([
     getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
     getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
-    getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
+    getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid))),
+    getDocs(collection(snsDb, "users", user.uid, "hiddenSharedRooms"))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   const acceptedPeers = new Set([
@@ -6154,7 +6155,9 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
     }
   }));
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-  const receivedDocs = receivedResults.filter(Boolean).flatMap(result => result.docs);
+  const hiddenShareIds = new Set(hiddenShares.docs.map(snap => snap.id));
+  const receivedDocs = receivedResults.filter(Boolean).flatMap(result => result.docs)
+    .filter(snap => !hiddenShareIds.has(snap.id));
   snsSharedRoomList.replaceChildren();
   const entries = new Map();
   [...owned.docs, ...receivedDocs].forEach(snap => entries.set(snap.id, { id: snap.id, ...snap.data() }));
@@ -6219,12 +6222,23 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
       if (!confirm(confirmText)) return;
       const operationGeneration = snsSetBusy(true);
       try {
-        const batch = writeBatch(snsDb);
-        batch.delete(doc(snsDb, "sharedRooms", item.id));
-        batch.delete(doc(snsDb, "users", item.ownerUid, "sharedRooms", item.id));
-        await batch.commit();
+        if (item.ownerUid === user.uid) {
+          const batch = writeBatch(snsDb);
+          batch.delete(doc(snsDb, "sharedRooms", item.id));
+          batch.delete(doc(snsDb, "users", user.uid, "sharedRooms", item.id));
+          await batch.commit();
+        } else {
+          // Recipients hide a share from their own list without deleting the owner's copy.
+          await setDoc(doc(snsDb, "users", user.uid, "hiddenSharedRooms", item.id), {
+            ownerUid: item.ownerUid,
+            recipientUid: user.uid,
+            hiddenAt: serverTimestamp()
+          });
+        }
         if (snsUser?.uid === user.uid && snsAuthGeneration === authGeneration) {
-          snsRoomShareStatus.textContent = "共有を削除しました。";
+          snsRoomShareStatus.textContent = item.ownerUid === user.uid
+            ? "共有を取り消しました。"
+            : "受け取った共有を自分の一覧から削除しました。相手側の共有はそのままです。";
           await snsLoadSharedRooms(user, authGeneration);
         }
       } catch (error) {
