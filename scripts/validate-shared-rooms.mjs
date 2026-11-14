@@ -34,7 +34,7 @@ assert.match(rules, /match \/sharedRooms\/{shareId}/);
 assert.match(rules, /match \/users\/{userId}\/sharedRooms\/{shareId}/);
 assert.match(rules, /allow list: if signedIn\(\)\s*&& resource\.data\.recipientUid == request\.auth\.uid\s*&& !blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\);/);
 assert.match(rules, /allow get, list: if owns\(userId\);/);
-assert.match(rules, /allow delete: if owns\(userId\) \|\| \(signedIn\(\) && resource\.data\.recipientUid == request\.auth\.uid\);/, 'Only the owner or named recipient may remove an owner mirror.');
+assert.match(rules, /allow delete: if signedIn\(\)\s*&& \(!exists\([\s\S]*?owns\(userId\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?!acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?blockedBetween\(resource\.data\.ownerUid, resource\.data\.recipientUid\)/, 'Recipients may remove an owner mirror only after access ends or blocking.');
 assert.match(rules, /acceptedFriend\(request\.auth\.uid, request\.resource\.data\.recipientUid\)/);
 assert.match(rules, /!blockedBetween\(request\.auth\.uid, request\.resource\.data\.recipientUid\)/);
 assert.match(rules, /request\.resource\.data\.keys\(\)\.hasOnly\(\['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'\]\)/);
