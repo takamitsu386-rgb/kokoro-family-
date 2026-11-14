@@ -4219,6 +4219,7 @@ async function uploadShoppingToFriend(){
     transaction.set(ref,{version:1,ownerUid,recipientUid,members:[user.uid,peerUid].sort(),items:payload.items,history:payload.history,budgets:payload.budgets,assigneeBudgets:payload.assigneeBudgets,updatedBy:user.uid,updatedAt:serverTimestamp()});
   });
   if(!isCurrentSession()||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わりました。保存結果を画面に反映しませんでした。");
+  if(JSON.stringify(readShoppingCloudPayload())!==JSON.stringify(payload))throw new Error("共有保存中に端末内の買い物データが変更されました。一部の変更が未共有の可能性があるため、もう一度共有保存してください。");
   shoppingShareMessage("共有データを保存しました。保存前に相手の更新があった場合は、上書きを中止します。");
 }
 async function downloadShoppingFromFriend(){
@@ -4309,6 +4310,7 @@ async function uploadShoppingCloud(){
     transaction.set(ref,{...payload,updatedAt:serverTimestamp()});
   });
   if(!isCurrentSession())throw new Error("ログイン状態が変わりました。保存結果を画面に反映しませんでした。");
+  if(JSON.stringify(readShoppingCloudPayload())!==JSON.stringify(payload))throw new Error("クラウド保存中に端末内の買い物データが変更されました。一部の変更が未同期の可能性があるため、もう一度クラウドへ保存してください。");
   shoppingStatus("買い物リスト・購入履歴・月間予算をクラウドに保存しました。同じGoogleアカウントの別端末が先に更新した場合は上書きを中止します。");
 }
 async function downloadShoppingCloud(){
