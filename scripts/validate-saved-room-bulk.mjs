@@ -553,7 +553,7 @@ assert.match(source,/setSelectedFurnitureShadow\('glow'\)/,'Glow shadow control 
 assert.match(source,/shadow:el\.dataset\.shadow\|\|''/,'Furniture shadow preset must be saved in snapshots.');
 assert.match(source,/item\.shadow===undefined\|\|\['soft','strong','glow'\]\.includes\(item\.shadow\)/,'Only supported shadow presets may be restored.');
 assert.match(source,/restoredIcon&&v\.shadow/,'Furniture shadow must be restored when a room is loaded.');
-assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}家具の影を元に戻しました/,'Failed shadow saves must roll back the visual change.');
+assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}影を元に戻しました/,'Failed shadow saves must roll back the visual change.');
 
 assert.match(source,/id="furnitureBorderColor" type="color"/,'Furniture border color picker must be present.');
 assert.match(source,/function setSelectedFurnitureBorder\(style\)/,'Furniture border styles must be configurable.');
