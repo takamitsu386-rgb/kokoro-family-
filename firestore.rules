@@ -688,12 +688,19 @@ service cloud.firestore {
     }
 
 
-    // Recipient snapshots are listed only through recipientUid-filtered queries.
-    // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
+        // Keep duplicate match declarations equally restrictive: Firestore ORs matching allow rules.
     match /sharedRooms/{shareId} {
       allow get: if signedIn()
-        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
-      allow list: if signedIn() && resource.data.recipientUid == request.auth.uid;
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || (
+            resource.data.recipientUid == request.auth.uid
+            && !blockedBetween(request.auth.uid, resource.data.ownerUid)
+          )
+        );
+      allow list: if signedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && !blockedBetween(request.auth.uid, resource.data.ownerUid);
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
         && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
@@ -714,8 +721,13 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.size() <= 750000;
       allow update: if false;
+      // A repeated delete after another tab already removed this share is a safe no-op.
       allow delete: if signedIn()
-        && (resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid);
+        && (!exists(/databases/$(database)/documents/sharedRooms/$(shareId))
+          || (resource.data.ownerUid == request.auth.uid
+            || (resource.data.recipientUid == request.auth.uid
+              && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
+                || blockedBetween(resource.data.ownerUid, resource.data.recipientUid)))));
     }
 
     match /users/{userId}/sharedRooms/{shareId} {
@@ -740,7 +752,13 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.size() <= 750000;
       allow update: if false;
-      allow delete: if owns(userId) || (signedIn() && resource.data.recipientUid == request.auth.uid);
+      // Repeated deletion of an already-removed mirror is also a safe no-op.
+      allow delete: if signedIn()
+        && (!exists(/databases/$(database)/documents/users/$(userId)/sharedRooms/$(shareId))
+          || owns(userId)
+          || (resource.data.recipientUid == request.auth.uid
+            && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
+              || blockedBetween(resource.data.ownerUid, resource.data.recipientUid))));
     }
 
     // Friend lists are derived from accepted requests; no client-managed duplicate graph.
