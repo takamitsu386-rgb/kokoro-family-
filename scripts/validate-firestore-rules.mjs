@@ -10,6 +10,7 @@ assert.equal(firebaseConfig.emulators?.firestore?.port, 8080,
   'Firestore rules tests must use the dedicated local emulator port.');
 
 assert.match(rules, /^rules_version\s*=\s*'2';/m, 'Firestore Rules v2 must be enabled.');
+assert.match(rules, /}\s*}\s*$/, 'Firestore rules must end immediately after the documents and service blocks; trailing fragments are not allowed.');
 assert.match(rules, /match\s+\/databases\/\{database\}\/documents\s*\{/,
   'Firestore database document scope is missing.');
 assert.match(rules, /match\s+\/users\/\{userId\}\/kokoro\/\{documentId\}\s*\{/,
