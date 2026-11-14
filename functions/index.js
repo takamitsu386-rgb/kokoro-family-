@@ -10,6 +10,7 @@ const openAiApiKey = defineSecret("OPENAI_API_KEY");
 const allowedOrigins = new Set([
   "https://kokoro-family.web.app",
   "https://kokoro-family.firebaseapp.com",
+  "https://takamitsu386-rgb.github.io",
   "http://localhost:5000",
   "http://127.0.0.1:5000"
 ]);
