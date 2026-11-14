@@ -47,11 +47,11 @@ assert.match(sync, /このアカウントにはクラウドデータがありま
   'First sync must ask before choosing which existing dataset to keep.');
 assert.match(sync, /if \(!navigator\.onLine\)[\s\S]*?端末内データはそのままです/,
   'Offline cloud operations must stop without discarding local data.');
-const downloadStart = sync.indexOf('async function downloadCloud()');
-const downloadEnd = sync.indexOf('async function syncNow()', downloadStart);
-assert.ok(downloadStart >= 0 && downloadEnd > downloadStart, 'Manual cloud download function must exist.');
-const download = sync.slice(downloadStart, downloadEnd);
-assert.match(download, /if \(!confirm\([\s\S]*?return false;\s*if \(!isCurrentAccount\(\)\)[\s\S]*?if \(!navigator\.onLine\)[\s\S]*?roomLocalSnapshotMatches\(localSnapshot\)[\s\S]*?const latestSnapshot = await getDoc\(cloudRef\(uid\)\);[\s\S]*?sameRoomCloudVersion\(snapshot, latestSnapshot\)[\s\S]*?applyCloudDataSafely\(latestData\);/,
+const manualDownloadFnStart = sync.indexOf('async function downloadCloud()');
+const manualDownloadFnEnd = sync.indexOf('async function syncNow()', manualDownloadFnStart);
+assert.ok(manualDownloadFnStart >= 0 && manualDownloadFnEnd > manualDownloadFnStart, 'Manual cloud download function must exist.');
+const manualDownloadFn = sync.slice(manualDownloadFnStart, manualDownloadFnEnd);
+assert.match(manualDownloadFn, /if \(!confirm\([\s\S]*?return false;\s*if \(!isCurrentAccount\(\)\)[\s\S]*?if \(!navigator\.onLine\)[\s\S]*?roomLocalSnapshotMatches\(localSnapshot\)[\s\S]*?const latestSnapshot = await getDoc\(cloudRef\(uid\)\);[\s\S]*?sameRoomCloudVersion\(snapshot, latestSnapshot\)[\s\S]*?applyCloudDataSafely\(latestData\);/,
   'Cloud download must recheck account, connectivity, local state, and cloud version after confirmation before replacing local data.');
 const firstSyncStart = sync.indexOf('async function syncNow()');
 const firstSync = sync.slice(firstSyncStart);
