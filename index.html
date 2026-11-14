@@ -5977,17 +5977,20 @@ async function snsEditPost(postId, currentText) {
     return;
   }
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
+  const isCurrentSession = () => !!snsUser && snsUser.uid === user.uid && snsAuthGeneration === authGeneration;
   try {
     await updateDoc(doc(snsDb, "posts", postId), {
       text,
       updatedAt: serverTimestamp()
     });
-    if (!snsUser || snsUser.uid !== user.uid) return;
-    await snsLoadPosts(user);
+    if (!isCurrentSession()) return;
+    await snsLoadPosts(user, authGeneration);
+    if (!isCurrentSession()) return;
     snsMessage("投稿を更新しました。");
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentSession()) return;
     console.error("SNS post edit failed", error);
     snsMessage("更新できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
@@ -5998,17 +6001,20 @@ async function snsDeletePost(postId) {
   if (!snsUser || snsBusy || !postId) return;
   if (!window.confirm("この投稿を削除しますか？")) return;
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
+  const isCurrentSession = () => !!snsUser && snsUser.uid === user.uid && snsAuthGeneration === authGeneration;
   try {
     await updateDoc(doc(snsDb, "posts", postId), {
       status: "deleted",
       updatedAt: serverTimestamp()
     });
-    if (!snsUser || snsUser.uid !== user.uid) return;
-    await snsLoadPosts(user);
+    if (!isCurrentSession()) return;
+    await snsLoadPosts(user, authGeneration);
+    if (!isCurrentSession()) return;
     snsMessage("投稿を削除しました。");
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentSession()) return;
     console.error("SNS post delete failed", error);
     snsMessage("削除できませんでした。投稿者本人でログインしているか確認してください。");
   } finally {
