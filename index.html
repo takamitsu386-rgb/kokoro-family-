@@ -7861,7 +7861,7 @@ snsRefreshPosts.addEventListener("click", async () => {
           if(!confirm("「"+item.name+"」の買い物メモから"+added.length+"件を追加しますか？"))return;
           const now=Date.now();
           const next=[...current,...added.map((name,index)=>({id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"mealshop_"+now.toString(36)+"_"+index+"_"+Math.random().toString(36).slice(2,7),name,quantity:"",category:"food",bought:false,createdAt:now+index}))];
-          try{localStorage.setItem(key,JSON.stringify(next));status.textContent=added.length+"件を買い物リストに追加しました。";}
+          try{localStorage.setItem(key,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));status.textContent=added.length+"件を買い物リストに追加しました。";}
           catch(error){try{if(raw===null)localStorage.removeItem(key);else localStorage.setItem(key,raw);}catch(rollbackError){console.error("Meal shopping import rollback failed",rollbackError);}throw error;}
         }catch(error){console.error("Meal shopping import failed",error);status.textContent="買い物リストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
       });
