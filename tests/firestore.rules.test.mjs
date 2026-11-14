@@ -818,6 +818,24 @@ describe('friend requests', () => {
     await assertSucceeds(deleteDoc(doc(sender, 'friendRequests/friend-owner_friend-recipient')));
   });
 
+  it('allows either participant to clean up a pending request after blocking', async () => {
+    await seed('friendRequests/blocked-cleanup-sender_blocked-cleanup-recipient', {
+      fromUid: 'blocked-cleanup-sender', toUid: 'blocked-cleanup-recipient', status: 'pending',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('friendRequests/blocked-cleanup-sender-2_blocked-cleanup-recipient-2', {
+      fromUid: 'blocked-cleanup-sender-2', toUid: 'blocked-cleanup-recipient-2', status: 'pending',
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    await seed('users/blocked-cleanup-sender/blocks/blocked-cleanup-recipient', { createdAt: new Date() });
+    await seed('users/blocked-cleanup-recipient-2/blocks/blocked-cleanup-sender-2', { createdAt: new Date() });
+
+    const originalSender = testEnv.authenticatedContext('blocked-cleanup-sender').firestore();
+    const originalRecipient = testEnv.authenticatedContext('blocked-cleanup-recipient-2').firestore();
+    await assertSucceeds(deleteDoc(doc(originalSender, 'friendRequests/blocked-cleanup-sender_blocked-cleanup-recipient')));
+    await assertSucceeds(deleteDoc(doc(originalRecipient, 'friendRequests/blocked-cleanup-sender-2_blocked-cleanup-recipient-2')));
+  });
+
   it('blocks requests in either direction and denies requests after a block', async () => {
     await seed('users/friend-blocker/blocks/friend-blocked', { createdAt: new Date() });
     const sender = testEnv.authenticatedContext('friend-blocked').firestore();
