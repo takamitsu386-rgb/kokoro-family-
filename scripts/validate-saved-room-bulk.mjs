@@ -293,7 +293,7 @@ assert.match(inventory,/prefs\.categories\[name\]/,'Inventory export must includ
 assert.match(inventory,/prefs\.notes\[name\]/,'Inventory export must include notes.');
 assert.match(inventory,/favorites\.has\(name\)/,'Inventory export must include favorite state.');
 assert.match(inventory,/replace\(/,'Inventory export must escape CSV cell quotes.');
-assert.ok(inventory.includes("if(/^[\s]*[=+@-]/.test(text))"),'Formula-like spreadsheet values must be neutralized using a whitespace-aware prefix check.');
+assert.ok(inventory.includes("if(/^[\\s]*[=+@-]/.test(text))"),'Formula-like spreadsheet values must be neutralized using a whitespace-aware prefix check.');
 assert.ok(inventory.includes("const csv='\\uFEFF'"),'CSV export must include an actual UTF-8 BOM escape.');
 assert.ok(inventory.includes(".join('\\r\\n')"),'CSV export must use actual CRLF line endings.');
 assert.match(inventory,/\^\[\\s\]\*\[=+@-\]/,'Inventory export must neutralize spreadsheet formula-leading values.');
