@@ -6,6 +6,8 @@ const rules = readFileSync('firestore.rules', 'utf8');
 
 assert.match(html, /id="snsFriendList"/, 'A dedicated accepted-friends list must exist.');
 assert.match(html, /id="snsRefreshFriends"/, "A manual friend and request refresh control must exist.");
+assert.match(html, /const existingBlock = await getDoc\(doc\(snsDb, "users", user\.uid, "blocks", targetUid\)\)/, 'Repeated block attempts must be detected before writing a block record.');
+assert.match(html, /existingBlock\.exists\(\)[\s\S]*?このユーザーはすでにブロックしています/, 'An existing block must produce a clear, non-error message.');
 assert.match(html, /snsRefreshFriends\.addEventListener\("click"/, "The refresh control must reload the current user friend data.");
 assert.match(html, /const snsFriendList = document\.getElementById\("snsFriendList"\)/, 'The friends list must be wired to the UI.');
 assert.match(html, /const acceptedRequests = \[/, 'Accepted requests from both directions must be combined.');

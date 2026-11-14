@@ -6890,6 +6890,13 @@ snsAddBlock.addEventListener("click", async () => {
   const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
   try {
+    const existingBlock = await getDoc(doc(snsDb, "users", user.uid, "blocks", targetUid));
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    if (existingBlock.exists()) {
+      snsMessage("このユーザーはすでにブロックしています。");
+      await snsLoadBlocks(user, authGeneration);
+      return;
+    }
     // Attempt to collect share IDs first, but never let a read failure prevent blocking.
     const [ownedShares, receivedShares] = await Promise.all([
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", targetUid)))
