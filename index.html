@@ -6754,7 +6754,8 @@ snsSaveProfile.addEventListener("click", async () => {
 });
 snsCreatePost.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
-  const text = snsPostText.value.trim();
+  const draft = snsPostText.value;
+  const text = draft.trim();
   if (!text || text.length > 500) {
     snsMessage("投稿内容を1〜500文字で入力してください。");
     return;
@@ -6774,7 +6775,8 @@ snsCreatePost.addEventListener("click", async () => {
       updatedAt: serverTimestamp()
     });
     if (!isCurrentPostSession()) throw new Error("保存後にアカウントが切り替わりました。");
-    snsPostText.value = "";
+    // Do not erase a newer draft typed while the save was in flight.
+    if (snsPostText.value === draft) snsPostText.value = "";
     await snsLoadPosts(user);
     snsMessage("投稿を保存しました。");
   } catch (error) {
