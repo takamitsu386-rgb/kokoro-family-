@@ -21,7 +21,10 @@ assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\), limi
 assert.match(html, /where\("recipientUid", "==", user\.uid\),\s*where\("ownerUid", "==", peerUid\)/);
 assert.match(html, /window\.applyRoom\?\.\(item\.currentRoom\)/);
 assert.match(html, /batch\.delete\(doc\(snsDb, "sharedRooms", item\.id\)\)/);
-assert.match(html, /batch\.delete\(doc\(snsDb, "users", item\.ownerUid, "sharedRooms", item\.id\)\)/);
+assert.match(html, /batch\.delete\(doc\(snsDb, "users", user\.uid, "sharedRooms", item\.id\)\)/);
+assert.match(html, /batch\.delete\(doc\(snsDb, "users", item\.recipientUid, "receivedSharedRooms", item\.id\)\)/);
+assert.match(html, /setDoc\(doc\(snsDb, "users", user\.uid, "hiddenSharedRooms", item\.id\)/,
+  'Recipients must hide incoming shares locally instead of deleting the owner\'s shared copy.');
 assert.match(html, /snsLoadSharedRooms\(user, authGeneration\)/);
 assert.match(html, /const revokedShares = new Map\(\)/, 'Blocking a user must collect their shared room snapshots for revocation.');
 assert.match(html, /batch\.delete\(doc\(snsDb, "users", share\.ownerUid, "sharedRooms", shareId\)\)/, 'Blocking must remove both sides of shared room snapshots.');
