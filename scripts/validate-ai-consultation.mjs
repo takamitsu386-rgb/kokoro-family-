@@ -17,6 +17,7 @@ assert.match(endpoint, /req\.method !== "POST"/, 'AI endpoint must reject non-PO
 assert.match(source, /Cache-Control\", \"no-store, max-age=0, private\"/, 'JSON API responses must not be cached because they may contain private user data.');
 assert.match(source, /Pragma\", \"no-cache\"/, 'JSON API responses must include a legacy no-cache directive.');
 assert.match(endpoint, /allowedOrigins\.has\(origin\)/, 'AI endpoint must enforce the origin allowlist.');
+assert.match(source, /"https:\/\/takamitsu386-rgb\.github\.io"/, 'AI endpoint must allow the development GitHub Pages origin.');
 assert.match(endpoint, /message\.length > 1200/, 'User messages must have a strict size limit.');
 assert.match(endpoint, /history\.slice\(-6\)/, 'Conversation history must be limited to the latest six entries.');
 assert.match(endpoint, /\["user",\s*"assistant"\]\.includes\(item\.role\)/, 'History must reject unsupported roles.');
@@ -42,7 +43,8 @@ assert.equal(rewrite?.function?.region, 'asia-northeast1', 'AI Hosting rewrite m
 assert.match(html, /相談内容は返答のため外部AIサービスへ送信されます/, 'The AI screen must disclose external processing before users submit a message.');
 assert.match(html, /個人が特定される情報は入力しないでください/, 'The AI screen must warn users not to submit identifying information.');
 assert.match(html, /AIの返答は専門家による診断や助言の代わりではありません/, 'The AI screen must explain that it is not a professional substitute.');
-assert.match(html, /fetch\("\/api\/ai-consultation"/, 'The client must use the same-origin AI endpoint.');
+assert.match(html, /const aiEndpoint = location\.hostname === "takamitsu386-rgb\.github\.io"/, 'The GitHub Pages client must use the deployed Cloud Functions endpoint.');
+assert.match(html, /fetch\(aiEndpoint/, 'The client must use the selected AI endpoint.');
 assert.doesNotMatch(html, /\bsk-[A-Za-z0-9_-]{20,}\b/, 'A possible OpenAI secret must never be embedded in client HTML.');
 
 // The browser chat must remain ephemeral and safe to render.
