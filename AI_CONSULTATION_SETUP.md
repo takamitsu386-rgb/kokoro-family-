@@ -69,7 +69,21 @@ Secretの入力はFirebase CLIの対話画面で行い、チャット・GitHub�
 
 ## Firestoreルールについて
 
-`firestore.rules` はリポジトリにありますが、現在の `firebase.json` ではFirestoreルールをデプロイ対象として指定していません。既存のFirebase Console上のルールとファイルの内容が一致するか管理者が確認するまで、Firestoreルールを含むデプロイは行わないでください。
+現在の `firebase.json` では `firestore.rules` と `firestore.indexes.json` をデプロイ対象として指定しています。ただし、指定されていることは本番反映済みという意味ではありません。既存のFirebase Console上のルール・インデックスとリポジトリの内容を管理者が比較し、既存データやアクセス権への影響を確認してから、承認された範囲だけを反映してください。Functions・Hostingだけを先に反映する場合は、次のように対象を限定できます。
+
+```sh
+firebase use kokoro-family
+firebase deploy --only functions,hosting
+```
+
+Firestoreルールとインデックスを反映する場合は、別途レビューと承認後に実行します。
+
+```sh
+firebase use kokoro-family
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+確認前に `firebase deploy` だけを実行して全サービスを一括反映しないでください。
 
 ## 未完了の確認事項
 
