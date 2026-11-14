@@ -897,7 +897,7 @@ describe('shared room snapshots', () => {
       currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
     }));
     await assertSucceeds(getDoc(doc(recipient, 'sharedRooms/room-share-1')));
-    await assertSucceeds(getDocs(query(collection(recipient, 'sharedRooms'), where('recipientUid', '==', 'room-recipient'))));
+    await assertSucceeds(getDocs(query(collection(recipient, 'sharedRooms'), where('recipientUid', '==', 'room-recipient'), where('ownerUid', '==', 'room-owner'))));
     await assertFails(getDoc(doc(stranger, 'sharedRooms/room-share-1')));
     await assertFails(getDocs(collection(stranger, 'sharedRooms')));
   });
@@ -922,16 +922,16 @@ describe('shared room snapshots', () => {
 
   it('keeps recipient metadata readable after blocking while denying room contents', async () => {
     await seed('sharedRooms/blocked-metadata-share', {
-      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Blocked room',
+      ownerUid: 'blocked-room-owner', recipientUid: 'blocked-room-recipient', title: 'Blocked room',
       currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
     });
-    await seed('users/room-recipient/receivedSharedRooms/blocked-metadata-share', {
-      ownerUid: 'room-owner', recipientUid: 'room-recipient', createdAt: new Date()
+    await seed('users/blocked-room-recipient/receivedSharedRooms/blocked-metadata-share', {
+      ownerUid: 'blocked-room-owner', recipientUid: 'blocked-room-recipient', createdAt: new Date()
     });
-    await seed('users/room-owner/blocks/room-recipient', { createdAt: new Date() });
-    const recipient = testEnv.authenticatedContext('room-recipient').firestore();
+    await seed('users/blocked-room-owner/blocks/blocked-room-recipient', { createdAt: new Date() });
+    const recipient = testEnv.authenticatedContext('blocked-room-recipient').firestore();
     await assertSucceeds(getDoc(doc(recipient,
-      'users/room-recipient/receivedSharedRooms/blocked-metadata-share')));
+      'users/blocked-room-recipient/receivedSharedRooms/blocked-metadata-share')));
     await assertFails(getDoc(doc(recipient, 'sharedRooms/blocked-metadata-share')));
   });
 
