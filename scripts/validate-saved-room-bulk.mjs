@@ -379,7 +379,7 @@ assert.match(source,/id="furnitureGridOverlay" aria-hidden="true" hidden/,'Room 
 assert.match(source,/#furnitureGridOverlay\{[^}]*pointer-events:none/,'The visual grid must not block furniture interaction.');
 assert.match(source,/#furnitureGridOverlay\[hidden\]\{display:none\}/,'The visual grid must respect its hidden state.');
 assert.match(gridSnapCode,/overlay\.hidden=!furnitureGridSnapEnabled/,'The visual grid must appear and disappear with grid snap mode.');
-assert.match(source,/#furnitureGridOverlay\{[^}]*background-size:20px 20px/,'The visible grid must match the 20px snap interval.');
+assert.match(source,/#furnitureGridOverlay\{[^}]*background-size:var\(--furniture-grid-size,20px\) var\(--furniture-grid-size,20px\)/,'The visible grid must default to 20px and follow the selected snap interval.');
 
 const gridSizeFunction=source.slice(source.indexOf('function setFurnitureGridSize('),source.indexOf('function toggleFurnitureGridSnap()'));
 assert.match(source,/id="furnitureGridSize"/,'Room editor must expose grid spacing choices.');
