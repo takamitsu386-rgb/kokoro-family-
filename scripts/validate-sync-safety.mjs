@@ -347,9 +347,8 @@ for (const [guard, failure] of failureGuards) {
 assert.ok(sns.includes('const nickname = snsNickname.value.trim();') &&
   sns.includes('if (!nickname || nickname.length > 24)'),
   'SNS profile names must be trimmed and constrained to 1–24 characters before saving.');
-assert.ok(sns.includes('const text = snsPostText.value.trim();') &&
-  sns.includes('if (!text || text.length > 500)'),
-  'SNS post content must be trimmed and constrained to 1–500 characters before saving.');
+assert.match(sns, /const draft = snsPostText\.value;\s*const text = draft\.trim\(\);[\s\S]*?if \(!text \|\| text\.length > 500\)/,
+  'SNS post content must be trimmed and constrained to 1–500 characters before saving, without losing edits made while a save is in flight.');
 assert.match(html, /id="snsNickname" maxlength="24"/,
   'The profile nickname input must expose the same 24-character limit to users.');
 assert.match(html, /id="snsPostText" maxlength="500"/,
