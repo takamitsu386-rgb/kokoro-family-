@@ -266,8 +266,8 @@ assert.ok(downloadCloudStart >= 0 && downloadCloudEnd > downloadCloudStart, 'Clo
 const downloadCloudOperation = html.slice(downloadCloudStart, downloadCloudEnd);
 assert.match(downloadCloudOperation, /const generation = authStateGeneration;[\s\S]*?const isCurrentAccount = \(\) => !!currentUser && currentUser\.uid === uid && authStateGeneration === generation;/,
   'Cloud downloads must capture the authentication generation to reject rapid account switches.');
-assert.match(downloadCloudOperation, /if \(!isCurrentAccount\(\)\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*if \(!navigator\.onLine\) throw new Error\("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。"\);\s*applyCloudDataSafely\(data\);/,
-  'Cloud data must not be applied after the account changes during the confirmation prompt, including A-to-B-to-A switches.');
+assert.match(downloadCloudOperation, /if \(!confirm\([\s\S]*?if \(!isCurrentAccount\(\)\) throw new Error\("確認中にGoogleアカウントが切り替わりました。端末内データは変更していません。"\);\s*if \(!navigator\.onLine\) throw new Error\("確認中に通信が切れたため、クラウドデータの反映を中止しました。端末内データはそのままです。"\);[\s\S]*?roomLocalSnapshotMatches\(localSnapshot\)[\s\S]*?const latestSnapshot = await getDoc\(cloudRef\(uid\)\);[\s\S]*?if \(!isCurrentAccount\(\)\)[\s\S]*?sameRoomCloudVersion\(snapshot, latestSnapshot\)[\s\S]*?applyCloudDataSafely\(latestData\);/,
+  'Cloud data must not be applied after account changes, local edits, or cloud updates during the confirmation prompt.');
 assert.match(downloadCloudOperation, /markCloudSync\(uid\);\s*clearTimeout\(syncRetryTimer\);\s*syncRetryTimer = null;\s*syncRetryCount = 0;/,
   'A successful cloud download must cancel stale automatic retries and reset the retry budget.');
 
