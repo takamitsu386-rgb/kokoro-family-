@@ -411,9 +411,10 @@ service cloud.firestore {
       // A repeated delete after another tab already removed this share is a safe no-op.
       allow delete: if signedIn()
         && (!exists(/databases/$(database)/documents/sharedRooms/$(shareId))
-          || ((resource.data.ownerUid == request.auth.uid || resource.data.recipientUid == request.auth.uid)
-            && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
-              || blockedBetween(resource.data.ownerUid, resource.data.recipientUid))));
+          || (resource.data.ownerUid == request.auth.uid
+            || (resource.data.recipientUid == request.auth.uid
+              && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
+                || blockedBetween(resource.data.ownerUid, resource.data.recipientUid)))));
     }
 
     match /users/{userId}/sharedRooms/{shareId} {
@@ -441,7 +442,8 @@ service cloud.firestore {
       // Repeated deletion of an already-removed mirror is also a safe no-op.
       allow delete: if signedIn()
         && (!exists(/databases/$(database)/documents/users/$(userId)/sharedRooms/$(shareId))
-          || ((owns(userId) || resource.data.recipientUid == request.auth.uid)
+          || owns(userId)
+          || (resource.data.recipientUid == request.auth.uid
             && (!acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
               || blockedBetween(resource.data.ownerUid, resource.data.recipientUid))));
     }
