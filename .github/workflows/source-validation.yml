@@ -92,7 +92,8 @@ jobs:
             throw new Error('Firebase Web config is incomplete or does not match the selected project.');
           }
           if (!fn.includes('"https://kokoro-family.web.app"') ||
-              !fn.includes('"https://kokoro-family.firebaseapp.com"')) {
+              !fn.includes('"https://kokoro-family.firebaseapp.com"') ||
+              !fn.includes('"https://takamitsu386-rgb.github.io"')) {
             throw new Error('AI function CORS origins do not include the Firebase Hosting domains.');
           }
 
@@ -108,7 +109,8 @@ jobs:
               !fn.includes('secrets: [openAiApiKey]')) {
             throw new Error('AI API key must be provided through Firebase Secret Manager.');
           }
-          if (!html.includes('fetch("/api/ai-consultation"')) {
+          if (!html.includes('const aiEndpoint = location.hostname === "takamitsu386-rgb.github.io"') ||
+              !html.includes('fetch(aiEndpoint')) {
             throw new Error('AI consultation client endpoint is missing.');
           }
           if (/\bsk-[A-Za-z0-9_-]{20,}\b/.test(html)) {
