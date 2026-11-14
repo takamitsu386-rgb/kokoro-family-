@@ -5815,15 +5815,18 @@ async function snsRemoveFriend(requestId) {
 }
 async function snsDecideFriendRequest(requestId, status) {
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
   if (!user || snsBusy || !["accepted", "declined"].includes(status)) return;
   const operationGeneration = snsSetBusy(true);
+  const isCurrentSession = () => !!snsUser && snsUser.uid === user.uid && snsAuthGeneration === authGeneration;
   try {
     await updateDoc(doc(snsDb, "friendRequests", requestId), { status, updatedAt: serverTimestamp() });
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentSession()) return;
     snsFriendNotice.textContent = status === "accepted" ? "友達申請を承認しました。" : "申請を辞退しました。";
-    await snsLoadFriendRequests(user);
+    await snsLoadFriendRequests(user, authGeneration);
+    if (!isCurrentSession()) return;
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentSession()) return;
     snsFriendNotice.textContent = "申請を処理できませんでした。相手とのブロック状態を確認してください。";
   } finally { snsReleaseBusyFor(user, operationGeneration); }
 }
