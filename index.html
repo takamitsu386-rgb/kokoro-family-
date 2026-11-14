@@ -7215,6 +7215,18 @@ snsRefreshPosts.addEventListener("click", async () => {
     try{entries=readEntries();render();}
     catch(error){console.error("Shopping list refresh failed",error);summaryEl.textContent="追加内容を表示できませんでした。リストを再読み込みしてください。";}
   });
+  window.addEventListener("storage",event=>{
+    if(event.key!=="kokoroFamilyShoppingV1"&&event.key!=="kokoroFamilyShoppingHistoryV1"&&event.key!=="kokoroFamilyShoppingBudgetsV1"&&event.key!=="kokoroFamilyShoppingAssigneeBudgetsV1"&&event.key!==null)return;
+    if(!ready)return;
+    try{
+      entries=readEntries();
+      render();
+      summaryEl.textContent="別のタブで更新された買い物リストを読み込みました。";
+    }catch(error){
+      console.error("Shopping cross-tab update validation failed",error);
+      summaryEl.textContent="別のタブの買い物データを確認できないため、現在の表示を保護しています。";
+    }
+  });
   clearButton.addEventListener("click",()=>{
     const count=entries.filter(item=>item.bought).length;
     if(count&&confirm("購入済みの"+count+"件を削除しますか？"))save(entries.filter(item=>!item.bought));
