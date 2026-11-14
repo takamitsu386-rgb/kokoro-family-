@@ -5242,10 +5242,17 @@ function snsRenderPublicTimeline(items) {
             remove.type = "button";
             remove.textContent = "削除";
             remove.addEventListener("click", async () => {
+              if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== activeAuthGeneration) return;
+              remove.disabled = true;
               try {
                 await deleteDoc(doc(snsDb, "posts", item.id, "comments", snap.id));
+                if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== activeAuthGeneration || !article.isConnected) return;
                 await renderComments();
-              } catch (error) { note.textContent = "コメントを削除できませんでした。"; }
+              } catch (error) {
+                if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration) note.textContent = "コメントを削除できませんでした。";
+              } finally {
+                if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration) remove.disabled = false;
+              }
             });
             row.appendChild(remove);
           }
@@ -5284,10 +5291,12 @@ function snsRenderPublicTimeline(items) {
           input.value = "";
           await renderComments();
         } catch (error) {
-          note.textContent = "コメントを送信できませんでした。公開範囲やブロック状態を確認してください。";
+          if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration) note.textContent = "コメントを送信できませんでした。公開範囲やブロック状態を確認してください。";
         } finally { if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration) submit.disabled = false; }
       });
-      try { await renderComments(); } catch (error) { note.textContent = "コメントを読み込めませんでした。"; }
+      try { await renderComments(); } catch (error) {
+        if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration && article.isConnected) note.textContent = "コメントを読み込めませんでした。";
+      }
     });
     if (snsUser && item.authorUid !== snsUser.uid) {
       const friendButton = document.createElement("button");
