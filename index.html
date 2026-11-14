@@ -5301,6 +5301,7 @@ function snsRenderPublicTimeline(items) {
       report.textContent = "この投稿者を通報";
       report.addEventListener("click", () => {
         if (!snsUser) return;
+        snsReportContext = null;
         snsReportUid.value = item.authorUid;
         snsReportCategory.focus();
         snsReportNotice.textContent = "通報理由を選んで「通報を送信」を押してください。投稿本文は自動送信されません。";
