@@ -543,7 +543,7 @@ assert.match(source,/label:el\.dataset\.label\|\|''/,'Furniture labels must be s
 assert.match(source,/item\.label===undefined\|\|\(typeof item\.label==='string'/,'Saved furniture labels must be validated.');
 assert.match(source,/labelNode\.textContent=v\.label/,'Furniture labels must be restored safely as text.');
 
-assert.ok(source.includes(String.raw\`if(!label||label.length>20||/[\u0000-\u001f\u007f]/.test(label))\`),'Furniture labels must reject empty, oversized, and control-character labels.');
+assert.ok(source.includes("if(!label||label.length>20||/[\u0000-\u001f\u007f]/.test(label))"),'Furniture labels must reject empty, oversized, and control-character labels.');
 
 assert.match(source,/function setSelectedFurnitureShadow\(level\)/,'Furniture shadow presets must be configurable.');
 assert.match(source,/function resetSelectedFurnitureShadow\(\)/,'Furniture shadow reset must be available.');
