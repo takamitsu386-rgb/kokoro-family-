@@ -53,7 +53,7 @@ assert.match(html, /Object\.keys\(savedRooms\)\.length >= 100/);
 
 assert.match(html, /async function snsRemoveFriend\(requestId\)[\s\S]*?const peerUid = requestData\.fromUid === user\.uid/);
 assert.match(html, /snsFriendNotice\.textContent = roomCleanupComplete && shoppingShareRemoved\s*\?\s*"友達関係を解除し、この相手との共有ルームと買い物共有データも削除しました。"/);
-assert.match(html, /receivedShares\.docs\.filter\(snap => snap\.data\(\)\.ownerUid === peerUid\)/);
+assert.match(html, /receivedShares\?\.docs\.filter\(snap => snap\.data\(\)\.ownerUid === peerUid\)/);
 
 assert.match(html, /const batch = writeBatch\(snsDb\);\s*batch\.delete\(doc\(snsDb, "friendRequests", requestId\)\);[\s\S]*?await batch\.commit\(\);/, "Friendship and shared-room removal must commit atomically.");
 
