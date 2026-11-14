@@ -5099,7 +5099,10 @@ aiSend?.addEventListener("click", async () => {
     if (aiAuthGeneration !== requestAuthGeneration || getAuth(user.auth.app).currentUser?.uid !== user.uid) {
       throw new Error("ログインアカウントが切り替わりました。相談内容を確認して再送してください。");
     }
-    const response = await fetch("/api/ai-consultation", {
+    const aiEndpoint = location.hostname === "takamitsu386-rgb.github.io"
+      ? "https://asia-northeast1-kokoro-family.cloudfunctions.net/aiConsultation"
+      : "/api/ai-consultation";
+    const response = await fetch(aiEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({ message, history: previous }),
