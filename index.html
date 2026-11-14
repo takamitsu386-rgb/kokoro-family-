@@ -6426,11 +6426,10 @@ snsAddBlock.addEventListener("click", async () => {
         return null;
       }),
       getDocs(query(
-        collection(snsDb, "sharedRooms"),
-        where("recipientUid", "==", user.uid),
+        collection(snsDb, "users", user.uid, "receivedSharedRooms"),
         where("ownerUid", "==", targetUid)
       )).catch(error => {
-        console.warn("Incoming shared rooms could not be re-listed after blocking", error);
+        console.warn("Incoming shared-room index could not be re-listed after blocking", error);
         return null;
       })
     ]);
