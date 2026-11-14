@@ -7473,6 +7473,18 @@ snsRefreshPosts.addEventListener("click", async () => {
     form.querySelectorAll("input,select,button").forEach(control=>control.disabled=true);
     filterInput.disabled=false;return;
   }
+  window.addEventListener("storage",event=>{
+    if(event.key!==KEY&&event.key!==null)return;
+    try{
+      entries=readEntries();
+      if(editingId&&!entries.some(item=>item.id===editingId))resetEditor();
+      else render();
+      summaryEl.textContent="別のタブで更新された予定を読み込みました。";
+    }catch(error){
+      console.error("Family calendar cross-tab update validation failed",error);
+      summaryEl.textContent="別のタブの保存データを確認できないため、現在の表示を保護しています。";
+    }
+  });
   form.addEventListener("submit",event=>{
     event.preventDefault();
     const title=titleInput.value.trim(),date=dateInput.value,time=timeInput.value,place=placeInput.value.trim();
@@ -7725,6 +7737,18 @@ snsRefreshPosts.addEventListener("click", async () => {
     console.error("Meal plan validation failed",error);summaryEl.textContent="保存データに問題があるため、上書きせず保護しました。";
     form.querySelectorAll("input,select,button").forEach(control=>control.disabled=true);filterInput.disabled=false;return;
   }
+  window.addEventListener("storage",event=>{
+    if(event.key!==KEY&&event.key!==null)return;
+    try{
+      entries=readEntries();
+      if(editingId&&!entries.some(item=>item.id===editingId))resetEditor();
+      else render();
+      summaryEl.textContent="別のタブで更新された献立を読み込みました。";
+    }catch(error){
+      console.error("Meal plan cross-tab update validation failed",error);
+      summaryEl.textContent="別のタブの保存データを確認できないため、現在の表示を保護しています。";
+    }
+  });
   form.addEventListener("submit",event=>{
     event.preventDefault();const date=dateInput.value,name=nameInput.value.trim(),note=noteInput.value.trim();
     if(!validDate(date)||!name||name.length>80||note.length>60||!Object.hasOwn(types,typeInput.value))return;
