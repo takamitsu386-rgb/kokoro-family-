@@ -718,6 +718,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 
 </main>
 <script>
+function kokoroLocalDateStamp(){const now=new Date();return now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");}
+
 const room=document.getElementById('room');
 const furnitureList=[...new Set(['🛏️','🛋️','🪑','🪞','🪴','🌷','🧸','🖥️','📚','🛁','🚪','🪟','💡','🎹','🐱','🐶','🧺','🖼️','🕯️','🎀','🐰','🦋','🍓','🪻','🧩','🪑','🛋️','🪴','🛋️','🪑','🛏️','🧸','🪴','🌵','🌻','🌼','🌹','🪷','🪺','🪞','🪟','🪜','🧹','🧴','🧼','🛒','🎨','🖌️','🎻','🎸','📺','⌚','🧦','👒','👜','🎒','🧁','🍰','🍉','🍊','🥛','☕','🫖','🕰️','🪔','🧿','🪅','🎁','🗄️','🗃️','🧶','🪭','🪮','🛎️','🧯','🧵','🪡','🪥','🧷','🪬'])];
 const roomTemplates={
@@ -1050,7 +1052,7 @@ const payload={app:'kokoro-family-palettes',version:1,exportedAt:new Date().toIS
 const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
 if(blob.size>16384){status.textContent='配色ファイルのサイズが上限を超えています。';return;}
 const url=URL.createObjectURL(blob),a=document.createElement('a');
-a.href=url;a.download='kokoro-family-palettes-'+new Date().toISOString().slice(0,10)+'.json';
+a.href=url;a.download='kokoro-family-palettes-'+kokoroLocalDateStamp()+'.json';
 try{document.body.appendChild(a);a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 status.textContent=list.length+'件の配色を書き出しました。';
 }catch(error){status.textContent='配色を書き出せませんでした。';}
@@ -2795,7 +2797,7 @@ const csv='\uFEFF'+rows.map(row=>row.map(safeCell).join(',')).join('\r\n');
 const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
 if(blob.size>1000000){document.getElementById('message').textContent='比較CSVの容量が1MBを超えています。';return;}
 let url;
-try{url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='kokoro-family-room-comparison-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(link);link.click();link.remove();document.getElementById('message').textContent='選択した2部屋の比較表をCSV保存しました。';}
+try{url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='kokoro-family-room-comparison-'+kokoroLocalDateStamp()+'.csv';document.body.appendChild(link);link.click();link.remove();document.getElementById('message').textContent='選択した2部屋の比較表をCSV保存しました。';}
 catch(error){document.getElementById('message').textContent='比較CSVの保存に失敗しました。';}
 finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);}
 }
@@ -2914,7 +2916,7 @@ if(blob.size>MAX_BACKUP_BYTES)throw new Error('選択したお部屋のデータ
 const url=URL.createObjectURL(blob);
 const a=document.createElement('a');
 a.href=url;
-a.download='kokoro-family-selected-rooms-'+new Date().toISOString().slice(0,10)+'.json';
+a.download='kokoro-family-selected-rooms-'+kokoroLocalDateStamp()+'.json';
 try{document.body.appendChild(a);a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 document.getElementById('message').textContent=selected.length+'個のお部屋を書き出しました。お気に入り・カテゴリ・メモも含まれています。';
 }catch(error){document.getElementById('message').textContent=error&&error.message?error.message:'書き出しに失敗しました。';}
@@ -3360,7 +3362,7 @@ let url;
 try{
 url=URL.createObjectURL(blob);
 const link=document.createElement('a');
-link.href=url;link.download='kokoro-family-saved-rooms-'+new Date().toISOString().slice(0,10)+'.csv';
+link.href=url;link.download='kokoro-family-saved-rooms-'+kokoroLocalDateStamp()+'.csv';
 document.body.appendChild(link);link.click();link.remove();
 document.getElementById('message').textContent='保存したお部屋 '+(rows.length-1)+'件の一覧をCSV保存しました。';
 }catch(error){document.getElementById('message').textContent='CSV保存に失敗しました。もう一度試してください。';}
@@ -3651,7 +3653,7 @@ const url=URL.createObjectURL(blob);
 setTimeout(()=>URL.revokeObjectURL(url),60000);
 const a=document.createElement("a");
 a.href=url;
-a.download="kokoro-family-backup-"+new Date().toISOString().slice(0,10)+".json";
+a.download="kokoro-family-backup-"+kokoroLocalDateStamp()+".json";
 try{
 document.body.appendChild(a);
 a.click();
@@ -7054,7 +7056,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     const csv="\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\r\n");
     try{
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");
-      link.href=url;link.download="kokoro-family-tasks-"+new Date().toISOString().slice(0,10)+".csv";
+      link.href=url;link.download="kokoro-family-tasks-"+kokoroLocalDateStamp()+".csv";
       link.hidden=true;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       csvStatus.textContent=tasks.length+"件のやることをCSVに書き出しました。";
     }catch(error){console.error("Task CSV export failed",error);csvStatus.textContent="CSVを書き出せませんでした。";}
