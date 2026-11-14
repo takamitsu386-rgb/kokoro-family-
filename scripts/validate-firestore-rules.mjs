@@ -55,7 +55,7 @@ assert.match(rules, /function\s+validComment\(data\)/,
   'Comment field and length validation is required.');
 assert.match(rules, /match\s+\/friendRequests\/\{requestId\}/,
   'Friend request rules must be explicit.');
-assert.equal([...rules.matchAll(/match\\s+\\/friendRequests\\/\\{requestId\\}\\s*\\{/g)].length, 1,
+assert.equal([...rules.matchAll(/match\s+\/friendRequests\/\{requestId\}\s*\{/g)].length, 1,
   'Friend request access must be defined in exactly one match block to avoid overlapping allow rules.');
 assert.match(rules, /resource\.data\.toUid\s*==\s*request\.auth\.uid/,
   'Only the recipient may decide a friend request.');
