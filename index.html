@@ -5566,16 +5566,17 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
           })
         ]);
         if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-        if (!ownedBlockedShares || !receivedBlockedShares) {
-          incomplete = true;
-          continue;
-        }
+        // Process whichever side is readable. A failure on one query must not
+        // prevent deletion of independently verified shares from the other side.
+        // Keep the queue entry until both sides can be checked successfully.
+        if (!ownedBlockedShares || !receivedBlockedShares) incomplete = true;
+        if (!ownedBlockedShares && !receivedBlockedShares) continue;
         const blockedShares = new Map();
-        ownedBlockedShares.docs.forEach(snap => {
+        ownedBlockedShares?.docs.forEach(snap => {
           const data = snap.data();
           if (data.ownerUid === user.uid && data.recipientUid === peerUid) blockedShares.set(snap.id, data);
         });
-        receivedBlockedShares.docs.forEach(snap => {
+        receivedBlockedShares?.docs.forEach(snap => {
           const data = snap.data();
           if (data.ownerUid === peerUid && data.recipientUid === user.uid) blockedShares.set(snap.id, data);
         });
