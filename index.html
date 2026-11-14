@@ -6329,6 +6329,12 @@ snsShareCurrentRoom.addEventListener("click", async () => {
     const batch = writeBatch(snsDb);
     batch.set(shareRef, snapshot);
     batch.set(doc(snsDb, "users", user.uid, "sharedRooms", shareRef.id), snapshot);
+    // Recipient-side metadata index enables safe cleanup after block rules hide room contents.
+    batch.set(doc(snsDb, "users", recipientUid, "receivedSharedRooms", shareRef.id), {
+      ownerUid: user.uid,
+      recipientUid,
+      createdAt: serverTimestamp()
+    });
     await batch.commit();
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsRoomShareStatus.textContent = "お部屋を共有しました。相手は共有一覧から読み込めます。";
