@@ -149,3 +149,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - Shared snapshots can be imported as a separate editable copy; they do not provide real-time collaborative editing.
 - Recipient removal, owner revocation, and block-triggered cleanup remove both snapshot records.
 - Firestore emulator tests and a dedicated source regression validator were added. CI status is tracked by the current GitHub Actions run; no production deployment or live Firebase test has been performed.
+
+## 2026-11-15 追加点検
+
+- 開発版の配信方式は GitHub Pages（`development-kokoro-app`）であることを確認。
+- AI相談画面がFirebase Hosting専用の相対APIパスを使っていたため、GitHub PagesではCloud FunctionsのURLへ直接接続し、Firebase Hostingでは従来のHosting rewriteを使うよう開発ブランチで修正。
+- Cloud FunctionsのCORS許可元に開発用GitHub Pagesのオリジンを追加。Firebase Authenticationの承認済みドメインとWeb APIキーのHTTPリファラー制限にも、実際の配信先を追加する必要があることを設定手順へ追記。
+- 上記の接続先選択とCORS許可を自動検証へ追加。最新のSource validation run `43646388544` は成功。
+- GitHub Pagesの直近デプロイ run `43593021470` は、build成功・deploy失敗。失敗理由は取得できた実行情報だけでは確定できず、公開済みとは扱わない。
+- PR #1 は引き続きドラフトで、GitHubが競合あり（`mergeable_state: dirty`）と判定。共通祖先以降に両ブランチで変更されたファイルは `index.html` と `sw.js`。開発ブランチ側の今日の予定UI・PWA変更を失わないよう、統合時にこの2ファイルの競合解消が必要。
+- Firebase Secret Managerへの `OPENAI_API_KEY` 登録、Functions/Hostingの本番反映、Firebase Authentication設定、実機ログイン・AI応答確認、SNS運営担当者と緊急時対応手順の確定は未完了。
