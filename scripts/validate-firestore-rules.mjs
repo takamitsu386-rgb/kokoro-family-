@@ -44,6 +44,8 @@ assert.match(rules, /function\s+validProfile\(/,
   'Profile field allowlist validation is required.');
 assert.match(rules, /function\s+validPost\(/,
   'Post field allowlist validation is required.');
+assert.match(rules, /function\s+validPost\(data\)[\s\S]*?data\.visibility in \[[^\]]*'friends'[^\]]*\]/,
+  'Post validation must accept the friends visibility supported by the SNS UI.');
 assert.match(rules, /function\s+acceptedFriend\(uidA, uidB\)/,
   'Friends-only access must depend on an accepted request in either direction.');
 assert.match(rules, /function\s+canInteractWithPost\(postId\)/,
