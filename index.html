@@ -4083,8 +4083,9 @@ message.textContent=rollbackOK
     }catch(error){setText(el.exportStatus,error.message||"CSVを読み込めませんでした。");}
     finally{event.target.value="";}
   });
-  window.addEventListener("kokoro-family-shopping-updated",()=>{try{const data=readAll();items=data.items;history=data.history;budgets=data.budgets;assigneeBudgets=data.assigneeBudgets;render();}catch(error){console.error("Shopping list refresh failed",error);setText(el.summary,"別の機能からの更新を読み取れません。現在の表示を保護しています。");}});
-  window.addEventListener("storage",event=>{if(event.key!==null&&![KEY,HISTORY,BUDGETS,ASSIGNEE_BUDGETS].includes(event.key))return;try{const data=readAll();items=data.items;history=data.history;budgets=data.budgets;assigneeBudgets=data.assigneeBudgets;render();}catch(error){console.error("Shopping storage event rejected",error);setText(el.summary,"別タブの保存データを確認できないため、現在の表示を保護しています。");}});
+  const refreshExternalShopping=()=>{const data=readAll();items=data.items;history=data.history;budgets=data.budgets;assigneeBudgets=data.assigneeBudgets;if(editingId&&!items.some(item=>item.id===editingId)){resetForm();setText(el.summary,"別のタブで編集中の品物が削除されたため、編集を終了しました。");}render();};
+  window.addEventListener("kokoro-family-shopping-updated",()=>{try{refreshExternalShopping();}catch(error){console.error("Shopping list refresh failed",error);setText(el.summary,"別の機能からの更新を読み取れません。現在の表示を保護しています。");}});
+  window.addEventListener("storage",event=>{if(event.key!==null&&![KEY,HISTORY,BUDGETS,ASSIGNEE_BUDGETS].includes(event.key))return;try{refreshExternalShopping();}catch(error){console.error("Shopping storage event rejected",error);setText(el.summary,"別タブの保存データを確認できないため、現在の表示を保護しています。");}});
   try{const data=readAll();items=data.items;history=data.history;budgets=data.budgets;assigneeBudgets=data.assigneeBudgets;ready=true;render();}catch(error){console.error("Shopping data initialization failed",error);setText(el.summary,"保存データを読み込めません。形式を確認するまで上書きしません。");}
 })();
 </script>
