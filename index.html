@@ -5357,11 +5357,13 @@ async function snsLoadPosts(user, authGeneration = snsAuthGeneration) {
   snsRenderPosts(posts);
 }
 async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
-  const [incoming, outgoing] = await Promise.all([
+  const [incoming, outgoing, blocks] = await Promise.all([
     getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
-    getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid)))
+    getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid))),
+    getDocs(collection(snsDb, "users", user.uid, "blocks"))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const blockedPeers = new Set(blocks.docs.map(snap => snap.id));
   snsFriendList.replaceChildren();
   snsShareRoomFriend.replaceChildren();
   const friendPlaceholder = document.createElement("option"); friendPlaceholder.value = ""; friendPlaceholder.textContent = "友達一覧から選択"; snsShareRoomFriend.appendChild(friendPlaceholder);
@@ -5370,8 +5372,11 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
   const addEmpty = (container, message) => {
     const p = document.createElement("p"); p.textContent = message; container.appendChild(p);
   };
-  const incomingVisible = incoming.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status));
-  const outgoingVisible = outgoing.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status));
+  // A failed cleanup must not leave a blocked person's request visible or actionable.
+  const incomingVisible = incoming.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status)
+    && typeof snap.data().fromUid === "string" && !blockedPeers.has(snap.data().fromUid));
+  const outgoingVisible = outgoing.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status)
+    && typeof snap.data().toUid === "string" && !blockedPeers.has(snap.data().toUid));
   const peerUids = [...new Set([
     ...incomingVisible.map(snap => snap.data().fromUid),
     ...outgoingVisible.map(snap => snap.data().toUid)
