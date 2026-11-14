@@ -16,7 +16,8 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  where
+  where,
+  writeBatch
 } from 'firebase/firestore';
 
 const projectId = 'demo-kokoro-family-rules';
@@ -899,6 +900,39 @@ describe('shared room snapshots', () => {
     await assertSucceeds(getDocs(query(collection(recipient, 'sharedRooms'), where('recipientUid', '==', 'room-recipient'))));
     await assertFails(getDoc(doc(stranger, 'sharedRooms/room-share-1')));
     await assertFails(getDocs(collection(stranger, 'sharedRooms')));
+  });
+
+  it('creates a recipient metadata index atomically with the shared snapshot', async () => {
+    const owner = testEnv.authenticatedContext('room-owner').firestore();
+    const batch = writeBatch(owner);
+    batch.set(doc(owner, 'sharedRooms/metadata-share'), {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Indexed room',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: serverTimestamp()
+    });
+    batch.set(doc(owner, 'users/room-recipient/receivedSharedRooms/metadata-share'), {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', createdAt: serverTimestamp()
+    });
+    await assertSucceeds(batch.commit());
+
+    const recipient = testEnv.authenticatedContext('room-recipient').firestore();
+    const metadata = await assertSucceeds(getDoc(doc(recipient,
+      'users/room-recipient/receivedSharedRooms/metadata-share')));
+    assert.deepEqual(Object.keys(metadata.data()).sort(), ['createdAt', 'ownerUid', 'recipientUid']);
+  });
+
+  it('keeps recipient metadata readable after blocking while denying room contents', async () => {
+    await seed('sharedRooms/blocked-metadata-share', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Blocked room',
+      currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
+    await seed('users/room-recipient/receivedSharedRooms/blocked-metadata-share', {
+      ownerUid: 'room-owner', recipientUid: 'room-recipient', createdAt: new Date()
+    });
+    await seed('users/room-owner/blocks/room-recipient', { createdAt: new Date() });
+    const recipient = testEnv.authenticatedContext('room-recipient').firestore();
+    await assertSucceeds(getDoc(doc(recipient,
+      'users/room-recipient/receivedSharedRooms/blocked-metadata-share')));
+    await assertFails(getDoc(doc(recipient, 'sharedRooms/blocked-metadata-share')));
   });
 
   it('allows an owner to create a bounded snapshot only for an accepted friend', async () => {
