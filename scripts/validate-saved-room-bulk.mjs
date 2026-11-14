@@ -566,7 +566,7 @@ assert.match(source,/borderColor:el\.dataset\.borderColor\|\|''/,'Furniture bord
 assert.match(source,/item\.borderStyle===undefined\|\|\['solid','dashed','dotted'\]\.includes\(item\.borderStyle\)/,'Only supported border styles may be restored.');
 assert.match(source,/item\.borderColor===undefined\|\|\(typeof item\.borderColor==='string'&&\/\^#\[0-9a-fA-F\]\{6\}\$\//,'Furniture border color must be restricted to hex.');
 assert.match(source,/restoredIcon&&v\.borderStyle&&v\.borderColor/,'Furniture border must be restored when a room is loaded.');
-assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}家具の枠線を元に戻しました/,'Failed border saves must roll back visual changes.');
+assert.match(source,/if\(!autoSaveRoom\(\)\)[\s\S]{0,500}枠線を元に戻しました/,'Failed border saves must roll back visual changes.');
 assert.match(source,/id="furnitureBorderWidth" type="number" min="1" max="6"/,'Furniture border width input must be bounded from 1 to 6 pixels.');
 assert.match(source,/borderWidth:el\.dataset\.borderWidth\|\|''/,'Furniture border width must be saved in room snapshots.');
 assert.match(source,/item\.borderWidth===undefined\|\|\(typeof item\.borderWidth==='string'&&\/\^\[1-6\]\$\//,'Furniture border width must be validated.');
