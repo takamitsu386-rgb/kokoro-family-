@@ -22,7 +22,7 @@
 
 1. FirebaseプロジェクトIDが `kokoro-family` であることを確認する。別プロジェクトへ誤公開しない。
 2. Firebase AuthenticationでGoogleログインプロバイダが有効であることを確認する。
-3. Authenticationの承認済みドメインに、実際に使うHostingドメイン（`kokoro-family.web.app` または `kokoro-family.firebaseapp.com`）が登録されていることを確認する。実際に公開しているホスト名と完全一致させる。
+3. Authenticationの承認済みドメインに、実際に使う配信先を登録する。Firebase Hostingなら `kokoro-family.web.app` または `kokoro-family.firebaseapp.com`、GitHub Pagesの開発版なら `takamitsu386-rgb.github.io` を追加する。実際に公開しているホスト名と完全一致させる。
 4. FirebaseプロジェクトでCloud Functionsを利用できる請求・権限設定を確認する。利用料金が発生する可能性があるため、プロジェクト管理者が確認する。
 5. OpenAI APIの利用条件・料金を管理者が確認する。
 6. APIキーをコードへ書かず、Firebase Secret Managerへ `OPENAI_API_KEY` として登録する。
@@ -37,7 +37,7 @@
 
 1. Firebase Consoleで対象プロジェクトが `kokoro-family` であることを確認する。
 2. プロジェクト設定の「マイアプリ」からWebアプリのFirebase設定を開き、Web APIキーが現在の開発ブランチの `index.html` に設定された値と一致するか確認する。キーそのものをチャット、スクリーンショット、公開Issueへ貼らない。
-3. Google Cloud Consoleの「APIとサービス」→「認証情報」で、そのキーが削除・無効化されていないか確認する。
+3. Google Cloud Consoleの「APIとサービス」→「認証情報」で、そのキーが削除・無効化されていないか確認する。HTTPリファラー制限を使う場合は、実際の配信先（GitHub Pagesなら `https://takamitsu386-rgb.github.io/*`）も許可対象に含める。
 4. APIキーにアプリケーション制限やAPI制限を設定している場合、実際に利用するHostingドメインとFirebase Authenticationに必要なAPIへのアクセスを妨げていないか、プロジェクト管理者が確認する。制限を変更する場合は、影響範囲を確認してから最小限の変更にする。
 5. Google Cloud ConsoleでIdentity Toolkit APIが対象プロジェクトに対して有効か確認する。
 6. Firebase AuthenticationのGoogleプロバイダが有効で、承認済みドメインが実際のアクセス先と一致していることを再確認する。
