@@ -32,7 +32,7 @@ assert.match(html, /snsSharedRoomList\.replaceChildren\(\);\s*snsRoomShareStatus
 
 assert.match(rules, /match \/sharedRooms\/{shareId}/);
 assert.match(rules, /match \/users\/{userId}\/sharedRooms\/{shareId}/);
-assert.match(rules, /allow list: if signedIn\(\) && resource\.data\.recipientUid == request\.auth\.uid;/);
+assert.match(rules, /allow list: if signedIn\(\)\s*&& resource\.data\.recipientUid == request\.auth\.uid\s*&& !blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\);/);
 assert.match(rules, /allow get, list: if owns\(userId\);/);
 assert.match(rules, /allow delete: if owns\(userId\) \|\| \(signedIn\(\) && resource\.data\.recipientUid == request\.auth\.uid\);/, 'Only the owner or named recipient may remove an owner mirror.');
 assert.match(rules, /acceptedFriend\(request\.auth\.uid, request\.resource\.data\.recipientUid\)/);
