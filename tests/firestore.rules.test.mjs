@@ -952,7 +952,7 @@ describe('shared room snapshots', () => {
     await assertFails(updateDoc(doc(owner, 'sharedRooms/room-share-1'), { title: 'Changed' }));
   });
 
-  it('lets recipients remove both copies and owners revoke their own shares', async () => {
+  it('lets recipients clean up both copies after access ends and owners revoke their own shares', async () => {
     await seed('sharedRooms/recipient-remove', {
       ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Remove me',
       currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
@@ -969,6 +969,7 @@ describe('shared room snapshots', () => {
       ownerUid: 'room-owner', recipientUid: 'room-recipient', title: 'Owner revoke',
       currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
     });
+    await seed('users/room-owner/blocks/room-recipient', { createdAt: new Date() });
     const recipient = testEnv.authenticatedContext('room-recipient').firestore();
     const owner = testEnv.authenticatedContext('room-owner').firestore();
     await assertSucceeds(deleteDoc(doc(recipient, 'sharedRooms/recipient-remove')));
