@@ -5600,23 +5600,30 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
         incomplete = true;
         continue;
       }
-      const [ownedShares, receivedShares] = await Promise.all([
+      const [ownedShares, receivedShares, indexedReceivedShares] = await Promise.all([
         getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), where("recipientUid", "==", peerUid)))
           .catch(error => { console.warn("Pending owned-share cleanup could not list rooms", error); return null; }),
         getDocs(query(collection(snsDb, "sharedRooms"), where("recipientUid", "==", user.uid), where("ownerUid", "==", peerUid)))
-          .catch(error => { console.warn("Pending received-share cleanup could not list rooms", error); return null; })
+          .catch(error => { console.warn("Pending legacy received-share cleanup could not list rooms", error); return null; }),
+        getDocs(query(collection(snsDb, "users", user.uid, "receivedSharedRooms"), where("ownerUid", "==", peerUid)))
+          .catch(error => { console.warn("Pending received-share index could not list rooms", error); return null; })
       ]);
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-      if (!ownedShares || !receivedShares) {
+      if (!ownedShares || (!receivedShares && !indexedReceivedShares)) {
         incomplete = true;
         continue;
       }
+      if (!receivedShares) incomplete = true;
       const shares = new Map();
       ownedShares.docs.forEach(snap => {
         const data = snap.data();
         if (data.ownerUid === user.uid && data.recipientUid === peerUid) shares.set(snap.id, data);
       });
-      receivedShares.docs.forEach(snap => {
+      receivedShares?.docs.forEach(snap => {
+        const data = snap.data();
+        if (data.ownerUid === peerUid && data.recipientUid === user.uid) shares.set(snap.id, data);
+      });
+      indexedReceivedShares?.docs.forEach(snap => {
         const data = snap.data();
         if (data.ownerUid === peerUid && data.recipientUid === user.uid) shares.set(snap.id, data);
       });
@@ -5634,7 +5641,7 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
       }
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
-      snsFinishShareCleanup(user.uid, peerUid);
+      if (receivedShares) snsFinishShareCleanup(user.uid, peerUid);
     } catch (error) {
       incomplete = true;
       console.warn("Pending shared-data cleanup remains incomplete", { peerUid, error });
