@@ -376,6 +376,20 @@ service cloud.firestore {
 
     // Recipient snapshots are listed only through recipientUid-filtered queries.
     // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
+    // Recipients may hide incoming shares from their own list without deleting the owner's share.
+    match /users/{userId}/hiddenSharedRooms/{shareId} {
+      allow get, list: if owns(userId);
+      allow create: if owns(userId)
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'hiddenAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'hiddenAt'])
+        && request.resource.data.ownerUid is string
+        && request.resource.data.ownerUid != userId
+        && request.resource.data.recipientUid == userId
+        && request.resource.data.hiddenAt == request.time;
+      allow update: if false;
+      allow delete: if owns(userId);
+    }
+
     match /sharedRooms/{shareId} {
       allow get: if signedIn()
         && (
