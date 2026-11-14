@@ -209,21 +209,43 @@ exports.submitReport = onRequest({
         return sendJson(res, 400, { error: "通報対象のコメントを確認できません。" });
       }
       const postRef = db.collection("posts").doc(targetPostId);
-      const [postSnap, commentSnap, forwardFriend, reverseFriend, reporterBlock, targetBlock] = await Promise.all([
+      const [postSnap, commentSnap] = await Promise.all([
         postRef.get(),
-        postRef.collection("comments").doc(targetCommentId).get(),
-        db.doc(`friendRequests/${decoded.uid}_${targetUid}`).get(),
-        db.doc(`friendRequests/${targetUid}_${decoded.uid}`).get(),
-        db.doc(`users/${decoded.uid}/blocks/${targetUid}`).get(),
-        db.doc(`users/${targetUid}/blocks/${decoded.uid}`).get()
+        postRef.collection("comments").doc(targetCommentId).get()
       ]);
       const post = postSnap.data();
       const comment = commentSnap.data();
-      const isAcceptedFriend = (forwardFriend.exists && forwardFriend.data().status === "accepted")
-        || (reverseFriend.exists && reverseFriend.data().status === "accepted");
-      if (reporterBlock.exists || targetBlock.exists
-        || !postSnap.exists || !["public", "friends"].includes(post?.visibility) || post?.status !== "active"
-        || (post?.visibility === "friends" && !isAcceptedFriend)
+      const postOwnerUid = typeof post?.authorUid === "string" ? post.authorUid : "";
+      if (!postSnap.exists || !/^[A-Za-z0-9_-]{1,128}$/.test(postOwnerUid)) {
+        return sendJson(res, 400, { error: "通報対象のコメントは確認できません。投稿が非公開・削除済みか、対象が変更されています。" });
+      }
+
+      let postOwnerCanBeViewed = postOwnerUid === decoded.uid;
+      let postOwnerBlocked = false;
+      if (postOwnerUid !== decoded.uid) {
+        const [ownerProfile, reporterOwnerBlock, ownerReporterBlock, forwardFriend, reverseFriend] = await Promise.all([
+          db.doc(`profiles/${postOwnerUid}`).get(),
+          db.doc(`users/${decoded.uid}/blocks/${postOwnerUid}`).get(),
+          db.doc(`users/${postOwnerUid}/blocks/${decoded.uid}`).get(),
+          db.doc(`friendRequests/${decoded.uid}_${postOwnerUid}`).get(),
+          db.doc(`friendRequests/${postOwnerUid}_${decoded.uid}`).get()
+        ]);
+        const isAcceptedPostOwnerFriend = (forwardFriend.exists && forwardFriend.data().status === "accepted")
+          || (reverseFriend.exists && reverseFriend.data().status === "accepted");
+        postOwnerBlocked = reporterOwnerBlock.exists || ownerReporterBlock.exists;
+        postOwnerCanBeViewed = !postOwnerBlocked && (
+          (post?.visibility === "public" && ownerProfile.exists && ownerProfile.data().visibility === "public")
+          || (post?.visibility === "friends" && isAcceptedPostOwnerFriend)
+        );
+      }
+
+      const [reporterBlock, targetBlock] = await Promise.all([
+        db.doc(`users/${decoded.uid}/blocks/${targetUid}`).get(),
+        db.doc(`users/${targetUid}/blocks/${decoded.uid}`).get()
+      ]);
+      if (!postOwnerCanBeViewed || postOwnerBlocked || reporterBlock.exists || targetBlock.exists
+        || post?.status !== "active"
+        || !["public", "friends", "private"].includes(post?.visibility)
         || !commentSnap.exists || comment?.status !== "active" || comment?.authorUid !== targetUid) {
         return sendJson(res, 400, { error: "通報対象のコメントは確認できません。投稿が非公開・削除済みか、対象が変更されています。" });
       }
