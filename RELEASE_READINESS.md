@@ -161,3 +161,10 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - Firebase Secret Managerへの `OPENAI_API_KEY` 登録、Functions/Hostingの本番反映、Firebase Authentication設定、実機ログイン・AI応答確認、SNS運営担当者と緊急時対応手順の確定は未完了。
 - 開発ブランチの「今日の予定」UI・ローカル保存機能、パステルテーマ、PWA manifest、GitHub Pagesデプロイworkflowと関連仕様書をfeatureブランチへ統合。feature側のネットワーク優先Service Workerを維持し、キャッシュ名をv367へ更新。
 - `scripts/validate-today-plan.mjs` を追加し、予定データの入力検証・容量制限・JSON入出力・確認付き削除・個人情報注意表示をCIで検査する設定を追加。最新head `6bfbb82ed58f0926f6b13353da5ff7096dbdddf3` のSource validation run `43646736894` は確認時点で実行中。
+
+## GitHub Pages 配信失敗の追加調査（2026-11-15）
+
+- 既存の Pages run `43593021470` は build job が成功し、artifact のアップロードまで完了。
+- deploy job `132441618917` は失敗したが、GitHub API上で `runner_id: 0`、`steps: []`。ジョブの実行ログも取得できず、失敗理由は確定できない。Pages の有効化状態、Actions のデプロイ権限、`github-pages` environment の保護設定をリポジトリ管理者が確認する必要がある。
+- 旧コミットの deploy job をそのまま再実行すると古い開発版を公開する可能性があるため、再実行していない。
+- AI相談Cloud Functionは `asia-northeast1` の `aiConsultation` として定義され、GitHub Pagesの完全一致Origin許可、Bearer IDトークン検証、東京日付での1日10回上限、1200文字入力制限、OpenAI APIキーのSecret参照、`store: false`、応答キャッシュ禁止をコード上で確認。これはコード点検であり、デプロイ済み・実応答済みを意味しない。
