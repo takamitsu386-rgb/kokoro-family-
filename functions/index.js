@@ -84,38 +84,59 @@ exports.aiConsultation = onRequest({
       ...safeHistory,
       { role: "user", content: message }
     ];
-    const upstream = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openAiApiKey.value()}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        instructions: "あなたは未成年者にも適した、穏やかで安全な相談相手です。相手の気持ちを否定せず、決めつけず、短く分かりやすい日本語で返答してください。必要なら一度に一つだけ質問してください。診断や専門家の代替を名乗らないでください。自傷・自殺、暴力、虐待、危険な行為について具体的な方法や詳細を示さず、安全を優先して近くの信頼できる大人や適切な支援につなげてください。個人情報を尋ねないでください。",
-        input,
-        max_output_tokens: 500,
-        store: false
-      }),
-      signal: AbortSignal.timeout(45000)
-    });
+    let keepUsageReservation = false;
+    try {
+      const upstream = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openAiApiKey.value()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4.1-mini",
+          instructions: "あなたは未成年者にも適した、穏やかで安全な相談相手です。相手の気持ちを否定せず、決めつけず、短く分かりやすい日本語で返答してください。必要なら一度に一つだけ質問してください。診断や専門家の代替を名乗らないでください。自傷・自殺、暴力、虐待、危険な行為について具体的な方法や詳細を示さず、安全を優先して近くの信頼できる大人や適切な支援につなげてください。個人情報を尋ねないでください。",
+          input,
+          max_output_tokens: 500,
+          store: false
+        }),
+        signal: AbortSignal.timeout(45000)
+      });
 
-    if (!upstream.ok) {
-      console.error("AI provider request failed:", upstream.status);
-      return sendJson(res, 502, { error: "AIから返答を受け取れませんでした。少し時間をおいて再度お試しください。" });
+      if (!upstream.ok) {
+        console.error("AI provider request failed:", upstream.status);
+        return sendJson(res, 502, { error: "AIから返答を受け取れませんでした。少し時間をおいて再度お試しください。" });
+      }
+      const result = await upstream.json();
+      const replyFromOutput = Array.isArray(result.output)
+        ? result.output.flatMap(item =>
+            item?.type === "message" && Array.isArray(item.content)
+              ? item.content.filter(part => part?.type === "output_text" && typeof part.text === "string").map(part => part.text)
+              : []
+          ).join("\\n").trim()
+        : "";
+      const reply = replyFromOutput || (typeof result.output_text === "string" ? result.output_text.trim() : "");
+      if (!reply) return sendJson(res, 502, { error: "返答を受け取れませんでした。もう一度お試しください。" });
+
+      keepUsageReservation = true;
+      return sendJson(res, 200, { reply });
+    } finally {
+      if (!keepUsageReservation) {
+        try {
+          await getFirestore().runTransaction(async tx => {
+            const latestUsage = await tx.get(usageRef);
+            const count = latestUsage.exists ? latestUsage.data().count : 0;
+            if (!Number.isSafeInteger(count) || count <= 0) return;
+            if (count === 1) {
+              tx.delete(usageRef);
+            } else {
+              tx.update(usageRef, { count: count - 1, updatedAt: Timestamp.now() });
+            }
+          });
+        } catch (refundError) {
+          console.error("AI usage reservation refund failed:", refundError?.message || refundError);
+        }
+      }
     }
-    const result = await upstream.json();
-    const replyFromOutput = Array.isArray(result.output)
-      ? result.output.flatMap(item =>
-          item?.type === "message" && Array.isArray(item.content)
-            ? item.content.filter(part => part?.type === "output_text" && typeof part.text === "string").map(part => part.text)
-            : []
-        ).join("\n").trim()
-      : "";
-    const reply = replyFromOutput || (typeof result.output_text === "string" ? result.output_text.trim() : "");
-    if (!reply) return sendJson(res, 502, { error: "返答を受け取れませんでした。もう一度お試しください。" });
-
-    return sendJson(res, 200, { reply });
   } catch (error) {
     console.error("AI consultation error:", error?.message || error);
     if (error?.name === "TimeoutError" || error?.name === "AbortError") {
