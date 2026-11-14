@@ -6131,45 +6131,53 @@ function snsRefreshShareRoomOptions() {
 }
 snsShareRoomSource.addEventListener("focus", snsRefreshShareRoomOptions);
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
-  const [owned, incoming, outgoing, hiddenShares] = await Promise.all([
+  const [owned, incoming, outgoing, hiddenShares, blocks] = await Promise.all([
     getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
     getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
     getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid))),
-    getDocs(collection(snsDb, "users", user.uid, "hiddenSharedRooms"))
+    getDocs(collection(snsDb, "users", user.uid, "hiddenSharedRooms")),
+    getDocs(collection(snsDb, "users", user.uid, "blocks"))
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const blockedPeers = new Set(blocks.docs.map(snap => snap.id));
   const acceptedPeers = new Set([
     ...incoming.docs.filter(snap => snap.data().status === "accepted").map(snap => snap.data().fromUid),
     ...outgoing.docs.filter(snap => snap.data().status === "accepted").map(snap => snap.data().toUid)
-  ].filter(uid => typeof uid === "string" && uid !== user.uid));
+  ].filter(uid => typeof uid === "string" && uid !== user.uid && !blockedPeers.has(uid)));
   // Query each friend separately so Firestore can enforce the block check per owner.
-  // A peer who has blocked this account is omitted rather than failing the whole list.
   const receivedResults = await Promise.all([...acceptedPeers].map(async peerUid => {
     try {
-      return await getDocs(query(
+      return { peerUid, snapshot: await getDocs(query(
         collection(snsDb, "sharedRooms"),
         where("recipientUid", "==", user.uid),
         where("ownerUid", "==", peerUid),
         limit(50)
-      ));
+      )) };
     } catch (error) {
       console.warn("A friend's shared rooms were not available", error);
-      return null;
+      return { peerUid, error };
     }
   }));
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  // A permission error for a blocked peer is expected. For other read failures,
+  // keep the last complete list instead of replacing it with incomplete results.
+  const failedPeer = receivedResults.find(result => result.error && !blockedPeers.has(result.peerUid));
+  if (failedPeer) throw failedPeer.error;
   const hiddenShareIds = new Set(hiddenShares.docs.map(snap => snap.id));
-  const receivedDocs = receivedResults.filter(Boolean).flatMap(result => result.docs)
+  const receivedDocs = receivedResults.filter(result => result.snapshot)
+    .flatMap(result => result.snapshot.docs)
     .filter(snap => !hiddenShareIds.has(snap.id));
+  const visibleOwnedDocs = owned.docs.filter(snap => !blockedPeers.has(snap.data().recipientUid));
   snsSharedRoomList.replaceChildren();
   const entries = new Map();
-  [...owned.docs, ...receivedDocs].forEach(snap => entries.set(snap.id, { id: snap.id, ...snap.data() }));
+  [...visibleOwnedDocs, ...receivedDocs].forEach(snap => entries.set(snap.id, { id: snap.id, ...snap.data() }));
   if (!entries.size) {
     const empty = document.createElement("p"); empty.textContent = "共有されたお部屋はまだありません。"; snsSharedRoomList.appendChild(empty); return;
   }
   for (const item of entries.values()) {
     if (!item || typeof item.title !== "string" || !item.currentRoom || !window.validRoomData?.(item.currentRoom)) continue;
     const row = document.createElement("div");
+    row.dataset.ownerUid = item.ownerUid;
     row.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #eef0f4";
     const label = document.createElement("span");
     label.textContent = (item.ownerUid === user.uid ? "共有中：" : "受け取ったお部屋：") + item.title.slice(0, 40);
