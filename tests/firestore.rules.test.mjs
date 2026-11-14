@@ -862,8 +862,13 @@ describe('friend requests', () => {
   });
 
   it('blocks requests in either direction and denies requests after a block', async () => {
+    await seed('friendRequests/friend-blocker_friend-blocked-existing', {
+      fromUid: 'friend-blocker', toUid: 'friend-blocked', status: 'pending',
+      createdAt: new Date(), updatedAt: new Date()
+    });
     await seed('users/friend-blocker/blocks/friend-blocked', { createdAt: new Date() });
     const sender = testEnv.authenticatedContext('friend-blocked').firestore();
+    await assertFails(getDocs(query(collection(sender, 'friendRequests'), where('toUid', '==', 'friend-blocked'))));
     await assertFails(setDoc(doc(sender, 'friendRequests/friend-blocked_friend-blocker'), {
       fromUid: 'friend-blocked', toUid: 'friend-blocker', status: 'pending',
       createdAt: serverTimestamp(), updatedAt: serverTimestamp()
