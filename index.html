@@ -5549,28 +5549,47 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
       // We can still safely retry shares that we own, plus the pair's shopping doc;
       // keep the queue entry until unblocking permits a complete two-sided cleanup.
       if (blockSnap.exists()) {
-        const ownedBlockedShares = await getDocs(query(
-          collection(snsDb, "users", user.uid, "sharedRooms"),
-          where("recipientUid", "==", peerUid)
-        )).catch(error => {
-          console.warn("Blocked outgoing shares could not be listed for cleanup", error);
-          return null;
-        });
+        const [ownedBlockedShares, receivedBlockedShares] = await Promise.all([
+          getDocs(query(
+            collection(snsDb, "users", user.uid, "sharedRooms"),
+            where("recipientUid", "==", peerUid)
+          )).catch(error => {
+            console.warn("Blocked outgoing shares could not be listed for cleanup", error);
+            return null;
+          }),
+          getDocs(query(
+            collection(snsDb, "users", user.uid, "receivedSharedRooms"),
+            where("ownerUid", "==", peerUid)
+          )).catch(error => {
+            console.warn("Blocked incoming share index could not be listed for cleanup", error);
+            return null;
+          })
+        ]);
         if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-        if (ownedBlockedShares) {
-          const entries = ownedBlockedShares.docs
-            .filter(snap => snap.data().ownerUid === user.uid && snap.data().recipientUid === peerUid)
-            .map(snap => [snap.id, snap.data()]);
-          for (let offset = 0; offset < entries.length; offset += 150) {
-            if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-            const cleanupBatch = writeBatch(snsDb);
-            for (const [shareId, data] of entries.slice(offset, offset + 150)) {
-              cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
-              cleanupBatch.delete(doc(snsDb, "users", user.uid, "sharedRooms", shareId));
-              cleanupBatch.delete(doc(snsDb, "users", user.uid, "hiddenSharedRooms", shareId));
-            }
-            await cleanupBatch.commit();
+        if (!ownedBlockedShares || !receivedBlockedShares) {
+          incomplete = true;
+          continue;
+        }
+        const blockedShares = new Map();
+        ownedBlockedShares.docs.forEach(snap => {
+          const data = snap.data();
+          if (data.ownerUid === user.uid && data.recipientUid === peerUid) blockedShares.set(snap.id, data);
+        });
+        receivedBlockedShares.docs.forEach(snap => {
+          const data = snap.data();
+          if (data.ownerUid === peerUid && data.recipientUid === user.uid) blockedShares.set(snap.id, data);
+        });
+        const entries = [...blockedShares.entries()];
+        for (let offset = 0; offset < entries.length; offset += 150) {
+          if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+          const cleanupBatch = writeBatch(snsDb);
+          for (const [shareId, data] of entries.slice(offset, offset + 150)) {
+            cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+            cleanupBatch.delete(doc(snsDb, "users", data.ownerUid, "sharedRooms", shareId));
+            cleanupBatch.delete(doc(snsDb, "users", data.recipientUid, "receivedSharedRooms", shareId));
+            cleanupBatch.delete(doc(snsDb, "users", user.uid, "hiddenSharedRooms", shareId));
           }
+          await cleanupBatch.commit();
         }
         await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
         incomplete = true;
@@ -5608,6 +5627,7 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
         for (const [shareId, data] of entries.slice(offset, offset + 150)) {
           cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", data.ownerUid, "sharedRooms", shareId));
+          cleanupBatch.delete(doc(snsDb, "users", data.recipientUid, "receivedSharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", user.uid, "hiddenSharedRooms", shareId));
         }
         await cleanupBatch.commit();
@@ -5720,6 +5740,7 @@ async function snsRemoveFriend(requestId) {
         for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 150)) {
           cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+          cleanupBatch.delete(doc(snsDb, "users", share.recipientUid, "receivedSharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", user.uid, "hiddenSharedRooms", shareId));
         }
         await cleanupBatch.commit();
@@ -6267,6 +6288,7 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
           const batch = writeBatch(snsDb);
           batch.delete(doc(snsDb, "sharedRooms", item.id));
           batch.delete(doc(snsDb, "users", user.uid, "sharedRooms", item.id));
+          batch.delete(doc(snsDb, "users", item.recipientUid, "receivedSharedRooms", item.id));
           await batch.commit();
         } else {
           // Recipients hide a share from their own list without deleting the owner's copy.
