@@ -178,3 +178,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - PR #1 は open / draft / mergeable。featureブランチから `development-kokoro-app` への提案で、41ファイル変更。未マージであり、`main` と本番環境は変更していない。
 - GitHub Pages workflowのソースを再点検。Pages write / id-token write権限、configure-pages、upload-pages-artifact、deploy-pagesを使用する構成を確認。過去のdeploy jobはrunner開始前に失敗した状態のため、workflowの記述だけではGitHub側のPages設定・environment制限の問題を解決できない。公開成功は未確認。
 - 未完了：GitHub Pagesの実デプロイ、Firebase Secret登録とFunctions/Hosting/Rules/Indexes反映、Authenticationの承認済みドメイン・APIキー制限、実機ログイン・同期・AI応答、SNS運営担当者と未成年者対応手順の確定。
+
+
+## 2026-11-15 SNS友達限定投稿のルール修正
+
+- 追加点検で、SNSの投稿表示・公開タイムライン・友達限定アクセスは `friends` を扱う一方、Firestore Rulesの `validPost` が `private` / `public` しか許可せず、友達限定投稿の新規保存が拒否される不整合を発見。
+- `validPost` の許可値に `friends` を追加。既存のブロック確認と承認済み友達関係の読み取り制御は維持。
+- Firestore Emulatorテストに、承認済み友達は読めるが第三者は読めないこと、および友達限定投稿の作成が成功することを追加。
+- 静的検証にも、投稿データ検証がSNS UIの友達限定公開範囲を許可することを追加。
+- 最新修正コミット `2e388e314d7fd2e6dd462cf48ed89f221b925e93` のSource validation push run `43648043273` と pull_request run `43648041093` は両方成功。Firestore Rules Emulatorテストを含む全検証ステップ成功。
+- この修正は開発ブランチのみ。Firebase本番ルールへの反映は未実施。
