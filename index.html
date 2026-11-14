@@ -5512,6 +5512,22 @@ function snsFinishShareCleanup(uid, peerUid) {
 }
 async function snsRetryPendingShareCleanup(user, authGeneration = snsAuthGeneration) {
   if (!user || !snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  // Web Locks serialize cleanup across tabs when the browser supports them.
+  if (navigator.locks?.request) {
+    try {
+      return await navigator.locks.request(
+        "kokoro-share-cleanup:" + user.uid,
+        { mode: "exclusive", ifAvailable: true },
+        lock => lock ? snsRetryPendingShareCleanupUnlocked(user, authGeneration) : undefined
+      );
+    } catch (error) {
+      console.warn("Cross-tab cleanup lock unavailable; Firestore rules still protect concurrent deletion", error);
+    }
+  }
+  return snsRetryPendingShareCleanupUnlocked(user, authGeneration);
+}
+async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAuthGeneration) {
+  if (!user || !snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   const pendingPeers = snsReadShareCleanupQueue(user.uid);
   if (!pendingPeers.length) return;
   let incomplete = false;
