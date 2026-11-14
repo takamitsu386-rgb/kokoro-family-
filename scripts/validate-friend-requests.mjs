@@ -25,7 +25,7 @@ assert.match(f, /targetCommentId: data\.targetCommentId/, 'Admin review must rec
 assert.match(rules, /match \/friendRequests\/\{requestId\}/, 'Friend request collection rules are required.');
 assert.match(rules, /request\.resource\.data\.fromUid == request\.auth\.uid/, 'Request sender must match the authenticated UID.');
 assert.match(rules, /resource\.data\.toUid == request\.auth\.uid/, 'Only the recipient may accept or decline.');
-assert.match(rules, /allow list: if signedIn\(\)[\\s\\S]*?resource\.data\.fromUid == request\.auth\.uid[\\s\\S]*?!blockedBetween\(resource\.data\.fromUid, resource\.data\.toUid\)/, 'Blocked users must not list friend requests after either side blocks the relationship.');
+assert.match(rules, /allow list: if signedIn\(\)[\\s\\S]*?resource\.data\.get\('fromUid', ''\)[\\s\\S]*?resource\.data\.get\('toUid', ''\)[\\s\\S]*?!blockedBetween\(/, 'Blocked users must not list friend requests after either side blocks the relationship.');
 assert.match(rules, /!blockedBetween\(resource\.data\.fromUid, resource\.data\.toUid\)/, 'Block state must be checked before changing existing requests.');
 assert.match(tests, /friend requests/, 'Firestore Emulator tests for friend requests are required.');
 assert.match(tests, /rejects requests to private profiles/, 'Private-profile requests must be rejected in tests.');
