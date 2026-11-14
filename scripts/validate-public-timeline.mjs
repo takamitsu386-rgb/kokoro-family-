@@ -29,8 +29,10 @@ assert.match(endpoint, /visibility: post\.visibility === "friends"/,
   'The response must identify friends-only posts.');
 assert.match(endpoint, /where\("status", "==", "active"\)/,
   'Deleted posts must never enter the timeline.');
-assert.match(endpoint, /orderBy\("createdAt", "desc"\)\s*\.limit\(50\)/,
-  'The timeline must be newest-first and bounded to 50 source posts.');
+assert.match(endpoint, /orderBy\("createdAt", "desc"\)\s*\.limit\(150\)/,
+  'The timeline must fetch extra newest-first candidates before privacy filtering.');
+assert.match(endpoint, /items\.slice\(0, 50\)/,
+  'The visible timeline must remain bounded to 50 posts after privacy filtering.');
 assert.match(endpoint, /users"\)\.doc\(decoded\.uid\)\.collection\("blocks"\)/,
   'The viewer block list must be checked server-side.');
 assert.match(endpoint, /users\/\$\{uid\}\/blocks\/\$\{decoded\.uid\}/,
