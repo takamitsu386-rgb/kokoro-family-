@@ -3993,7 +3993,7 @@ message.textContent=rollbackOK
     items=nextItems;history=nextHistory;budgets=nextBudgets;assigneeBudgets=nextAssigneeBudgets;render();window.dispatchEvent(new CustomEvent("kokoro-family-shopping-updated"));
   };
   const resetForm=()=>{editingId=null;form.reset();el.submit.textContent="買い物リストに追加";el.cancel.hidden=true;};
-  const escapeCsv=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const escapeCsv=v=>{const value=String(v??"");const safe=/^[\\s\\u0000-\\u001f]*[=+@-]/.test(value)?"\'"+value:value;return '"' + safe.replace(/"/g,'""') + '"' ;};
   const render=()=>{
     if(!ready)return;
     const now=today(),month=el.historyMonth?.value||monthNow(),query=el.search.value.trim().toLocaleLowerCase();
