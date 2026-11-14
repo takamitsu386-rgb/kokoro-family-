@@ -306,7 +306,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 <button class="primary" id="aiSend" type="button">送信する</button>
 <button id="aiClear" type="button">この画面の会話を消す</button>
-<span id="aiStatus" role="status" aria-live="polite">送信にはGoogleログインとAI機能の公開設定が必要です。</span>
+<span id="aiStatus" role="status" aria-live="polite">Googleログイン後に送信できます。</span>
 </div>
 <p style="font-size:13px;color:#667085">つらさが強いときや、身の安全に不安があるときは、AIだけで抱えず、近くの信頼できる大人にも伝えてください。</p>
 </section>
@@ -4901,6 +4901,11 @@ if (aiFirebaseApp) {
       aiStatus.textContent = "アカウント切り替えに伴い、会話をリセットしました。";
     }
     aiCurrentUid = nextUid;
+    if (user) {
+      if (!aiBusy) aiStatus.textContent = "相談を入力して送信できます。";
+    } else {
+      aiStatus.textContent = "Googleログイン後に送信できます。";
+    }
   });
 }
 
