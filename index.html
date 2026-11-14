@@ -6912,7 +6912,7 @@ snsSaveProfile.addEventListener("click", async () => {
       ? "保存時点のプロフィールを保存しました。保存中に変更した内容は、もう一度保存してください。"
       : "プロフィールを保存しました。");
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentProfileSession()) return;
     console.error("SNS profile save failed", error);
     snsMessage("保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
   } finally { snsReleaseBusyFor(user, operationGeneration); }
@@ -6945,7 +6945,7 @@ snsCreatePost.addEventListener("click", async () => {
     await snsLoadPosts(user);
     snsMessage("投稿を保存しました。");
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentPostSession()) return;
     console.error("SNS post create failed", error);
     snsMessage("投稿を保存できませんでした。ログイン状態とFirebaseの設定を確認してください。");
   } finally { snsReleaseBusyFor(user, operationGeneration); }
@@ -6966,12 +6966,14 @@ snsRefreshTimeline.addEventListener("click", async () => {
 snsRefreshPosts.addEventListener("click", async () => {
   if (!snsUser || snsBusy) return;
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
   const operationGeneration = snsSetBusy(true);
   try {
-    await snsLoadPosts(user);
+    await snsLoadPosts(user, authGeneration);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     snsMessage("自分の投稿を読み直しました。");
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
     console.error("SNS post refresh failed", error);
     snsMessage("投稿を読み込めませんでした。");
   } finally { snsReleaseBusyFor(user, operationGeneration); }
