@@ -55,7 +55,7 @@ assert.match(html, /async function snsRemoveFriend\(requestId\)[\s\S]*?const pee
 assert.match(html, /snsFriendNotice\.textContent = roomCleanupComplete && shoppingShareRemoved\s*\?\s*"友達関係を解除し、この相手との共有ルームと買い物共有データも削除しました。"/);
 assert.match(html, /receivedShares\?\.docs\.filter\(snap => snap\.data\(\)\.ownerUid === peerUid\)/);
 
-assert.match(html, /const batch = writeBatch\(snsDb\);\s*batch\.delete\(doc\(snsDb, "friendRequests", requestId\)\);[\s\S]*?await batch\.commit\(\);/, "Friendship and shared-room removal must commit atomically.");
+assert.match(html, /snsQueueShareCleanup\(user\.uid, peerUid\)[\s\S]*?await batch\.commit\(\)[\s\S]*?cleanupBatch\.delete\(doc\(snsDb, "sharedRooms", shareId\)\)/, "Friend removal must persist cleanup intent before unlinking and then remove shared snapshots.");
 
 assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\),\s*where\("recipientUid", "==", peerUid\)/);
 assert.match(html, /collection\(snsDb, "sharedRooms"\),\s*where\("recipientUid", "==", user\.uid\),\s*where\("ownerUid", "==", peerUid\)/);
