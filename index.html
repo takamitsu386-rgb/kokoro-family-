@@ -8061,6 +8061,26 @@ snsRefreshPosts.addEventListener("click", async () => {
     form.querySelectorAll("input,textarea,select,button").forEach(control=>control.disabled=true);
     searchInput.disabled=false;filterInput.disabled=false;return;
   }
+  window.addEventListener("storage",event=>{
+    if(event.key!==KEY&&event.key!==FAVORITES_KEY&&event.key!==null)return;
+    try{
+      if(event.key===KEY||event.key===null){
+        recipes=readRecipes();
+        if(editingId&&!recipes.some(item=>item.id===editingId))resetEditor();
+      }
+      if(event.key===FAVORITES_KEY||event.key===null){
+        const raw=localStorage.getItem(FAVORITES_KEY);
+        const stored=raw===null?[]:JSON.parse(raw);
+        if(!Array.isArray(stored)||stored.length>LIMIT||!stored.every(id=>typeof id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(id))||new Set(stored).size!==stored.length)throw new Error("invalid recipe favorites");
+        favorites=new Set(stored);
+      }
+      render();
+      summaryEl.textContent="別のタブで更新されたレシピ・お気に入りを読み込みました。";
+    }catch(error){
+      console.error("Recipe cross-tab update validation failed",error);
+      summaryEl.textContent="別のタブの保存データを確認できないため、現在の表示を保護しています。";
+    }
+  });
   form.addEventListener("submit",event=>{
     event.preventDefault();
     const title=titleInput.value.trim(),category=categoryInput.value,ingredients=ingredientsInput.value.trim(),steps=stepsInput.value.trim();
