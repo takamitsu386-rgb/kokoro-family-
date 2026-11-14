@@ -578,7 +578,7 @@ assert.match(html,/commitStyleChange\(\(\)=>\{/,'Room color swap must use transa
 assert.match(html,/id="customRoomPaletteName" type="text" maxlength="16"/,'Custom palette name must be limited to 16 characters.');
 assert.match(html,/id="customRoomPalettes"/,'Custom palette list must be rendered.');
 assert.match(html,/const CUSTOM_ROOM_PALETTE_KEY='kokoroCustomRoomPalettes'/,'Custom palette storage key must be defined.');
-assert.match(html,/list\.length>8/,'Custom palette data must be limited to eight entries.');
+assert.match(html,/list\.length<=8/,'Custom palette data must be limited to eight entries.');
 assert.match(html,/saveCustomRoomPalette\(\)/,'Users must be able to save a custom palette.');
 assert.match(html,/loadCustomRoomPalette\(index\)/,'Users must be able to apply a saved custom palette.');
 assert.match(html,/deleteCustomRoomPalette\(index\)/,'Users must be able to delete a saved custom palette.');
