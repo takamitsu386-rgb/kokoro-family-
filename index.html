@@ -1190,7 +1190,7 @@ const csv='\uFEFF'+rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'
 if(new Blob([csv],{type:'text/csv;charset=utf-8'}).size>100000){document.getElementById('selectedMessage').textContent='レポートの容量が上限を超えています。';return;}
 const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
 const link=document.createElement('a');link.href=url;link.download='kokoro-family-room-furniture-report.csv';link.hidden=true;
-document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
+document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 document.getElementById('selectedMessage').textContent='家具の内訳レポートをCSV形式で書き出しました。';
 }
 function analyzeRoomFurniture(){
@@ -2797,7 +2797,7 @@ if(blob.size>1000000){document.getElementById('message').textContent='比較CSV�
 let url;
 try{url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='kokoro-family-room-comparison-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(link);link.click();link.remove();document.getElementById('message').textContent='選択した2部屋の比較表をCSV保存しました。';}
 catch(error){document.getElementById('message').textContent='比較CSVの保存に失敗しました。';}
-finally{if(url)URL.revokeObjectURL(url);}
+finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);}
 }
 function compareSelectedSavedRooms(){
 const rooms=savedRoomData(),prefs=readSavedRoomPrefs();
@@ -3364,7 +3364,7 @@ link.href=url;link.download='kokoro-family-saved-rooms-'+new Date().toISOString(
 document.body.appendChild(link);link.click();link.remove();
 document.getElementById('message').textContent='保存したお部屋 '+(rows.length-1)+'件の一覧をCSV保存しました。';
 }catch(error){document.getElementById('message').textContent='CSV保存に失敗しました。もう一度試してください。';}
-finally{if(url)URL.revokeObjectURL(url);}
+finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);}
 }
 function showSavedRoomLibraryStats(){
 const root=document.getElementById('savedRoomLibraryStats');
@@ -7041,7 +7041,7 @@ snsRefreshPosts.addEventListener("click", async () => {
     try{
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");
       link.href=url;link.download="kokoro-family-tasks-"+new Date().toISOString().slice(0,10)+".csv";
-      link.hidden=true;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      link.hidden=true;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       csvStatus.textContent=tasks.length+"件のやることをCSVに書き出しました。";
     }catch(error){console.error("Task CSV export failed",error);csvStatus.textContent="CSVを書き出せませんでした。";}
   });
@@ -7690,7 +7690,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       const stamp=today().replaceAll("-","");
       link.href=url;link.download="kokoro-family-calendar-"+stamp+".csv";
-      document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       exportStatus.textContent=entries.length+"件の予定をCSVに書き出しました。";
     }catch(error){
       console.error("Family calendar CSV export failed",error);
@@ -7948,7 +7948,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       link.href=url;link.download="kokoro-family-meals-"+today().replaceAll("-","")+".csv";
-      document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       exportStatus.textContent=entries.length+"件の献立をCSVに書き出しました。";
     }catch(error){
       console.error("Family meals CSV export failed",error);
@@ -8195,7 +8195,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       link.href=url;link.download="kokoro-family-recipes-"+stamp+".csv";
-      document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+      document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       exportStatus.textContent=recipes.length+"件のレシピをCSVに書き出しました。";
     }catch(error){
       console.error("Family recipes CSV export failed",error);
