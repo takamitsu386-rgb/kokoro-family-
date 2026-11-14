@@ -523,7 +523,7 @@ assert.match(source,/iconBackground:el\.dataset\.iconBackground\|\|''/,'Room sna
 assert.match(source,/id="furnitureIconBackground" type="color"/,'Furniture icon background color picker must be present.');
 assert.match(source,/function setSelectedFurnitureIconBackground\(\)/,'Furniture icon background color setter must be present.');
 assert.match(source,/function resetSelectedFurnitureIconBackground\(\)/,'Furniture icon background color reset must be present.');
-assert.match(source,/\^#[0-9a-fA-F]\{6\}\$/,'Furniture background color must be restricted to hex colors.');
+assert.ok(source.includes("!/^#[0-9a-fA-F]{6}$/.test(color)"),'Furniture background color must be restricted to hex colors.');
 assert.match(source,/item\.iconBackground===undefined\|\|\(typeof item\.iconBackground==='string'/,'Saved furniture background color must be validated.');
 assert.match(source,/restoredIcon&&v\.iconBackground/,'Furniture icon background color must be restored.');
 
