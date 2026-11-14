@@ -255,6 +255,30 @@ describe('posts', () => {
     await assertSucceeds(getDoc(doc(bob, 'posts/post-public')));
   });
 
+  it('allows accepted friends to read a friends-only post and denies other users', async () => {
+    await seed('friendRequests/alice_bob', {
+      fromUid: 'alice',
+      toUid: 'bob',
+      status: 'accepted',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const alice = testEnv.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(alice, 'posts/post-friends-only'), {
+      authorUid: 'alice',
+      text: 'For accepted friends',
+      visibility: 'friends',
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }));
+
+    const bob = testEnv.authenticatedContext('bob').firestore();
+    const charlie = testEnv.authenticatedContext('charlie').firestore();
+    await assertSucceeds(getDoc(doc(bob, 'posts/post-friends-only')));
+    await assertFails(getDoc(doc(charlie, 'posts/post-friends-only')));
+  });
+
   it('rejects empty posts and invalid visibility, status, or timestamps at creation', async () => {
     const db = testEnv.authenticatedContext('post-create-validation').firestore();
     const base = {
