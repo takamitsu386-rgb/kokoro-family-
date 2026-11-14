@@ -168,3 +168,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - deploy job `132441618917` は失敗したが、GitHub API上で `runner_id: 0`、`steps: []`。ジョブの実行ログも取得できず、失敗理由は確定できない。Pages の有効化状態、Actions のデプロイ権限、`github-pages` environment の保護設定をリポジトリ管理者が確認する必要がある。
 - 旧コミットの deploy job をそのまま再実行すると古い開発版を公開する可能性があるため、再実行していない。
 - AI相談Cloud Functionは `asia-northeast1` の `aiConsultation` として定義され、GitHub Pagesの完全一致Origin許可、Bearer IDトークン検証、東京日付での1日10回上限、1200文字入力制限、OpenAI APIキーのSecret参照、`store: false`、応答キャッシュ禁止をコード上で確認。これはコード点検であり、デプロイ済み・実応答済みを意味しない。
+
+
+## 2026-11-15 最新検証結果
+
+- 最新コミット `11795c81e88383e833d59ed4e0c4e5c9ac098ae8` に対する Source validation は push run `43647530274` と pull_request run `43647534524` の両方が成功。
+- 26段階のCIジョブがすべて成功。Cloud Functions / Service Worker / アプリ内JavaScriptの構文、Firebase配線・Secret参照、ナビゲーション・PWA、Firestoreアクセス制御、管理者通報権限、AI相談の安全性・プライバシー、同期・アカウント分離、今日の予定のローカルデータ安全性、SNS・友達・共有ルーム・プロフィール検索の各検証、およびFirestore Rules Emulatorテストを含む。
+- Firestore Rules Emulatorテストは最新CI内で成功。CIの成功はFirebase本番環境への反映や実機動作の成功を意味しない。
+- PR #1 は open / draft / mergeable。featureブランチから `development-kokoro-app` への提案で、41ファイル変更。未マージであり、`main` と本番環境は変更していない。
+- GitHub Pages workflowのソースを再点検。Pages write / id-token write権限、configure-pages、upload-pages-artifact、deploy-pagesを使用する構成を確認。過去のdeploy jobはrunner開始前に失敗した状態のため、workflowの記述だけではGitHub側のPages設定・environment制限の問題を解決できない。公開成功は未確認。
+- 未完了：GitHub Pagesの実デプロイ、Firebase Secret登録とFunctions/Hosting/Rules/Indexes反映、Authenticationの承認済みドメイン・APIキー制限、実機ログイン・同期・AI応答、SNS運営担当者と未成年者対応手順の確定。
