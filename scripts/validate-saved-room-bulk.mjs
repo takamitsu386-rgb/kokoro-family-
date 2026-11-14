@@ -206,7 +206,7 @@ const duplicateBatchEnd=html.indexOf('function duplicateSelected(){',duplicateBa
 assert.notEqual(duplicateBatchEnd,-1,'Batch duplication handler must end before single duplication.');
 const duplicateBatch=html.slice(duplicateBatchStart,duplicateBatchEnd);
 assert.match(html,/onclick="duplicateSelectedBatch\(\)"/,'Batch duplication button must exist.');
-assert.match(duplicateBatch,/Math\.min\(20,Math\.max\(1,count\)\)/,'Batch duplication count must be limited to 1–20.');
+assert.match(duplicateBatch,/Number\.isInteger\(requested\)\?Math\.min\(20,Math\.max\(1,requested\)\):1/,'Batch duplication count must default safely and be limited to 1–20.');
 assert.match(duplicateBatch,/existing\+count>300/,'Batch duplication must enforce room capacity.');
 assert.match(duplicateBatch,/cloneNode\(true\)/,'Batch duplication must clone selected furniture.');
 assert.match(duplicateBatch,/addEventListener\('click'/,'Cloned furniture must restore selection handlers.');
