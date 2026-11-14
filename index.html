@@ -5642,7 +5642,7 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
       }
       if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
       await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
-      if (receivedShares) snsFinishShareCleanup(user.uid, peerUid);
+      if (ownedShares && receivedShares && indexedReceivedShares) snsFinishShareCleanup(user.uid, peerUid);
     } catch (error) {
       incomplete = true;
       console.warn("Pending shared-data cleanup remains incomplete", { peerUid, error });
