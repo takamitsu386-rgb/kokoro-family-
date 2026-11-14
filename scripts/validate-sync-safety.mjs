@@ -328,19 +328,20 @@ assert.ok(adminActionHandler.includes('const authGeneration = snsAuthGeneration;
   adminActionHandler.includes('snsAdminUpdatingReports.delete(report.id)'),
   'Admin report action failures must not alter controls after an account switch.');
 
-for (const [guard, failure] of [
+const failureGuards = [
   ['if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;', 'console.error("SNS unblock failed", error);'],
-  ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post edit failed", error);'],
-  ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post delete failed", error);'],
+  ['if (!isCurrentSession()) return;', 'console.error("SNS post edit failed", error);'],
+  ['if (!isCurrentSession()) return;', 'console.error("SNS post delete failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;', 'console.error("SNS block failed", error);'],
-  ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS profile save failed", error);'],
-  ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post create failed", error);'],
-  ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post refresh failed", error);']
-]) {
+  ['if (!isCurrentProfileSession()) return;', 'console.error("SNS profile save failed", error);'],
+  ['if (!isCurrentPostSession()) return;', 'console.error("SNS post create failed", error);'],
+  ['if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;', 'console.error("SNS post refresh failed", error);']
+];
+for (const [guard, failure] of failureGuards) {
   const failureIndex = sns.indexOf(failure);
   assert.ok(failureIndex > 0 &&
-    sns.slice(Math.max(0, failureIndex - 150), failureIndex).includes(guard),
-    'SNS failure notices must be scoped to the account that started the request: ' + failure);
+    sns.slice(Math.max(0, failureIndex - 180), failureIndex).includes(guard),
+    'SNS failure notices must be scoped to the account and auth generation that started the request: ' + failure);
 }
 
 assert.ok(sns.includes('const nickname = snsNickname.value.trim();') &&
