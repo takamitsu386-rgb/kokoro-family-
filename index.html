@@ -7037,6 +7037,25 @@ snsRefreshPosts.addEventListener("click", async () => {
     filterInput.disabled = false;
     return;
   }
+  window.addEventListener("storage", event => {
+    if (event.key !== KEY && event.key !== null) return;
+    try {
+      const latest = readTasks();
+      tasks = latest;
+      storageReady = true;
+      if (editingId && !tasks.some(task => task.id === editingId)) {
+        editingId = null;
+        form.reset();
+        submitButton.textContent = "リストに追加";
+        cancelButton.hidden = true;
+      }
+      render();
+      summaryEl.textContent = "別のタブで更新されたやることリストを読み込みました。";
+    } catch (error) {
+      console.error("Family task cross-tab update validation failed", error);
+      summaryEl.textContent = "別のタブの保存データを確認できないため、現在の表示を保護しています。";
+    }
+  });
   form.addEventListener("submit", event => {
     event.preventDefault();
     const title = titleInput.value.trim();
