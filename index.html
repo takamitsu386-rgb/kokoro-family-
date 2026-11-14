@@ -5904,6 +5904,7 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
             for (const [shareId, share] of entries.slice(offset, offset + 150)) {
               cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
               cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+              cleanupBatch.delete(doc(snsDb, "users", share.recipientUid, "receivedSharedRooms", shareId));
               cleanupBatch.delete(doc(snsDb, "users", activeUser.uid, "hiddenSharedRooms", shareId));
             }
             await cleanupBatch.commit();
@@ -6527,6 +6528,7 @@ snsAddBlock.addEventListener("click", async () => {
         for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 150)) {
           cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
+          cleanupBatch.delete(doc(snsDb, "users", share.recipientUid, "receivedSharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", user.uid, "hiddenSharedRooms", shareId));
         }
         await cleanupBatch.commit();
