@@ -6834,12 +6834,18 @@ snsRefreshPosts.addEventListener("click", async () => {
     cancelButton.hidden = true;
     render();
   }
+  function validTaskDate(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [year,month,day] = value.split("-").map(Number);
+    const date = new Date(Date.UTC(year,month-1,day));
+    return date.getUTCFullYear()===year && date.getUTCMonth()===month-1 && date.getUTCDate()===day;
+  }
   function validTask(task) {
     return !!task && typeof task === "object" &&
       typeof task.id === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(task.id) &&
       typeof task.title === "string" && task.title.trim().length >= 1 && task.title.length <= 80 &&
       Object.hasOwn(categories, task.category) && Object.hasOwn(priorities, task.priority) &&
-      (task.dueDate === "" || (typeof task.dueDate === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(task.dueDate) && !Number.isNaN(Date.parse(task.dueDate)))) &&
+      (task.dueDate === "" || validTaskDate(task.dueDate)) &&
       typeof task.completed === "boolean" && Number.isSafeInteger(task.createdAt) && task.createdAt > 0;
   }
   function readTasks() {
