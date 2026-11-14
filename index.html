@@ -6727,19 +6727,23 @@ snsSaveProfile.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  const avatarId = snsAvatar.value;
+  const visibility = snsProfileVisibility.value;
   const operationGeneration = snsSetBusy(true);
+  const isCurrentProfileSession = () => snsUser?.uid === user.uid && snsAuthGeneration === authGeneration;
   try {
     const profileRef = doc(snsDb, "profiles", user.uid);
     const existing = await getDoc(profileRef);
-    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    if (!isCurrentProfileSession()) throw new Error("アカウントが切り替わりました。");
     await setDoc(profileRef, {
       nickname,
-      avatarId: snsAvatar.value,
-      visibility: snsProfileVisibility.value,
+      avatarId,
+      visibility,
       createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    if (!isCurrentProfileSession()) throw new Error("保存後にアカウントが切り替わりました。");
     snsUpdateProfilePreview();
     snsMessage("プロフィールを保存しました。");
   } catch (error) {
@@ -6756,17 +6760,20 @@ snsCreatePost.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  const visibility = snsPostVisibility.value;
   const operationGeneration = snsSetBusy(true);
+  const isCurrentPostSession = () => snsUser?.uid === user.uid && snsAuthGeneration === authGeneration;
   try {
     await setDoc(doc(collection(snsDb, "posts")), {
       authorUid: user.uid,
       text,
-      visibility: snsPostVisibility.value,
+      visibility,
       status: "active",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    if (!snsUser || snsUser.uid !== user.uid) throw new Error("保存後にアカウントが切り替わりました。");
+    if (!isCurrentPostSession()) throw new Error("保存後にアカウントが切り替わりました。");
     snsPostText.value = "";
     await snsLoadPosts(user);
     snsMessage("投稿を保存しました。");
