@@ -57,6 +57,22 @@ assert.match(rules, /match\s+\/friendRequests\/\{requestId\}/,
   'Friend request rules must be explicit.');
 assert.equal([...rules.matchAll(/match\s+\/friendRequests\/\{requestId\}\s*\{/g)].length, 1,
   'Friend request access must be defined in exactly one match block to avoid overlapping allow rules.');
+for (const [pattern, path] of [
+  [/match\\s+\\/users\\/\\{userId\\}\\/blocks\\/\\{targetUid\\}\\s*\\{/g, 'user block records'],
+  [/match\\s+\\/profiles\\/\\{uid\\}\\s*\\{/g, 'profiles'],
+  [/match\\s+\\/posts\\/\\{postId\\}\\s*\\{/g, 'posts'],
+  [/match\\s+\\/comments\\/\\{commentId\\}\\s*\\{/g, 'post comments'],
+  [/match\\s+\\/likes\\/\\{likerUid\\}\\s*\\{/g, 'post likes'],
+  [/match\\s+\\/users\\/\\{userId\\}\\/aiUsage\\/\\{dayKey\\}\\s*\\{/g, 'AI usage counters'],
+  [/match\\s+\\/reports\\/\\{reportId\\}\\s*\\{/g, 'reports'],
+  [/match\\s+\\/users\\/\\{userId\\}\\/reportUsage\\/\\{dayKey\\}\\s*\\{/g, 'report usage counters'],
+  [/match\\s+\\/sharedRooms\\/\\{shareId\\}\\s*\\{/g, 'shared room snapshots'],
+  [/match\\s+\\/users\\/\\{userId\\}\\/sharedRooms\\/\\{shareId\\}\\s*\\{/g, 'owner shared room mirrors'],
+  [/match\\s+\\/users\\/\\{userId\\}\\/following\\/\\{targetUid\\}\\s*\\{/g, 'following records']
+]) {
+  assert.equal([...rules.matchAll(pattern)].length, 1,
+    `Firestore access for ${path} must be defined in exactly one match block.`);
+}
 assert.match(rules, /resource\.data\.toUid\s*==\s*request\.auth\.uid/,
   'Only the recipient may decide a friend request.');
 assert.match(rules, /request\.resource\.data\.status\s+in\s+\['accepted',\s*'declined'\]/,
