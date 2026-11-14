@@ -329,7 +329,7 @@ assert.ok(adminActionHandler.includes('const authGeneration = snsAuthGeneration;
   'Admin report action failures must not alter controls after an account switch.');
 
 for (const [guard, failure] of [
-  ['if (!snsUser || snsUser.uid !== activeUser.uid) return;', 'console.error("SNS unblock failed", error);'],
+  ['if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;', 'console.error("SNS unblock failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post edit failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid) return;', 'console.error("SNS post delete failed", error);'],
   ['if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;', 'console.error("SNS block failed", error);'],
