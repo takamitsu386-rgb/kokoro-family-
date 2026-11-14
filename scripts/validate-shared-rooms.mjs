@@ -18,7 +18,7 @@ assert.match(html, /new TextEncoder\(\)\.encode\(JSON\.stringify\(currentRoom\)\
 assert.match(html, /batch\.set\(shareRef, snapshot\)/);
 assert.match(html, /batch\.set\(doc\(snsDb, "users", user\.uid, "sharedRooms", shareRef\.id\), snapshot\)/);
 assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\), limit\(50\)/);
-assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(50\)/);
+assert.match(html, /where\("recipientUid", "==", user\.uid\),\s*where\("ownerUid", "==", peerUid\)/);
 assert.match(html, /window\.applyRoom\?\.\(item\.currentRoom\)/);
 assert.match(html, /batch\.delete\(doc\(snsDb, "sharedRooms", item\.id\)\)/);
 assert.match(html, /batch\.delete\(doc\(snsDb, "users", item\.ownerUid, "sharedRooms", item\.id\)\)/);
@@ -54,8 +54,8 @@ assert.match(html, /receivedShares\.docs\.filter\(snap => snap\.data\(\)\.ownerU
 
 assert.match(html, /const batch = writeBatch\(snsDb\);\s*batch\.delete\(doc\(snsDb, "friendRequests", requestId\)\);[\s\S]*?await batch\.commit\(\);/, "Friendship and shared-room removal must commit atomically.");
 
-assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\), limit\(124\)/);
-assert.match(html, /where\("recipientUid", "==", user\.uid\), limit\(124\)/);
+assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\),\s*where\("recipientUid", "==", peerUid\)/);
+assert.match(html, /collection\(snsDb, "sharedRooms"\),\s*where\("recipientUid", "==", user\.uid\),\s*where\("ownerUid", "==", peerUid\)/);
 
 assert.match(html, /snsAddBlock\.addEventListener\("click",[\s\S]*?const batch = writeBatch\(snsDb\);\s*batch\.set\(doc\(snsDb, "users", user\.uid, "blocks", targetUid\)/, "Blocking and share revocation must be atomic.");
 
