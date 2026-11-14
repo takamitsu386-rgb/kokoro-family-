@@ -219,7 +219,7 @@ console.log('Batch furniture duplication checks passed.');
 const rotate=source.slice(source.indexOf('function rotateSelected(degrees)'),source.indexOf('function resizeSelected(factor)'));
 assert.match(source,/rotateSelected\(-90\)/,'Left rotation control must exist.');
 assert.match(source,/rotateSelected\(90\)/,'Right rotation control must exist.');
-assert.match(rotate,/\[-90,90\]/,'Rotation must accept only quarter turns.');
+assert.match(rotate,/\[-90,-45,-15,15,45,90\]/,'Quick rotation must accept only the supported safe angle increments.');
 assert.match(rotate,/style\.rotate=next\+'deg'/,'Rotation must use the independent rotate property.');
 assert.match(rotate,/if\(!autoSaveRoom\(\)\)/,'Rotation must persist the room.');
 assert.match(rotate,/style\.rotate=previous/,'Rotation must roll back if saving fails.');
