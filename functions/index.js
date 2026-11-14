@@ -397,30 +397,48 @@ exports.searchPublicProfiles = onRequest({
     });
     if (!allowed) return sendJson(res, 429, { error: "本日のプロフィール検索上限に達しました。" });
 
-    const [matches, viewerBlocks] = await Promise.all([
-      db.collection("profiles")
-        .where("visibility", "==", "public")
-        .orderBy("nickname")
-        .startAt(prefix)
-        .endAt(prefix + "\uf8ff")
-        .limit(10)
-        .get(),
-      db.collection("users").doc(decoded.uid).collection("blocks").get()
-    ]);
-    const candidates = matches.docs.filter(item => item.id !== decoded.uid && !viewerBlocks.docs.some(block => block.id === item.id));
-    const reverseBlocks = candidates.length
-      ? await db.getAll(...candidates.map(item => db.doc(`users/${item.id}/blocks/${decoded.uid}`)))
-      : [];
-    const items = candidates.filter((item, index) => !reverseBlocks[index].exists).map(item => {
-      const data = item.data();
-      return {
-        uid: item.id,
-        nickname: typeof data.nickname === "string" ? data.nickname.trim().slice(0, 24) : "ユーザー",
-        avatarId: ["avatar-01", "avatar-02", "avatar-03", "avatar-04", "avatar-05"].includes(data.avatarId)
-          ? data.avatarId : "avatar-01"
-      };
-    });
-    return sendJson(res, 200, { items });
+    let keepSearchReservation = false;
+    try {
+      const [matches, viewerBlocks] = await Promise.all([
+        db.collection("profiles")
+          .where("visibility", "==", "public")
+          .orderBy("nickname")
+          .startAt(prefix)
+          .endAt(prefix + "\uf8ff")
+          .limit(10)
+          .get(),
+        db.collection("users").doc(decoded.uid).collection("blocks").get()
+      ]);
+      const candidates = matches.docs.filter(item => item.id !== decoded.uid && !viewerBlocks.docs.some(block => block.id === item.id));
+      const reverseBlocks = candidates.length
+        ? await db.getAll(...candidates.map(item => db.doc(`users/${item.id}/blocks/${decoded.uid}`)))
+        : [];
+      const items = candidates.filter((item, index) => !reverseBlocks[index].exists).map(item => {
+        const data = item.data();
+        return {
+          uid: item.id,
+          nickname: typeof data.nickname === "string" ? data.nickname.trim().slice(0, 24) : "ユーザー",
+          avatarId: ["avatar-01", "avatar-02", "avatar-03", "avatar-04", "avatar-05"].includes(data.avatarId)
+            ? data.avatarId : "avatar-01"
+        };
+      });
+      keepSearchReservation = true;
+      return sendJson(res, 200, { items });
+    } finally {
+      if (!keepSearchReservation) {
+        try {
+          await db.runTransaction(async tx => {
+            const latestUsage = await tx.get(usageRef);
+            const count = latestUsage.exists ? latestUsage.data().count : 0;
+            if (!Number.isSafeInteger(count) || count <= 0) return;
+            if (count === 1) tx.delete(usageRef);
+            else tx.update(usageRef, { count: count - 1, updatedAt: Timestamp.now() });
+          });
+        } catch (refundError) {
+          console.error("Profile search usage reservation refund failed:", refundError?.message || refundError);
+        }
+      }
+    }
   } catch (error) {
     console.error("Public profile search error:", error?.message || error);
     if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
