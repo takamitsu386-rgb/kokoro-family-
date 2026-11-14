@@ -6132,7 +6132,7 @@ function snsRefreshShareRoomOptions() {
 snsShareRoomSource.addEventListener("focus", snsRefreshShareRoomOptions);
 async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
   const [owned, incoming, outgoing, hiddenShares, blocks] = await Promise.all([
-    getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50))),
+    getDocs(collection(snsDb, "users", user.uid, "sharedRooms")),
     getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
     getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid))),
     getDocs(collection(snsDb, "users", user.uid, "hiddenSharedRooms")),
@@ -6150,8 +6150,7 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
       return { peerUid, snapshot: await getDocs(query(
         collection(snsDb, "sharedRooms"),
         where("recipientUid", "==", user.uid),
-        where("ownerUid", "==", peerUid),
-        limit(50)
+        where("ownerUid", "==", peerUid)
       )) };
     } catch (error) {
       console.warn("A friend's shared rooms were not available", error);
