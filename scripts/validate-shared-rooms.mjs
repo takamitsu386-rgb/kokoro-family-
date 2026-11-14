@@ -60,7 +60,7 @@ assert.match(html, /snsQueueShareCleanup\(user\.uid, peerUid\)[\s\S]*?await batc
 assert.match(html, /collection\(snsDb, "users", user\.uid, "sharedRooms"\),\s*where\("recipientUid", "==", peerUid\)/);
 assert.match(html, /collection\(snsDb, "sharedRooms"\),\s*where\("recipientUid", "==", user\.uid\),\s*where\("ownerUid", "==", peerUid\)/);
 
-assert.match(html, /snsAddBlock\.addEventListener\("click",[\s\S]*?const batch = writeBatch\(snsDb\);\s*batch\.set\(doc\(snsDb, "users", user\.uid, "blocks", targetUid\)/, "Blocking and share revocation must be atomic.");
+assert.match(html, /snsAddBlock\.addEventListener\("click",[\s\S]*?snsQueueShareCleanup\(user\.uid, targetUid\)[\s\S]*?await setDoc\(doc\(snsDb, "users", user\.uid, "blocks", targetUid\)[\s\S]*?cleanupBatch\.delete\(doc\(snsDb, "sharedRooms", shareId\)\)/, "The block must commit independently before best-effort shared-room cleanup.");
 
 assert.match(html, /if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration\) return;\s*console\.error\("SNS block failed"/);
 
