@@ -6745,7 +6745,12 @@ snsSaveProfile.addEventListener("click", async () => {
     });
     if (!isCurrentProfileSession()) throw new Error("保存後にアカウントが切り替わりました。");
     snsUpdateProfilePreview();
-    snsMessage("プロフィールを保存しました。");
+    const editedWhileSaving = snsNickname.value.trim() !== nickname
+      || snsAvatar.value !== avatarId
+      || snsProfileVisibility.value !== visibility;
+    snsMessage(editedWhileSaving
+      ? "保存時点のプロフィールを保存しました。保存中に変更した内容は、もう一度保存してください。"
+      : "プロフィールを保存しました。");
   } catch (error) {
     if (!snsUser || snsUser.uid !== user.uid) return;
     console.error("SNS profile save failed", error);
