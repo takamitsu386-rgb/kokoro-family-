@@ -5581,10 +5581,10 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
           if (data.ownerUid === peerUid && data.recipientUid === user.uid) blockedShares.set(snap.id, data);
         });
         const entries = [...blockedShares.entries()];
-        for (let offset = 0; offset < entries.length; offset += 150) {
+        for (let offset = 0; offset < entries.length; offset += 100) {
           if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
           const cleanupBatch = writeBatch(snsDb);
-          for (const [shareId, data] of entries.slice(offset, offset + 150)) {
+          for (const [shareId, data] of entries.slice(offset, offset + 100)) {
             cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
             cleanupBatch.delete(doc(snsDb, "users", data.ownerUid, "sharedRooms", shareId));
             cleanupBatch.delete(doc(snsDb, "users", data.recipientUid, "receivedSharedRooms", shareId));
@@ -5629,10 +5629,10 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
         if (data.ownerUid === peerUid && data.recipientUid === user.uid) shares.set(snap.id, data);
       });
       const entries = [...shares.entries()];
-      for (let offset = 0; offset < entries.length; offset += 150) {
+      for (let offset = 0; offset < entries.length; offset += 100) {
         if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
         const cleanupBatch = writeBatch(snsDb);
-        for (const [shareId, data] of entries.slice(offset, offset + 150)) {
+        for (const [shareId, data] of entries.slice(offset, offset + 100)) {
           cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", data.ownerUid, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", data.recipientUid, "receivedSharedRooms", shareId));
@@ -5742,10 +5742,10 @@ async function snsRemoveFriend(requestId) {
     });
     const revokedShareEntries = [...revokedShares.entries()];
     try {
-      for (let offset = 0; offset < revokedShareEntries.length; offset += 150) {
+      for (let offset = 0; offset < revokedShareEntries.length; offset += 100) {
         if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
         const cleanupBatch = writeBatch(snsDb);
-        for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 150)) {
+        for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 100)) {
           cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", share.recipientUid, "receivedSharedRooms", shareId));
@@ -5899,10 +5899,10 @@ async function snsLoadBlocks(user, authGeneration = snsAuthGeneration) {
         });
         try {
           const entries = [...leftoverShares.entries()];
-          for (let offset = 0; offset < entries.length; offset += 150) {
+          for (let offset = 0; offset < entries.length; offset += 100) {
             if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== authGeneration) return;
             const cleanupBatch = writeBatch(snsDb);
-            for (const [shareId, share] of entries.slice(offset, offset + 150)) {
+            for (const [shareId, share] of entries.slice(offset, offset + 100)) {
               cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
               cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
               cleanupBatch.delete(doc(snsDb, "users", share.recipientUid, "receivedSharedRooms", shareId));
@@ -6523,10 +6523,10 @@ snsAddBlock.addEventListener("click", async () => {
     let roomCleanupComplete = blockCleanupQueued && !!ownedShares && !!receivedShares && !!latestOwnedShares && !!latestReceivedShares;
     const revokedShareEntries = [...revokedShares.entries()];
     try {
-      for (let offset = 0; offset < revokedShareEntries.length; offset += 150) {
+      for (let offset = 0; offset < revokedShareEntries.length; offset += 100) {
         if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
         const cleanupBatch = writeBatch(snsDb);
-        for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 150)) {
+        for (const [shareId, share] of revokedShareEntries.slice(offset, offset + 100)) {
           cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", share.ownerUid, "sharedRooms", shareId));
           cleanupBatch.delete(doc(snsDb, "users", share.recipientUid, "receivedSharedRooms", shareId));
