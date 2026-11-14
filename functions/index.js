@@ -209,17 +209,20 @@ exports.submitReport = onRequest({
         return sendJson(res, 400, { error: "通報対象のコメントを確認できません。" });
       }
       const postRef = db.collection("posts").doc(targetPostId);
-      const [postSnap, commentSnap, forwardFriend, reverseFriend] = await Promise.all([
+      const [postSnap, commentSnap, forwardFriend, reverseFriend, reporterBlock, targetBlock] = await Promise.all([
         postRef.get(),
         postRef.collection("comments").doc(targetCommentId).get(),
         db.doc(`friendRequests/${decoded.uid}_${targetUid}`).get(),
-        db.doc(`friendRequests/${targetUid}_${decoded.uid}`).get()
+        db.doc(`friendRequests/${targetUid}_${decoded.uid}`).get(),
+        db.doc(`users/${decoded.uid}/blocks/${targetUid}`).get(),
+        db.doc(`users/${targetUid}/blocks/${decoded.uid}`).get()
       ]);
       const post = postSnap.data();
       const comment = commentSnap.data();
       const isAcceptedFriend = (forwardFriend.exists && forwardFriend.data().status === "accepted")
         || (reverseFriend.exists && reverseFriend.data().status === "accepted");
-      if (!postSnap.exists || !["public", "friends"].includes(post?.visibility) || post?.status !== "active"
+      if (reporterBlock.exists || targetBlock.exists
+        || !postSnap.exists || !["public", "friends"].includes(post?.visibility) || post?.status !== "active"
         || (post?.visibility === "friends" && !isAcceptedFriend)
         || !commentSnap.exists || comment?.status !== "active" || comment?.authorUid !== targetUid) {
         return sendJson(res, 400, { error: "通報対象のコメントは確認できません。投稿が非公開・削除済みか、対象が変更されています。" });
