@@ -6047,16 +6047,18 @@ const snsReportCategoryLabels = {
   impersonation: "なりすまし",
   other: "その他"
 };
-async function snsAdminRequest(path, body, user) {
+async function snsAdminRequest(path, body, user, authGeneration = snsAuthGeneration) {
+  const isCurrentSession = () => !!snsUser && snsUser.uid === user.uid && snsAuthGeneration === authGeneration;
   const token = await user.getIdToken();
-  if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+  if (!isCurrentSession()) throw new Error("アカウントが切り替わりました。");
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
     body: JSON.stringify(body || {})
   });
-  if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+  if (!isCurrentSession()) throw new Error("アカウントが切り替わりました。");
   const data = await response.json().catch(() => ({}));
+  if (!isCurrentSession()) throw new Error("アカウントが切り替わりました。");
   if (!response.ok) throw new Error(data.error || "運営用機能を利用できませんでした。");
   return data;
 }
