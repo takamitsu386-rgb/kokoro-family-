@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
+const source = html;
 const handlerStart = html.indexOf('function setBulkSavedRoomFavorites(enabled)');
 assert.notEqual(handlerStart, -1, 'Bulk favorite handler must exist.');
 const handlerEnd = html.indexOf('\nfunction duplicateBulkSavedRooms()', handlerStart);
