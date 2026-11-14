@@ -5155,15 +5155,16 @@ function snsRenderPublicTimeline(items) {
     let commentsLoaded = false;
     let commentArea = null;
     const activeUser = snsUser;
+    const activeAuthGeneration = snsAuthGeneration;
     if (activeUser) {
       const likeRef = doc(snsDb, "posts", item.id, "likes", activeUser.uid);
       getDoc(likeRef).then(snapshot => {
-        if (!snsUser || snsUser.uid !== activeUser.uid || !article.isConnected) return;
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== activeAuthGeneration || !article.isConnected) return;
         liked = snapshot.exists();
         likeButton.textContent = liked ? "♥ いいね済み" : "♡ いいね";
       }).catch(() => { likeCount.textContent = "いいね数は未取得"; });
       getDocs(collection(snsDb, "posts", item.id, "likes")).then(snapshot => {
-        if (!snsUser || snsUser.uid !== activeUser.uid || !article.isConnected) return;
+        if (!snsUser || snsUser.uid !== activeUser.uid || snsAuthGeneration !== activeAuthGeneration || !article.isConnected) return;
         likeCountValue = snapshot.size;
         likeCount.textContent = likeCountValue + "件";
       }).catch(() => { likeCount.textContent = "件数未取得"; });
@@ -5187,13 +5188,13 @@ function snsRenderPublicTimeline(items) {
           liked = true;
           likeCountValue += 1;
         }
-        if (!snsUser || snsUser.uid !== user.uid) return;
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== activeAuthGeneration) return;
         likeButton.textContent = liked ? "♥ いいね済み" : "♡ いいね";
         likeCount.textContent = likeCountValue + "件";
       } catch (error) {
-        if (snsUser?.uid === user.uid) snsTimelineStatus.textContent = "いいねを更新できませんでした。公開範囲やブロック状態を確認してください。";
+        if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration) snsTimelineStatus.textContent = "いいねを更新できませんでした。公開範囲やブロック状態を確認してください。";
       } finally {
-        if (snsUser?.uid === activeUser?.uid) likeButton.disabled = false;
+        if (snsUser?.uid === activeUser?.uid && snsAuthGeneration === activeAuthGeneration) likeButton.disabled = false;
       }
     });
     commentToggle.addEventListener("click", async () => {
@@ -5227,7 +5228,7 @@ function snsRenderPublicTimeline(items) {
       commentToggle.textContent = "コメントを閉じる";
       const renderComments = async () => {
         const result = await getDocs(query(collection(snsDb, "posts", item.id, "comments")));
-        if (!snsUser || snsUser.uid !== user.uid || !article.isConnected) return;
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== activeAuthGeneration || !article.isConnected) return;
         list.replaceChildren();
         for (const snap of result.docs.filter(entry => entry.data().status === "active")) {
           const row = document.createElement("div");
@@ -5253,7 +5254,7 @@ function snsRenderPublicTimeline(items) {
             reportComment.type = "button";
             reportComment.textContent = "コメント投稿者を通報";
             reportComment.addEventListener("click", () => {
-              if (!snsUser || snsUser.uid !== user.uid) return;
+              if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== activeAuthGeneration) return;
               snsReportUid.value = snap.data().authorUid;
               snsReportContext = { reportType: "comment", targetPostId: item.id, targetCommentId: snap.id, targetUid: snap.data().authorUid };
               snsReportCategory.focus();
@@ -5279,12 +5280,12 @@ function snsRenderPublicTimeline(items) {
           await setDoc(doc(collection(snsDb, "posts", item.id, "comments")), {
             authorUid: user.uid, text, status: "active", createdAt: serverTimestamp()
           });
-          if (!snsUser || snsUser.uid !== user.uid) return;
+          if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== activeAuthGeneration) return;
           input.value = "";
           await renderComments();
         } catch (error) {
           note.textContent = "コメントを送信できませんでした。公開範囲やブロック状態を確認してください。";
-        } finally { if (snsUser?.uid === user.uid) submit.disabled = false; }
+        } finally { if (snsUser?.uid === user.uid && snsAuthGeneration === activeAuthGeneration) submit.disabled = false; }
       });
       try { await renderComments(); } catch (error) { note.textContent = "コメントを読み込めませんでした。"; }
     });
@@ -5293,7 +5294,7 @@ function snsRenderPublicTimeline(items) {
       friendButton.type = "button";
       friendButton.textContent = "友達申請";
       friendButton.addEventListener("click", () => {
-        if (!snsUser) return;
+        if (!snsUser || snsAuthGeneration !== activeAuthGeneration) return;
         snsFriendUid.value = item.authorUid;
         snsFriendNotice.textContent = "申請先を設定しました。内容を確認して申請してください。";
         snsFriendUid.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -5303,7 +5304,7 @@ function snsRenderPublicTimeline(items) {
       report.type = "button";
       report.textContent = "この投稿者を通報";
       report.addEventListener("click", () => {
-        if (!snsUser) return;
+        if (!snsUser || snsAuthGeneration !== activeAuthGeneration) return;
         snsReportContext = null;
         snsReportUid.value = item.authorUid;
         snsReportCategory.focus();
