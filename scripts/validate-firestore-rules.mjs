@@ -26,16 +26,17 @@ assert.match(rules, /documentId\s+in\s+\["data",\s*"shopping"\]/,
 assert.match(rules, /match\s+\/profiles\/\{uid\}\s*\{/,
 // Recipient-side share index stores identifiers only and remains owner-readable
 // so a user can clean up stale shares after blocking the other account.
-assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/receivedSharedRooms\\/\\{shareId\\}\\s*\\{/,
+assert.match(rules, /match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{/,
   'Recipient-side shared-room metadata path must be explicitly scoped.');
-assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/receivedSharedRooms\\/\\{shareId\\}\\s*\\{[\\s\\S]*?allow\\s+get,\\s*list:\\s*if\\s+owns\\(userId\\)/,
+assert.match(rules, /match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{[\s\S]*?allow\s+get,\s*list:\s*if\s+owns\(userId\)/,
   'Only the recipient may read their shared-room metadata index.');
-assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/receivedSharedRooms\\/\\{shareId\\}\\s*\\{[\\s\\S]*?hasOnly\\(\\['ownerUid',\\s*'recipientUid',\\s*'createdAt'\\]\\)/,
+assert.match(rules, /match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{[\s\S]*?hasOnly\(\['ownerUid',\s*'recipientUid',\s*'createdAt'\]\)/,
   'Recipient-side shared-room index must contain metadata only.');
-assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/receivedSharedRooms\\/\\{shareId\\}\\s*\\{[\\s\\S]*?existsAfter\\([\\s\\S]*?getAfter\\([\\s\\S]*?acceptedFriend\\(request\\.auth\\.uid,\\s*userId\\)[\\s\\S]*?!blockedBetween\\(request\\.auth\\.uid,\\s*userId\\)/,
+assert.match(rules, /match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{[\s\S]*?existsAfter\([\s\S]*?getAfter\([\s\S]*?acceptedFriend\(request\.auth\.uid,\s*userId\)[\s\S]*?!blockedBetween\(request\.auth\.uid,\s*userId\)/,
   'Recipient metadata must be atomically linked to an accepted, unblocked shared-room creation.');
-assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/receivedSharedRooms\\/\\{shareId\\}\\s*\\{[\\s\\S]*?allow\\s+update:\\s*if\\s+false/,
+assert.match(rules, /match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{[\s\S]*?allow\s+update:\s*if\s+false/,
   'Recipient-side shared-room metadata must not be editable.');
+assert.match(rules, /match\s+\/profiles\/\{uid\}\s*\{/,
   'Profile access must remain explicitly scoped.');
 assert.match(rules, /match\s+\/posts\/\{postId\}\s*\{/,
   'Post access must remain explicitly scoped.');
