@@ -5545,8 +5545,39 @@ async function snsRetryPendingShareCleanupUnlocked(user, authGeneration = snsAut
         return data.status === "accepted"
           && ((data.fromUid === user.uid && data.toUid === peerUid) || (data.fromUid === peerUid && data.toUid === user.uid));
       });
-      // Never delete data while our block remains or a new friendship is active.
-      if (blockSnap.exists() || accepted) {
+      // While our block remains, the recipient-side list is intentionally denied.
+      // We can still safely retry shares that we own, plus the pair's shopping doc;
+      // keep the queue entry until unblocking permits a complete two-sided cleanup.
+      if (blockSnap.exists()) {
+        const ownedBlockedShares = await getDocs(query(
+          collection(snsDb, "users", user.uid, "sharedRooms"),
+          where("recipientUid", "==", peerUid)
+        )).catch(error => {
+          console.warn("Blocked outgoing shares could not be listed for cleanup", error);
+          return null;
+        });
+        if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+        if (ownedBlockedShares) {
+          const entries = ownedBlockedShares.docs
+            .filter(snap => snap.data().ownerUid === user.uid && snap.data().recipientUid === peerUid)
+            .map(snap => [snap.id, snap.data()]);
+          for (let offset = 0; offset < entries.length; offset += 150) {
+            if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+            const cleanupBatch = writeBatch(snsDb);
+            for (const [shareId, data] of entries.slice(offset, offset + 150)) {
+              cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId));
+              cleanupBatch.delete(doc(snsDb, "users", user.uid, "sharedRooms", shareId));
+              cleanupBatch.delete(doc(snsDb, "users", user.uid, "hiddenSharedRooms", shareId));
+            }
+            await cleanupBatch.commit();
+          }
+        }
+        await deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")));
+        incomplete = true;
+        continue;
+      }
+      // A new friendship must never be cleaned up by an old queue entry.
+      if (accepted) {
         incomplete = true;
         continue;
       }
@@ -6372,6 +6403,9 @@ snsAddBlock.addEventListener("click", async () => {
     const revokedShares = new Map();
     ownedShares?.docs.filter(snap => snap.data().recipientUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
     receivedShares?.docs.filter(snap => snap.data().ownerUid === targetUid).forEach(snap => revokedShares.set(snap.id, snap.data()));
+    // Persist cleanup intent before blocking. The block itself must still succeed
+    // if local storage is unavailable; in that case the notice reports the limitation.
+    const blockCleanupQueued = snsQueueShareCleanup(user.uid, targetUid);
     // The block is committed independently; cleanup failures cannot cancel it.
     await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), { createdAt: serverTimestamp() });
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
@@ -6436,7 +6470,7 @@ snsAddBlock.addEventListener("click", async () => {
       console.warn("Blocked friend request cleanup failed", requestCleanupError);
     }
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-    let roomCleanupComplete = !!ownedShares && !!receivedShares && !!latestOwnedShares && !!latestReceivedShares;
+    let roomCleanupComplete = blockCleanupQueued && !!ownedShares && !!receivedShares && !!latestOwnedShares && !!latestReceivedShares;
     const revokedShareEntries = [...revokedShares.entries()];
     try {
       for (let offset = 0; offset < revokedShareEntries.length; offset += 150) {
