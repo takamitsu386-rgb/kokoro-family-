@@ -312,8 +312,9 @@ exports.publicTimeline = onRequest({
     const db = getFirestore();
 
     const [publicPosts, friendPosts, incomingFriends, outgoingFriends, viewerBlocksSnapshot] = await Promise.all([
-      db.collection("posts").where("visibility", "==", "public").where("status", "==", "active").orderBy("createdAt", "desc").limit(50).get(),
-      db.collection("posts").where("visibility", "==", "friends").where("status", "==", "active").orderBy("createdAt", "desc").limit(100).get(),
+      // Fetch extra candidates because block/profile filtering happens after the query.
+      db.collection("posts").where("visibility", "==", "public").where("status", "==", "active").orderBy("createdAt", "desc").limit(150).get(),
+      db.collection("posts").where("visibility", "==", "friends").where("status", "==", "active").orderBy("createdAt", "desc").limit(150).get(),
       db.collection("friendRequests").where("toUid", "==", decoded.uid).where("status", "==", "accepted").limit(100).get(),
       db.collection("friendRequests").where("fromUid", "==", decoded.uid).where("status", "==", "accepted").limit(100).get(),
       db.collection("users").doc(decoded.uid).collection("blocks").get()
@@ -325,7 +326,6 @@ exports.publicTimeline = onRequest({
     const postsSnapshot = {
       docs: [...publicPosts.docs, ...friendPosts.docs.filter(item => friendUids.has(item.data().authorUid))]
         .sort((a, b) => (b.data().createdAt?.toMillis?.() ?? 0) - (a.data().createdAt?.toMillis?.() ?? 0))
-        .slice(0, 50)
     };
     const viewerBlocks = new Set(viewerBlocksSnapshot.docs.map(item => item.id));
     const authorUids = [...new Set(postsSnapshot.docs
@@ -370,7 +370,7 @@ exports.publicTimeline = onRequest({
       });
     }
 
-    return sendJson(res, 200, { items });
+    return sendJson(res, 200, { items: items.slice(0, 50) });
   } catch (error) {
     console.error("Public SNS timeline error:", error?.message || error);
     if (["auth/argument-error", "auth/id-token-expired", "auth/invalid-id-token", "auth/id-token-revoked", "auth/user-disabled"].includes(error?.code)) {
