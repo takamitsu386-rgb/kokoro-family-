@@ -23,7 +23,6 @@ assert.match(rules, /match\s+\/users\/\{userId\}\/kokoro\/\{documentId\}\s*\{\s*
 assert.match(rules, /documentId\s+in\s+\["data",\s*"shopping"\]/,
   'Private cloud access must remain limited to the room and personal shopping documents.');
 
-assert.match(rules, /match\s+\/profiles\/\{uid\}\s*\{/,
 // Recipient-side share index stores identifiers only and remains owner-readable
 // so a user can clean up stale shares after blocking the other account.
 assert.match(rules, /match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{/,
