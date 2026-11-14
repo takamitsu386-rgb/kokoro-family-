@@ -69,6 +69,7 @@ for (const [pattern, path] of [
   [/match\s+\/users\/\{userId\}\/reportUsage\/\{dayKey\}\s*\{/g, 'report usage counters'],
   [/match\s+\/sharedRooms\/\{shareId\}\s*\{/g, 'shared room snapshots'],
   [/match\s+\/users\/\{userId\}\/sharedRooms\/\{shareId\}\s*\{/g, 'owner shared room mirrors'],
+  [/match\s+\/users\/\{userId\}\/receivedSharedRooms\/\{shareId\}\s*\{/g, 'recipient shared room metadata'],
   [/match\s+\/users\/\{userId\}\/following\/\{targetUid\}\s*\{/g, 'following records']
 ]) {
   assert.equal([...rules.matchAll(pattern)].length, 1,
