@@ -408,7 +408,8 @@ exports.searchPublicProfiles = onRequest({
           .orderBy("nickname")
           .startAt(prefix)
           .endAt(prefix + "\uf8ff")
-          .limit(10)
+          // Fetch beyond the visible page so blocked profiles do not leave avoidable gaps.
+          .limit(30)
           .get(),
         db.collection("users").doc(decoded.uid).collection("blocks").get()
       ]);
@@ -416,7 +417,7 @@ exports.searchPublicProfiles = onRequest({
       const reverseBlocks = candidates.length
         ? await db.getAll(...candidates.map(item => db.doc(`users/${item.id}/blocks/${decoded.uid}`)))
         : [];
-      const items = candidates.filter((item, index) => !reverseBlocks[index].exists).map(item => {
+      const items = candidates.filter((item, index) => !reverseBlocks[index].exists).slice(0, 10).map(item => {
         const data = item.data();
         return {
           uid: item.id,
