@@ -7201,22 +7201,35 @@ snsRefreshPosts.addEventListener("click", async () => {
   const importFile=document.getElementById("familyCalendarImportFile");
   const importStatus=document.getElementById("familyCalendarImportStatus");
   const parseCalendarCsv=source=>{
-    const rows=[];let row=[],cell="",quoted=false;
+    const rows=[];let row=[],cell="",quoted=false,afterQuote=false;
     for(let i=0;i<source.length;i++){
       const ch=source[i];
       if(quoted){
         if(ch==='"'&&source[i+1]==='"'){cell+='"';i++;}
-        else if(ch==='"')quoted=false;
+        else if(ch==='"'){quoted=false;afterQuote=true;}
         else cell+=ch;
-      }else if(ch==='"'){if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");quoted=true;}
-      else if(ch===","){row.push(cell);cell="";}
-      else if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(ch==="\r"){if(source[i+1]==="\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
-      else cell+=ch;
+      }else if(afterQuote){
+        if(ch===","){row.push(cell);cell="";afterQuote=false;}
+        else if(ch==="\n"||ch==="\r"){
+          if(ch==="\r"&&source[i+1]==="\n")i++;
+          row.push(cell);cell="";
+          if(row.some(value=>value!==""))rows.push(row);
+          row=[];afterQuote=false;
+        }else throw new Error("CSVの閉じ引用符の後に不正な文字があります。");
+      }else if(ch==='"'){
+        if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");
+        quoted=true;
+      }else if(ch===","){row.push(cell);cell="";}
+      else if(ch==="\n"||ch==="\r"){
+        if(ch==="\r"&&source[i+1]==="\n")i++;
+        row.push(cell);cell="";
+        if(row.some(value=>value!==""))rows.push(row);
+        row=[];
+      }else cell+=ch;
     }
     if(quoted)throw new Error("CSVの引用符が閉じられていません。");
-    if(cell.length||row.length){row.push(cell);rows.push(row);}
-    return rows.filter((line,index)=>index===0||line.some(value=>value!==""));
+    row.push(cell);if(row.some(value=>value!==""))rows.push(row);
+    return rows;
   };
   importFile.addEventListener("change",async()=>{
     const file=importFile.files?.[0];if(!file)return;
@@ -7459,22 +7472,35 @@ snsRefreshPosts.addEventListener("click", async () => {
   const importFile=document.getElementById("familyMealsImportFile");
   const importStatus=document.getElementById("familyMealsImportStatus");
   const parseMealCsv=source=>{
-    const rows=[];let row=[],cell="",quoted=false;
+    const rows=[];let row=[],cell="",quoted=false,afterQuote=false;
     for(let i=0;i<source.length;i++){
       const ch=source[i];
       if(quoted){
         if(ch==='"'&&source[i+1]==='"'){cell+='"';i++;}
-        else if(ch==='"')quoted=false;
+        else if(ch==='"'){quoted=false;afterQuote=true;}
         else cell+=ch;
-      }else if(ch==='"'){if(cell.length)throw new Error("invalid quote");quoted=true;}
-      else if(ch===","){row.push(cell);cell="";}
-      else if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(ch==="\r"){if(source[i+1]==="\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
-      else cell+=ch;
+      }else if(afterQuote){
+        if(ch===","){row.push(cell);cell="";afterQuote=false;}
+        else if(ch==="\n"||ch==="\r"){
+          if(ch==="\r"&&source[i+1]==="\n")i++;
+          row.push(cell);cell="";
+          if(row.some(value=>value!==""))rows.push(row);
+          row=[];afterQuote=false;
+        }else throw new Error("CSVの閉じ引用符の後に不正な文字があります。");
+      }else if(ch==='"'){
+        if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");
+        quoted=true;
+      }else if(ch===","){row.push(cell);cell="";}
+      else if(ch==="\n"||ch==="\r"){
+        if(ch==="\r"&&source[i+1]==="\n")i++;
+        row.push(cell);cell="";
+        if(row.some(value=>value!==""))rows.push(row);
+        row=[];
+      }else cell+=ch;
     }
-    if(quoted)throw new Error("unclosed quote");
-    if(cell.length||row.length){row.push(cell);rows.push(row);}
-    return rows.filter((line,index)=>index===0||line.some(value=>value!==""));
+    if(quoted)throw new Error("CSVの引用符が閉じられていません。");
+    row.push(cell);if(row.some(value=>value!==""))rows.push(row);
+    return rows;
   };
   importFile.addEventListener("change",async()=>{
     const file=importFile.files?.[0];if(!file)return;
@@ -7706,22 +7732,35 @@ snsRefreshPosts.addEventListener("click", async () => {
   const importFile=document.getElementById("familyRecipesImportFile");
   const importStatus=document.getElementById("familyRecipesImportStatus");
   const parseRecipeCsv=source=>{
-    const rows=[];let row=[],cell="",quoted=false;
+    const rows=[];let row=[],cell="",quoted=false,afterQuote=false;
     for(let i=0;i<source.length;i++){
       const ch=source[i];
       if(quoted){
         if(ch==='"'&&source[i+1]==='"'){cell+='"';i++;}
-        else if(ch==='"')quoted=false;
+        else if(ch==='"'){quoted=false;afterQuote=true;}
         else cell+=ch;
-      }else if(ch==='"'){if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");quoted=true;}
-      else if(ch===","){row.push(cell);cell="";}
-      else if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(ch==="\r"){if(source[i+1]==="\n")continue;row.push(cell);rows.push(row);row=[];cell="";}
-      else cell+=ch;
+      }else if(afterQuote){
+        if(ch===","){row.push(cell);cell="";afterQuote=false;}
+        else if(ch==="\n"||ch==="\r"){
+          if(ch==="\r"&&source[i+1]==="\n")i++;
+          row.push(cell);cell="";
+          if(row.some(value=>value!==""))rows.push(row);
+          row=[];afterQuote=false;
+        }else throw new Error("CSVの閉じ引用符の後に不正な文字があります。");
+      }else if(ch==='"'){
+        if(cell.length)throw new Error("CSVの引用符の位置が正しくありません。");
+        quoted=true;
+      }else if(ch===","){row.push(cell);cell="";}
+      else if(ch==="\n"||ch==="\r"){
+        if(ch==="\r"&&source[i+1]==="\n")i++;
+        row.push(cell);cell="";
+        if(row.some(value=>value!==""))rows.push(row);
+        row=[];
+      }else cell+=ch;
     }
     if(quoted)throw new Error("CSVの引用符が閉じられていません。");
-    if(cell.length||row.length){row.push(cell);rows.push(row);}
-    return rows.filter((line,index)=>index===0||line.some(value=>value!==""));
+    row.push(cell);if(row.some(value=>value!==""))rows.push(row);
+    return rows;
   };
   importFile.addEventListener("change",async()=>{
     const file=importFile.files?.[0];if(!file)return;
