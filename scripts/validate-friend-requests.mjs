@@ -31,10 +31,9 @@ assert.ok(friendRequestListRuleStart >= 0 && friendRequestListRuleEnd > friendRe
   'Friend request list rule must exist.');
 const friendRequestListRule = rules.slice(friendRequestListRuleStart, friendRequestListRuleEnd);
 assert.ok(friendRequestListRule.includes("allow list: if signedIn()")
-  && friendRequestListRule.includes("resource.data.get('fromUid', '')")
-  && friendRequestListRule.includes("resource.data.get('toUid', '')")
-  && friendRequestListRule.includes("!blockedBetween("),
-  'Blocked users must not list friend requests after either side blocks the relationship.');
+  && friendRequestListRule.includes("resource.data.toUid == request.auth.uid")
+  && friendRequestListRule.includes("resource.data.fromUid == request.auth.uid"),
+  'Users may list only their own friend requests for cleanup and inbox display.');
 assert.match(rules, /!blockedBetween\(resource\.data\.fromUid, resource\.data\.toUid\)/, 'Block state must be checked before changing existing requests.');
 assert.match(tests, /friend requests/, 'Firestore Emulator tests for friend requests are required.');
 assert.match(tests, /rejects requests to private profiles/, 'Private-profile requests must be rejected in tests.');

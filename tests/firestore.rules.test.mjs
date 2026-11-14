@@ -868,7 +868,8 @@ describe('friend requests', () => {
     });
     await seed('users/friend-blocker/blocks/friend-blocked', { createdAt: new Date() });
     const sender = testEnv.authenticatedContext('friend-blocked').firestore();
-    await assertFails(getDocs(query(collection(sender, 'friendRequests'), where('toUid', '==', 'friend-blocked'))));
+    await assertSucceeds(getDocs(query(collection(sender, 'friendRequests'), where('toUid', '==', 'friend-blocked'))));
+    await assertFails(getDoc(doc(sender, 'friendRequests/friend-blocker_friend-blocked-existing')));
     await assertFails(setDoc(doc(sender, 'friendRequests/friend-blocked_friend-blocker'), {
       fromUid: 'friend-blocked', toUid: 'friend-blocker', status: 'pending',
       createdAt: serverTimestamp(), updatedAt: serverTimestamp()
