@@ -6351,6 +6351,37 @@ snsAddBlock.addEventListener("click", async () => {
     // The block is committed independently; cleanup failures cannot cancel it.
     await setDoc(doc(snsDb, "users", user.uid, "blocks", targetUid), { createdAt: serverTimestamp() });
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    // Re-list after the block is committed. A share created between the initial
+    // listing and this write is now discoverable, while later creates are denied by rules.
+    const [latestOwnedShares, latestReceivedShares] = await Promise.all([
+      getDocs(query(
+        collection(snsDb, "users", user.uid, "sharedRooms"),
+        where("recipientUid", "==", targetUid)
+      )).catch(error => {
+        console.warn("Owned shared rooms could not be re-listed after blocking", error);
+        return null;
+      }),
+      getDocs(query(
+        collection(snsDb, "sharedRooms"),
+        where("recipientUid", "==", user.uid),
+        where("ownerUid", "==", targetUid)
+      )).catch(error => {
+        console.warn("Incoming shared rooms could not be re-listed after blocking", error);
+        return null;
+      })
+    ]);
+    if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+    if (!latestOwnedShares || !latestReceivedShares) {
+      // Keep the block active and report cleanup as incomplete; login retry can recover.
+    }
+    latestOwnedShares?.docs.forEach(snap => {
+      const share = snap.data();
+      if (share.ownerUid === user.uid && share.recipientUid === targetUid) revokedShares.set(snap.id, share);
+    });
+    latestReceivedShares?.docs.forEach(snap => {
+      const share = snap.data();
+      if (share.ownerUid === targetUid && share.recipientUid === user.uid) revokedShares.set(snap.id, share);
+    });
     // Once the block is active, remove accepted and pending requests separately.
     // Cleanup failure is reported, but cannot roll back the effective block.
     let requestsRemoved = true;
@@ -6381,7 +6412,7 @@ snsAddBlock.addEventListener("click", async () => {
       console.warn("Blocked friend request cleanup failed", requestCleanupError);
     }
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-    let roomCleanupComplete = !!ownedShares && !!receivedShares;
+    let roomCleanupComplete = !!ownedShares && !!receivedShares && !!latestOwnedShares && !!latestReceivedShares;
     const revokedShareEntries = [...revokedShares.entries()];
     try {
       for (let offset = 0; offset < revokedShareEntries.length; offset += 200) {
