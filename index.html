@@ -5373,14 +5373,23 @@ async function snsLoadFriendRequests(user, authGeneration = snsAuthGeneration) {
     const p = document.createElement("p"); p.textContent = message; container.appendChild(p);
   };
   // A failed cleanup must not leave a blocked person's request visible or actionable.
-  const incomingVisible = incoming.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status)
+  let incomingVisible = incoming.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status)
     && typeof snap.data().fromUid === "string" && !blockedPeers.has(snap.data().fromUid));
-  const outgoingVisible = outgoing.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status)
+  let outgoingVisible = outgoing.docs.filter(snap => ["pending", "accepted"].includes(snap.data().status)
     && typeof snap.data().toUid === "string" && !blockedPeers.has(snap.data().toUid));
-  const peerUids = [...new Set([
+  let peerUids = [...new Set([
     ...incomingVisible.map(snap => snap.data().fromUid),
     ...outgoingVisible.map(snap => snap.data().toUid)
   ].filter(uid => typeof uid === "string" && uid !== user.uid))];
+  // A peer's reverse block also makes the friendship unavailable.
+  const reverseBlockResults = await Promise.all(peerUids.map(peerUid =>
+    getDoc(doc(snsDb, "users", peerUid, "blocks", user.uid))
+  ));
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const blockedByPeers = new Set(peerUids.filter((peerUid, index) => reverseBlockResults[index].exists()));
+  incomingVisible = incomingVisible.filter(snap => !blockedByPeers.has(snap.data().fromUid));
+  outgoingVisible = outgoingVisible.filter(snap => !blockedByPeers.has(snap.data().toUid));
+  peerUids = peerUids.filter(peerUid => !blockedByPeers.has(peerUid));
   const acceptedPeerUids = new Set([
     ...incomingVisible.filter(snap => snap.data().status === "accepted").map(snap => snap.data().fromUid),
     ...outgoingVisible.filter(snap => snap.data().status === "accepted").map(snap => snap.data().toUid)
@@ -6236,10 +6245,16 @@ async function snsLoadSharedRooms(user, authGeneration = snsAuthGeneration) {
   ]);
   if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
   const blockedPeers = new Set(blocks.docs.map(snap => snap.id));
-  const acceptedPeers = new Set([
+  const acceptedPeerCandidates = [...new Set([
     ...incoming.docs.filter(snap => snap.data().status === "accepted").map(snap => snap.data().fromUid),
     ...outgoing.docs.filter(snap => snap.data().status === "accepted").map(snap => snap.data().toUid)
-  ].filter(uid => typeof uid === "string" && uid !== user.uid && !blockedPeers.has(uid)));
+  ].filter(uid => typeof uid === "string" && uid !== user.uid && !blockedPeers.has(uid)))];
+  const reverseBlockResults = await Promise.all(acceptedPeerCandidates.map(peerUid =>
+    getDoc(doc(snsDb, "users", peerUid, "blocks", user.uid))
+  ));
+  if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
+  const blockedByPeers = new Set(acceptedPeerCandidates.filter((peerUid, index) => reverseBlockResults[index].exists()));
+  const acceptedPeers = new Set(acceptedPeerCandidates.filter(uid => !blockedByPeers.has(uid)));
   // Query each friend separately so Firestore can enforce the block check per owner.
   const receivedResults = await Promise.all([...acceptedPeers].map(async peerUid => {
     try {
