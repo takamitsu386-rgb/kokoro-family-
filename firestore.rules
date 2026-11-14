@@ -431,6 +431,28 @@ service cloud.firestore {
                 || blockedBetween(resource.data.ownerUid, resource.data.recipientUid)))));
     }
 
+    // Recipient-visible index contains identifiers only, never shared room contents.
+    // It remains readable after blocking so stale shares can be revoked safely.
+    match /users/{userId}/receivedSharedRooms/{shareId} {
+      allow get, list: if owns(userId);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'recipientUid', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.recipientUid == userId
+        && request.resource.data.createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/sharedRooms/$(shareId))
+        && getAfter(/databases/$(database)/documents/sharedRooms/$(shareId)).data.ownerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/sharedRooms/$(shareId)).data.recipientUid == userId
+        && acceptedFriend(request.auth.uid, userId)
+        && !blockedBetween(request.auth.uid, userId);
+      allow update: if false;
+      allow delete: if signedIn()
+        && (!exists(/databases/$(database)/documents/users/$(userId)/receivedSharedRooms/$(shareId))
+          || owns(userId)
+          || resource.data.ownerUid == request.auth.uid);
+    }
+
     match /users/{userId}/sharedRooms/{shareId} {
       allow get, list: if owns(userId);
       allow create: if owns(userId)
