@@ -157,5 +157,7 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - Cloud FunctionsのCORS許可元に開発用GitHub Pagesのオリジンを追加。Firebase Authenticationの承認済みドメインとWeb APIキーのHTTPリファラー制限にも、実際の配信先を追加する必要があることを設定手順へ追記。
 - 上記の接続先選択とCORS許可を自動検証へ追加。最新のSource validation run `43646388544` は成功。
 - GitHub Pagesの直近デプロイ run `43593021470` は、build成功・deploy失敗。失敗理由は取得できた実行情報だけでは確定できず、公開済みとは扱わない。
-- PR #1 は引き続きドラフトで、GitHubが競合あり（`mergeable_state: dirty`）と判定。共通祖先以降に両ブランチで変更されたファイルは `index.html` と `sw.js`。開発ブランチ側の今日の予定UI・PWA変更を失わないよう、統合時にこの2ファイルの競合解消が必要。
+- PR #1 は引き続きドラフト。2026-11-15に開発ブランチをfeatureへ取り込む2親コミット `ece145a7447fd3d112deab6503c81fc74c889518` を作成し、`index.html` と `sw.js` の競合を解消。GitHub PR情報は `mergeable: true` に変化したが、PR自体はまだマージしていない。
 - Firebase Secret Managerへの `OPENAI_API_KEY` 登録、Functions/Hostingの本番反映、Firebase Authentication設定、実機ログイン・AI応答確認、SNS運営担当者と緊急時対応手順の確定は未完了。
+- 開発ブランチの「今日の予定」UI・ローカル保存機能、パステルテーマ、PWA manifest、GitHub Pagesデプロイworkflowと関連仕様書をfeatureブランチへ統合。feature側のネットワーク優先Service Workerを維持し、キャッシュ名をv367へ更新。
+- `scripts/validate-today-plan.mjs` を追加し、予定データの入力検証・容量制限・JSON入出力・確認付き削除・個人情報注意表示をCIで検査する設定を追加。最新head `6bfbb82ed58f0926f6b13353da5ff7096dbdddf3` のSource validation run `43646736894` は確認時点で実行中。
