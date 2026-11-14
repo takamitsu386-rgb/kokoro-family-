@@ -224,7 +224,7 @@ assert.match(rotate,/if\(!autoSaveRoom\(\)\)/,'Rotation must persist the room.')
 assert.match(rotate,/style\.rotate=previous/,'Rotation must roll back if saving fails.');
 console.log('Selected furniture rotation checks passed.');
 
-const paletteBlock=source.slice(source.indexOf('const roomColorPalettes=['),source.indexOf("const wallColors=['));
+const paletteBlock=source.slice(source.indexOf('const roomColorPalettes=['),source.indexOf("const wallColors=[")
 assert.match(source,/id="roomColorPalettes"/,'Room color palette UI must exist.');
 assert.match(source,/id="roomColorPaletteStatus"/,'Room color palette status must exist.');
 assert.match(paletteBlock,/key:'sakura'/,'Sakura palette must exist.');
