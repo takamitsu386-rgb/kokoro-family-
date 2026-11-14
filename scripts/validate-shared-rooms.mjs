@@ -27,7 +27,7 @@ assert.match(html, /setDoc\(doc\(snsDb, "users", user\.uid, "hiddenSharedRooms",
   'Recipients must hide incoming shares locally instead of deleting the owner\'s shared copy.');
 assert.match(html, /snsLoadSharedRooms\(user, authGeneration\)/);
 assert.match(html, /const revokedShares = new Map\(\)/, 'Blocking a user must collect their shared room snapshots for revocation.');
-assert.match(html, /batch\.delete\(doc\(snsDb, "users", share\.ownerUid, "sharedRooms", shareId\)\)/, 'Blocking must remove both sides of shared room snapshots.');
+assert.match(html, /cleanupBatch\.delete\(doc\(snsDb, "users", share\.ownerUid, "sharedRooms", shareId\)\)/, 'Blocking must remove both sides of shared room snapshots.');
 assert.match(html, /snsSharedRoomList\.replaceChildren\(\);\s*snsRoomShareStatus\.textContent = user \?/);
 
 assert.match(rules, /match \/sharedRooms\/{shareId}/);
