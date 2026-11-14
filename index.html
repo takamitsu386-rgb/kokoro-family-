@@ -4047,7 +4047,7 @@ async function applyPendingSharedShopping(){
   const localSnapshot=captureShoppingLocalSnapshot();
   if(!confirm("相手から受信した最新データで、この端末の買い物リスト・購入履歴・予算を置き換えます。必要なら先にバックアップしてください。続けますか？"))return;
   const generation=authStateGeneration,snapshot=await getDoc(doc(db,"sharedShopping",sharedShoppingId(user.uid,peerUid)));
-  if(!currentUser||currentUser.uid!==user.uid||authStateGeneration!==generation||shoppingSharedFriend?.value!==peerUid)throw new Error("ログイン状態または共有先が変わったため、適用を中止しました。");
+  if(!currentUser||currentUser.uid!==user.uid||authStateGeneration!==generation||shoppingSharedFriend?.value!==peerUid||!navigator.onLine)throw new Error("ログイン状態・共有先または通信状態が変わったため、適用を中止しました。");
   if(!shoppingLocalSnapshotMatches(localSnapshot))throw new Error("確認中にこの端末の買い物データが変更されました。上書きを防ぐため適用を中止しました。最新内容を確認して、もう一度操作してください。");
   if(!snapshot.exists())throw new Error("共有データが削除されました。");
   const latest=snapshot.data();
