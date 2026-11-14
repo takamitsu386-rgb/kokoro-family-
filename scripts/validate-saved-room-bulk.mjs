@@ -296,7 +296,7 @@ assert.match(inventory,/replace\(/,'Inventory export must escape CSV cell quotes
 assert.ok(inventory.includes("if(/^[\\s]*[=+@-]/.test(text))"),'Formula-like spreadsheet values must be neutralized using a whitespace-aware prefix check.');
 assert.ok(inventory.includes("const csv='\\uFEFF'"),'CSV export must include an actual UTF-8 BOM escape.');
 assert.ok(inventory.includes(".join('\\r\\n')"),'CSV export must use actual CRLF line endings.');
-assert.match(inventory,/\^\[\\s\]\*\[=+@-\]/,'Inventory export must neutralize spreadsheet formula-leading values.');
+assert.ok(inventory.includes("^[\\s]*[=+@-]"),'Inventory export must neutralize spreadsheet formula-leading values.');
 assert.match(inventory,/1000000/,'Inventory export must enforce a file size limit.');
 assert.match(inventory,/URL\.revokeObjectURL/,'Inventory export must release its object URL.');
 const comparisonExport=source.slice(source.indexOf('function exportSelectedRoomComparisonCsv()'),source.indexOf('function compareSelectedSavedRooms()'));
