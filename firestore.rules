@@ -87,7 +87,7 @@ service cloud.firestore {
         && data.text.size() >= 1
         && data.text.size() <= 500
         && data.text.matches('.*\\S.*')
-        && data.visibility in ['private', 'public']
+        && data.visibility in ['private', 'public', 'friends']
         && data.status in ['active', 'deleted']
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
