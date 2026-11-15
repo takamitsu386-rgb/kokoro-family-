@@ -44,9 +44,14 @@ assert.match(tests, /describe\('shared room snapshots'/);
 assert.match(tests, /allows only the owner and recipient to read their shared snapshot/);
 assert.match(tests, /allows an owner to create a bounded snapshot only for an accepted friend/);
 assert.match(tests, /lets recipients clean up both copies after access ends and owners revoke their own shares/);
-assert.match(rules, /resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?!blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\)/,
+const sharedRoomRulesStart = rules.indexOf('match /sharedRooms/{shareId}');
+const sharedRoomRulesEnd = rules.indexOf('match /users/{userId}/receivedSharedRooms/{shareId}', sharedRoomRulesStart);
+assert.ok(sharedRoomRulesStart >= 0 && sharedRoomRulesEnd > sharedRoomRulesStart,
+  'Shared room security rules must be present.');
+const sharedRoomRules = rules.slice(sharedRoomRulesStart, sharedRoomRulesEnd);
+assert.match(sharedRoomRules, /allow get: if signedIn\(\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?!blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\)/,
   'Shared room recipients must remain accepted friends and unblocked to read snapshots.');
-assert.match(rules, /allow list: if signedIn\(\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)/,
+assert.match(sharedRoomRules, /allow list: if signedIn\(\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?!blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\)/,
   'Recipient collection queries must also be revoked when the friendship ends.');
 
 console.log('Shared room UI, owner mirrors, recipient access, snapshot limits, and emulator test coverage passed.');
