@@ -348,7 +348,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 <button class="primary" id="aiSend" type="button">送信する</button>
 <button id="aiClear" type="button">この画面の会話を消す</button>
-<span id="aiStatus" role="status" aria-live="polite">Googleログイン後に送信できます。</span>
+<span id="aiStatus" data-release-gate="disabled" role="status" aria-live="polite">AI相談は年齢に応じた安全設定の準備が整うまで一時停止中です。</span>
 </div>
 <p style="font-size:13px;color:#667085">つらさが強いときや、身の安全に不安があるときは、AIだけで抱えず、近くの信頼できる大人にも伝えてください。</p>
 </section>
@@ -5134,6 +5134,10 @@ aiInput?.addEventListener("keydown", event => {
   }
 });
 aiSend?.addEventListener("click", async () => {
+  if (aiStatus?.dataset.releaseGate === "disabled") {
+    aiStatus.textContent = "AI相談は年齢に応じた安全設定の準備が整うまで一時停止中です。";
+    return;
+  }
   if (aiBusy) return;
   const message = aiInput.value.trim();
   if (!message) { aiStatus.textContent = "相談内容を入力してください。"; return; }
