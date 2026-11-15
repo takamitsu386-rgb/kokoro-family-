@@ -68,7 +68,7 @@ assert.match(shareUpload, /shoppingSharedFriend\?\.value!==peerUid/,
   "Friend upload must reject a changed recipient.");
 assert.match(shareUpload, /await runTransaction\(db,async transaction=>/,
   "Friend shared-data overwrite must use a Firestore transaction.");
-assert.match(shareUpload, /latestData\.updatedAt\.isEqual\(baseline\.updatedAt\)/,
+assert.match(shareUpload, /baseline\.updatedAt\.isEqual\(latestData\.updatedAt\)/,
   "Friend shared-data overwrite must reject concurrent updates.");
 assert.match(shareDownload, /latestSnapshot=await getDoc\(ref\)/,
   "Friend shared-data import must re-read the latest cloud version.");
