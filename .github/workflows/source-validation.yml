@@ -149,6 +149,8 @@ jobs:
           }
           console.log('Firebase project, AI secret wiring, and Google login flow are consistent.');
           NODE
+      - name: Validate mobile navigation layout
+        run: node scripts/validate-mobile-navigation.mjs
       - name: Validate app navigation and PWA assets
         run: |
           node --input-type=module <<'NODE'
