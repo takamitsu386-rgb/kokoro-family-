@@ -44,6 +44,11 @@ assert.match(tests, /describe\('shared room snapshots'/);
 assert.match(tests, /allows only the owner and recipient to read their shared snapshot/);
 assert.match(tests, /allows an owner to create a bounded snapshot only for an accepted friend/);
 assert.match(tests, /lets recipients clean up both copies after access ends and owners revoke their own shares/);
+assert.match(rules, /resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?!blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\)/,
+  'Shared room recipients must remain accepted friends and unblocked to read snapshots.');
+assert.match(rules, /allow list: if signedIn\(\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)/,
+  'Recipient collection queries must also be revoked when the friendship ends.');
+
 console.log('Shared room UI, owner mirrors, recipient access, snapshot limits, and emulator test coverage passed.');
 
 assert.match(html, /保存済みのお部屋にコピー/);
