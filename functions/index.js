@@ -41,6 +41,10 @@ exports.aiConsultation = onRequest({
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
   if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+  // Fail closed until age-appropriate access controls and consent flows are implemented and reviewed.
+  if (process.env.AI_CONSULTATION_ENABLED !== "true") {
+    return sendJson(res, 503, { error: "AI相談は安全設定の準備が整うまで一時停止しています。" });
+  }
 
   try {
     const authHeader = req.get("authorization") || "";
