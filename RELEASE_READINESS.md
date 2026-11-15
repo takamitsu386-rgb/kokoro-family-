@@ -318,3 +318,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - アカウント削除のUI/APIは確認できていない。Firebase Authenticationユーザーだけを削除する簡易処理では、Firestore内のユーザーデータ、共有データ、通報・利用記録などが残る可能性がある。削除対象の棚卸し、本人確認、関連データの削除・保持方針、失敗時の再実行設計を行うまで実装済みと扱わない。
 - Firebase本番環境のGoogleログイン、Cloud FunctionsのSecret設定・デプロイ、AI実応答、Firestore同期・復元、スマートフォン実機受け入れ試験は未確認。
 - 結論：ソース検証は成功したが、MVP完成・本番公開可能とは判定しない。次の必須作業はSNSのサーバー側停止、年齢別AI利用制御の設計・実装、包括的なアカウント/データ削除設計、実機とFirebase本番環境の受け入れ試験。
+
+## 2026-11-15 SNSサーバー停止ゲート・最新CI結果
+
+- SNSの画面非表示に加え、submitReport、publicTimeline、searchPublicProfiles の各Cloud Functionにサーバー側停止ゲートを追加。環境変数 SNS_ENABLED が文字列 true でない限り503を返し、初期状態では停止する。
+- scripts/validate-sns-release-gate.mjs を追加し、3つのAPIすべてに停止判定があること、SNS画面がhiddenであることを検査。Source validation workflowにも組み込んだ。
+- AI相談APIも AI_CONSULTATION_ENABLED=true が明示されない限り503で停止する既存ゲートを維持。年齢別利用制御・保護者同意が未実装のため、環境変数を有効化しない。
+- コミット 8a904f153b0e3f78cb2f6c54b19873ec3f5b359d のGitHub Actions Source validation run 43713072759 は completed / success。SNS停止ゲート検査、既存の同期・プライバシー検査、Firestore Rules Emulator、Pages成果物・JSON検査を含む全ステップが成功。
+- アカウント削除UI/APIは依然として未実装。Firestoreには本人専用データ、AI・通報・タイムライン利用枠、プロフィール、投稿とコメント・いいね、友達申請、ブロック、共有ルーム、共有買い物データ、通報記録など複数の保存先がある。本人専用データと他人との共有・通報記録では削除や保持の扱いが異なるため、Firebase Authだけを削除する処理や、本人UID配下だけを機械的に消す処理は不完全・危険となる。
+- 削除対象と保持例外、共有データの扱い、再認証、削除処理の再実行・部分失敗復旧、Authアカウント削除の順序を設計・テストするまで、アカウント削除を実装済みと扱わない。一般公開の必須ブロッカーとして維持する。
+- 今回のCI成功は開発ブランチのコード検査結果であり、Firebase本番環境へのデプロイ、SNS/AIの本番停止状態、実機ログイン・同期の確認ではない。PR #1はopen / draft / unmergedのまま。マージ・デプロイ・公開承認は実施していない。
