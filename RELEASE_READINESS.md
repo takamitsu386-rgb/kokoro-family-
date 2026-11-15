@@ -225,3 +225,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 友達限定の投稿設定・プロフィール表示・投稿一覧表示について、再発防止の静的検証を追加。
 - 最新コミット `df1bd05e852e81a40f50fe6e1a80c4a0d381c66a` のSource validation push run `43700610970` と pull_request run `43700614668` は両方 success。Firestore Rules Emulatorを含む30ステップすべて成功。
 - PR #1 は引き続き open / draft / mergeable。マージ・本番デプロイ・Firebase実環境の変更は未実施。実機でのSNS表示・投稿保存は未確認。
+
+
+## 2026-11-15 MVP仕様とGitHub Pages成果物の整理
+
+- `MVP_SCOPE.md` の古い実装状況を更新。部屋テンプレート・今日の予定・AI相談・SNSが開発ブランチに存在することと、実機・本番確認が未完了であることを明記。SNSコードの存在はMVP採用や公開承認を意味しないことを明確化。
+- GitHub Pagesの成果物をリポジトリ全体から、`index.html`、`manifest.webmanifest`、`icon.svg`、`sw.js` の4ファイルだけを格納する `_site` に変更。Firebase設定、Functions、テスト、仕様書などをPages成果物へ含めない構成にした。
+- `scripts/validate-pages-artifact.mjs` を追加し、成果物の対象、相対PWAパス、Service Worker app shellの整合をCIで検証。
+- Source validation run `43701495003` と `43701499789` は両方success。最新Pages成果物検証を含む31ステップが成功。
+- Pages workflowの変更はfeatureブランチ上。PR #1は未マージのため、今回の変更を理由とした開発ブランチへの自動デプロイは行っていない。
+- 作業中に検証スクリプト作成時のブランチ指定を誤り、default branchに一時追加した後、同ブランチ上で削除した。Git比較では作業前の親コミットと現在のmainのファイル差分は0件。GitHub Pagesの自動ビルド・デプロイrun `43701500372` はmain上でsuccessとなったため、既存main内容の再デプロイが発生した可能性がある。内容の新規変更は残っていないが、Pagesの公開状態そのものは別途確認が必要。
