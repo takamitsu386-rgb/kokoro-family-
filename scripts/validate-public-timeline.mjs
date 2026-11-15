@@ -11,11 +11,11 @@ const start = functions.indexOf('exports.publicTimeline = onRequest(');
 const end = functions.indexOf('const reportReviewStatuses', start);
 assert.ok(start >= 0 && end > start, 'The public timeline endpoint must exist before report-review handlers.');
 const endpoint = functions.slice(start, end);
-assert.match(endpoint, /verifyIdToken\(match\[1\], true\)/,
-assert.match(endpoint, /timelineUsageRef[\s\S]*?tx\.get\(timelineUsageRef\)[\s\S]*?if \(count >= 120\) return false[\s\S]*?tx\.set\(timelineUsageRef/ ,
+assert.match(endpoint, /timelineUsageRef[\s\S]*?tx\.get\(timelineUsageRef\)[\s\S]*?if \(count >= 120\) return false[\s\S]*?tx\.set\(timelineUsageRef/,
   'Timeline reads must be capped at 120 per account per Tokyo day using a transaction.');
-assert.match(endpoint, /本日のタイムライン読み込み上限に達しました/ ,
+assert.match(endpoint, /本日のタイムライン読み込み上限に達しました/,
   'The endpoint must return a clear daily-limit response.');
+assert.match(endpoint, /verifyIdToken\(match\[1\], true\)/,
   'The timeline must verify the Firebase token and revocation state.');
 assert.match(endpoint, /where\("visibility", "==", "public"\)/,
   'The timeline query must select public posts.');
