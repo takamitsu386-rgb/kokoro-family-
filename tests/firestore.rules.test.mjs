@@ -933,6 +933,20 @@ describe('shared room snapshots', () => {
     await assertFails(getDocs(collection(stranger, 'sharedRooms')));
   });
 
+  it('revokes recipient access to shared room contents after friendship ends', async () => {
+    await seed('sharedRooms/unfriended-room', {
+      ownerUid: 'unfriended-owner', recipientUid: 'unfriended-recipient',
+      title: 'Former friend room', currentRoom: { wall: '#fff', items: [] }, createdAt: new Date()
+    });
+    const recipient = testEnv.authenticatedContext('unfriended-recipient').firestore();
+    await assertFails(getDoc(doc(recipient, 'sharedRooms/unfriended-room')));
+    await assertFails(getDocs(query(
+      collection(recipient, 'sharedRooms'),
+      where('recipientUid', '==', 'unfriended-recipient'),
+      where('ownerUid', '==', 'unfriended-owner')
+    )));
+  });
+
   it('creates a recipient metadata index atomically with the shared snapshot', async () => {
     const owner = testEnv.authenticatedContext('room-owner').firestore();
     const batch = writeBatch(owner);
