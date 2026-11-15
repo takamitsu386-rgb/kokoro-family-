@@ -12,8 +12,6 @@ for (const id of [
   "family-shopping", "familyShoppingForm", "familyShoppingSubmit",
   "familyShoppingCancel", "familyShoppingExport", "familyShoppingImportFile",
   "familyShoppingCloudUpload", "familyShoppingCloudDownload",
-  "familyShoppingSharedFriend", "familyShoppingShareUpload",
-  "familyShoppingShareDownload", "familyShoppingShareApply"
 ]) {
   assert.match(html, new RegExp('id="' + id + '"'), "Missing shopping UI: " + id);
 }
@@ -25,23 +23,16 @@ assert.match(html, /const safe=value=>/);
 assert.match(html, /const parseCSV=text=>/);
 assert.match(html, /finally\{importFile\.value="";\}/);
 
-const shareUploadStart = cloud.indexOf("async function uploadShoppingToFriend()");
-const shareDownloadStart = cloud.indexOf("async function downloadShoppingFromFriend()");
 const uploadStart = cloud.indexOf("async function uploadShoppingCloud()");
 const downloadStart = cloud.indexOf("async function downloadShoppingCloud()");
-assert.ok(shareUploadStart >= 0 && shareDownloadStart > shareUploadStart &&
-  uploadStart > shareDownloadStart && downloadStart > uploadStart,
-  "Personal and friend-shared shopping cloud handlers must exist.");
-const shareUpload = cloud.slice(shareUploadStart, shareDownloadStart);
-const shareDownload = cloud.slice(shareDownloadStart, uploadStart);
+assert.ok(uploadStart >= 0 && downloadStart > uploadStart,
+  "Personal shopping cloud handlers must exist.");
 const upload = cloud.slice(uploadStart, downloadStart);
 const download = cloud.slice(downloadStart);
 
 for (const [name, source] of [
   ["personal upload", upload],
-  ["personal download", download],
-  ["friend upload", shareUpload],
-  ["friend download", shareDownload]
+  ["personal download", download]
 ]) {
   assert.match(source, /generation=authStateGeneration/,
     name + " must capture the authentication generation.");
@@ -64,19 +55,9 @@ assert.match(download, /shoppingLocalSnapshotMatches\(localSnapshot\)/,
   "Personal cloud import must reject intervening local edits.");
 assert.match(download, /Shopping cloud rollback failed/,
   "Personal cloud import must restore local data after a storage failure.");
-assert.match(shareUpload, /shoppingSharedFriend\?\.value!==peerUid/,
-  "Friend upload must reject a changed recipient.");
-assert.match(shareUpload, /await runTransaction\(db,async transaction=>/,
-  "Friend shared-data overwrite must use a Firestore transaction.");
-assert.match(shareUpload, /baseline\.updatedAt\.isEqual\(latestData\.updatedAt\)/,
-  "Friend shared-data overwrite must reject concurrent updates.");
-assert.match(shareDownload, /latestSnapshot=await getDoc\(ref\)/,
-  "Friend shared-data import must re-read the latest cloud version.");
-assert.match(shareDownload, /shoppingLocalSnapshotMatches\(localSnapshot\)/,
-  "Friend shared-data import must reject intervening local edits.");
-assert.match(shareDownload, /applySharedShoppingData\(latest\)/,
-  "Friend shared-data import must use the guarded local apply routine.");
-
+assert.match(html, /familyShoppingSharedFriend[^]*?hidden[^]*?familyShoppingShareStatus/,
+  "Friend-sharing shopping controls must remain hidden for the MVP.");
+assert.match(html, /友達との共有機能は初期版では利用できません。/);
 assert.match(sw, /const CACHE_NAME="kokoro-family-v367"/,
   "Service Worker cache version must match the current application shell.");
 console.log("Family shopping UI, CSV safety, personal cloud sync, friend sharing, account isolation, and cache version checks passed.");
