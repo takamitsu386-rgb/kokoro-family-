@@ -235,3 +235,14 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - Source validation run `43701495003` と `43701499789` は両方success。最新Pages成果物検証を含む31ステップが成功。
 - Pages workflowの変更はfeatureブランチ上。PR #1は未マージのため、今回の変更を理由とした開発ブランチへの自動デプロイは行っていない。
 - 作業中に検証スクリプト作成時のブランチ指定を誤り、default branchに一時追加した後、同ブランチ上で削除した。Git比較では作業前の親コミットと現在のmainのファイル差分は0件。GitHub Pagesの自動ビルド・デプロイrun `43701500372` はmain上でsuccessとなったため、既存main内容の再デプロイが発生した可能性がある。内容の新規変更は残っていないが、Pagesの公開状態そのものは別途確認が必要。
+
+
+## 2026-11-15 夜間最終点検
+
+- PR #1 の最新headは `b9e81637674299f2aa86beee3c589239824e9abb`。PRはopen / draft / mergeableで、未マージ。
+- 最新Source validation run `43701673860` と `43701670193` は両方success。Pages成果物の限定を含む31ステップが成功。
+- `index.html` のID 301件はすべて一意。画面内のハッシュリンク34件にリンク切れなし。
+- Firebase Hosting rewriteは6つのCloud Functions exportと対応。AI相談のGitHub Pages向け接続先選択とHosting rewriteをコード上で確認。
+- 上記は静的検証・CI結果であり、スマホ実機ログイン、Firestore同期、AI実応答、Functions/Rules/Indexesの本番反映を保証しない。
+- 未完了の公開ゲート：Firebase Authenticationの承認済みドメイン・APIキー制限、Secret Managerへの `OPENAI_API_KEY` 登録、Cloud Functions/Firestore Rules/Indexes/Hostingの反映と実機試験、SNSを公開する場合の年齢保護・人による通報運営体制。
+- PRマージ・本番公開・Firebaseデプロイは実施していない。引き続きmainは変更しない。
