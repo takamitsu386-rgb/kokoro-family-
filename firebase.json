@@ -11,7 +11,12 @@
       "**/node_modules/**",
       "functions/**",
       "**/*.md",
-      "firestore.rules"
+      "firestore.rules",
+      "scripts/**",
+      "tests/**",
+      "firestore.indexes.json",
+      "package.json",
+      "package-lock.json"
     ],
     "rewrites": [
       {
