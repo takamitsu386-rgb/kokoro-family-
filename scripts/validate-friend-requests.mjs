@@ -23,6 +23,26 @@ assert.match(html, /snsReportContext = \{ reportType: "comment"/, 'Comment repor
 assert.match(f, /comment\?\.authorUid !== targetUid/, 'The server must verify the reported comment author.');
 assert.match(f, /targetCommentId: data\.targetCommentId/, 'Admin review must receive the comment reference.');
 assert.match(rules, /match \/friendRequests\/\{requestId\}/, 'Friend request collection rules are required.');
+const friendRequestRuleStart = rules.indexOf('match /friendRequests/{requestId}');
+const friendRequestRuleEnd = rules.indexOf('match /', friendRequestRuleStart + 10);
+const friendRequestRules = rules.slice(friendRequestRuleStart, friendRequestRuleEnd > 0 ? friendRequestRuleEnd : undefined);
+assert.match(friendRequestRules, /allow get: if signedIn\(\)[\s\S]*?resource\.data\.fromUid == request\.auth\.uid[\s\S]*?resource\.data\.toUid == request\.auth\.uid[\s\S]*?!blockedBetween/);
+assert.doesNotMatch(friendRequestRules, /!exists\([\s\S]*?friendRequests\/\$\(requestId\)/,
+  'Missing request documents must not be readable as an existence oracle.');
+const sendRequestStart = html.indexOf('snsSendFriendRequest.addEventListener("click"');
+const sendRequestEnd = html.indexOf('snsSubmitReport.addEventListener("click"', sendRequestStart);
+assert.ok(sendRequestStart >= 0 && sendRequestEnd > sendRequestStart);
+const sendRequestHandler = html.slice(sendRequestStart, sendRequestEnd);
+assert.doesNotMatch(sendRequestHandler, /getDoc\(doc\(snsDb, "friendRequests"/,
+  'Sending a request must not probe existing or missing request IDs.');
+assert.match(sendRequestHandler, /setDoc\(doc\(snsDb, "friendRequests", user\.uid \+ "_" \+ targetUid\)/);
+const removeFriendStart = html.indexOf('async function snsRemoveFriend(');
+const removeFriendEnd = html.indexOf('async function snsLoadSharedRooms(', removeFriendStart);
+const removeFriendHandler = html.slice(removeFriendStart, removeFriendEnd);
+assert.match(removeFriendHandler, /where\("fromUid", "==", user\.uid\)/);
+assert.match(removeFriendHandler, /where\("toUid", "==", user\.uid\)/);
+assert.doesNotMatch(removeFriendHandler, /getDoc\(doc\(snsDb, "friendRequests"/,
+  'Friend removal must use participant-scoped lists instead of probing both directional IDs.');
 assert.match(rules, /request\.resource\.data\.fromUid == request\.auth\.uid/, 'Request sender must match the authenticated UID.');
 assert.match(rules, /resource\.data\.toUid == request\.auth\.uid/, 'Only the recipient may accept or decline.');
 const friendRequestListRuleStart = rules.indexOf('match /friendRequests/{requestId}');

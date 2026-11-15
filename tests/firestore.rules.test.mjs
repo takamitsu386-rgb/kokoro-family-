@@ -780,9 +780,9 @@ describe('friend requests', () => {
     });
   });
 
-  it('allows checking a missing request document and only the recipient can accept an existing request', async () => {
+  it('denies probing missing request documents and only the recipient can accept an existing request', async () => {
     const alice = testEnv.authenticatedContext('friend-sender').firestore();
-    await assertSucceeds(getDoc(doc(alice, 'friendRequests/friend-sender_friend-target')));
+    await assertFails(getDoc(doc(alice, 'friendRequests/friend-sender_friend-target')));
     const requestRef = doc(alice, 'friendRequests/friend-sender_friend-target');
     await assertSucceeds(setDoc(requestRef, {
       fromUid: 'friend-sender', toUid: 'friend-target', status: 'pending',
