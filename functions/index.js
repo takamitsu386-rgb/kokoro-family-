@@ -427,12 +427,15 @@ exports.searchPublicProfiles = onRequest({
     }, {});
     const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
     const usageRef = db.doc(`users/${decoded.uid}/profileSearchUsage/${dayKey}`);
+    // Each search owns a reservation so concurrent failures cannot refund another search.
+    const reservationRef = usageRef.collection("reservations").doc();
     const allowed = await db.runTransaction(async tx => {
       const snap = await tx.get(usageRef);
       const storedCount = snap.exists ? snap.data().count : 0;
       const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 30;
       if (count >= 30) return false;
       tx.set(usageRef, { count: count + 1, updatedAt: Timestamp.now() }, { merge: true });
+      tx.create(reservationRef, { createdAt: Timestamp.now() });
       return true;
     });
     if (!allowed) return sendJson(res, 429, { error: "本日のプロフィール検索上限に達しました。" });
@@ -463,13 +466,24 @@ exports.searchPublicProfiles = onRequest({
             ? data.avatarId : "avatar-01"
         };
       });
+      // Successful searches keep the quota count and remove only their temporary reservation.
+      await db.runTransaction(async tx => {
+        const reservation = await tx.get(reservationRef);
+        if (reservation.exists) tx.delete(reservationRef);
+      });
       keepSearchReservation = true;
       return sendJson(res, 200, { items });
     } finally {
       if (!keepSearchReservation) {
         try {
           await db.runTransaction(async tx => {
-            const latestUsage = await tx.get(usageRef);
+            const [latestUsage, reservation] = await Promise.all([
+              tx.get(usageRef),
+              tx.get(reservationRef)
+            ]);
+            // A failed search may refund only its own still-existing reservation.
+            if (!reservation.exists) return;
+            tx.delete(reservationRef);
             const count = latestUsage.exists ? latestUsage.data().count : 0;
             if (!Number.isSafeInteger(count) || count <= 0) return;
             if (count === 1) tx.delete(usageRef);
