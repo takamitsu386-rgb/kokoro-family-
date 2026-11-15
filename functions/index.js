@@ -121,6 +121,11 @@ exports.aiConsultation = onRequest({
       const reply = replyFromOutput || (typeof result.output_text === "string" ? result.output_text.trim() : "");
       if (!reply) return sendJson(res, 502, { error: "返答を受け取れませんでした。もう一度お試しください。" });
 
+      // Successful requests keep the quota count but no longer need the reservation document.
+      await getFirestore().runTransaction(async tx => {
+        const reservation = await tx.get(reservationRef);
+        if (reservation.exists) tx.delete(reservationRef);
+      });
       keepUsageReservation = true;
       return sendJson(res, 200, { reply });
     } finally {
