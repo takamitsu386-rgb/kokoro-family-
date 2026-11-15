@@ -55,9 +55,12 @@ assert.match(download, /shoppingLocalSnapshotMatches\(localSnapshot\)/,
   "Personal cloud import must reject intervening local edits.");
 assert.match(download, /Shopping cloud rollback failed/,
   "Personal cloud import must restore local data after a storage failure.");
-assert.match(html, /familyShoppingSharedFriend[^]*?hidden[^]*?familyShoppingShareStatus/,
+assert.match(html, /<div hidden aria-hidden="true"[^>]*>[\\s\\S]*?familyShoppingSharedFriend[\\s\\S]*?familyShoppingShareStatus/,
   "Friend-sharing shopping controls must remain hidden for the MVP.");
 assert.match(html, /友達との共有機能は初期版では利用できません。/);
+const rules = await readFile(new URL("../firestore.rules", import.meta.url), "utf8");
+assert.match(rules, /match \/sharedShopping\/\{shareId\}\s*\{[\s\S]*?allow read, write: if false;/,
+  "Friend-shared shopping data must be denied in the MVP.");
 assert.match(sw, /const CACHE_NAME="kokoro-family-v367"/,
   "Service Worker cache version must match the current application shell.");
 console.log("Family shopping UI, CSV safety, personal cloud sync, friend sharing, account isolation, and cache version checks passed.");
