@@ -4,81 +4,13 @@ import assert from 'node:assert/strict';
 const html = readFileSync('index.html', 'utf8');
 const rules = readFileSync('firestore.rules', 'utf8');
 const tests = readFileSync('tests/firestore.rules.test.mjs', 'utf8');
-const f = readFileSync('functions/index.js', 'utf8');
-
-const postVisibilityStart = html.indexOf('<select id="snsPostVisibility"');
-const postVisibilityEnd = html.indexOf('</select>', postVisibilityStart);
-assert.ok(postVisibilityStart >= 0 && postVisibilityEnd > postVisibilityStart,
-  'Post visibility selector must exist.');
-const postVisibilityOptions = html.slice(postVisibilityStart, postVisibilityEnd);
-assert.match(postVisibilityOptions, /<option value="private">/,
-  'New posts must default to private visibility.');
-assert.match(postVisibilityOptions, /<option value="friends">/,
-  'Users must be able to choose friends-only posts.');
-assert.match(postVisibilityOptions, /<option value="public">/,
-  'Public post visibility must remain available.');
-
-for (const id of ['snsFriendUid', 'snsSendFriendRequest', 'snsFriendNotice', 'snsIncomingFriends', 'snsOutgoingFriends']) {
-  assert.match(html, new RegExp('id="' + id + '"'), 'Friend request UI element is required: ' + id);
-}
-const ownPostRendererStart = html.indexOf('function snsRenderPosts(items)');
-const ownPostRendererEnd = html.indexOf('function snsRenderPublicTimeline(items)', ownPostRendererStart);
-assert.ok(ownPostRendererStart >= 0 && ownPostRendererEnd > ownPostRendererStart,
-  'Own post renderer must exist.');
-const ownPostRenderer = html.slice(ownPostRendererStart, ownPostRendererEnd);
-assert.match(ownPostRenderer, /private:\s*"自分のみ"/);
-assert.match(ownPostRenderer, /friends:\s*"友達のみ"/);
-assert.match(ownPostRenderer, /public:\s*"公開投稿"/,
-  'Own posts must show the actual visibility instead of mislabeling friends-only posts.');
-
-assert.match(html, /async function snsLoadFriendRequests\(/, 'Friend request lists must load after authentication.');
-assert.match(html, /where\("toUid", "==", user\.uid\)/, 'Incoming requests must be scoped to the signed-in recipient.');
-assert.match(html, /where\("fromUid", "==", user\.uid\)/, 'Outgoing requests must be scoped to the signed-in sender.');
-assert.match(html, /snsAuthGeneration !== authGeneration/, 'Friend request results must not leak across account switches.');
-assert.match(html, /snsDecideFriendRequest\(snap\.id, "accepted"\)/, 'Incoming requests must support acceptance.');
-assert.match(html, /snsDecideFriendRequest\(snap\.id, "declined"\)/, 'Incoming requests must support declining.');
-assert.match(html, /deleteDoc\(doc\(snsDb, "friendRequests", snap\.id\)\)/, 'Senders must be able to cancel pending requests.');
-assert.match(html, /コメント投稿者を通報/, 'Comments must link to the existing report flow.');
-assert.match(html, /コメント本文は送信されません/, 'Comment reporting must not silently transmit comment text.');
-assert.match(html, /targetCommentId: reportContext\.targetCommentId/, 'Comment reports must carry a comment reference.');
-assert.match(html, /snsReportContext = \{ reportType: "comment"/, 'Comment report context must be explicitly selected.');
-assert.match(f, /comment\?\.authorUid !== targetUid/, 'The server must verify the reported comment author.');
-assert.match(f, /targetCommentId: data\.targetCommentId/, 'Admin review must receive the comment reference.');
-assert.match(rules, /match \/friendRequests\/\{requestId\}/, 'Friend request collection rules are required.');
-const friendRequestRuleStart = rules.indexOf('match /friendRequests/{requestId}');
-const friendRequestRuleEnd = rules.indexOf('match /', friendRequestRuleStart + 10);
-const friendRequestRules = rules.slice(friendRequestRuleStart, friendRequestRuleEnd > 0 ? friendRequestRuleEnd : undefined);
-assert.match(friendRequestRules, /allow get: if signedIn\(\)[\s\S]*?resource\.data\.fromUid == request\.auth\.uid[\s\S]*?resource\.data\.toUid == request\.auth\.uid[\s\S]*?!blockedBetween/);
-assert.doesNotMatch(friendRequestRules, /!exists\([\s\S]*?friendRequests\/\$\(requestId\)/,
-  'Missing request documents must not be readable as an existence oracle.');
-const sendRequestStart = html.indexOf('snsSendFriendRequest.addEventListener("click"');
-const sendRequestEnd = html.indexOf('snsSubmitReport.addEventListener("click"', sendRequestStart);
-assert.ok(sendRequestStart >= 0 && sendRequestEnd > sendRequestStart);
-const sendRequestHandler = html.slice(sendRequestStart, sendRequestEnd);
-assert.doesNotMatch(sendRequestHandler, /getDoc\(doc\(snsDb, "friendRequests"/,
-  'Sending a request must not probe existing or missing request IDs.');
-assert.match(sendRequestHandler, /setDoc\(doc\(snsDb, "friendRequests", user\.uid \+ "_" \+ targetUid\)/);
-const removeFriendStart = html.indexOf('async function snsRemoveFriend(');
-const removeFriendEnd = html.indexOf('async function snsLoadSharedRooms(', removeFriendStart);
-const removeFriendHandler = html.slice(removeFriendStart, removeFriendEnd);
-assert.match(removeFriendHandler, /where\("fromUid", "==", user\.uid\)/);
-assert.match(removeFriendHandler, /where\("toUid", "==", user\.uid\)/);
-assert.doesNotMatch(removeFriendHandler, /getDoc\(doc\(snsDb, "friendRequests",\s*(?:user\.uid\s*\+\s*"_".*peerUid|peerUid\s*\+\s*"_".*user\.uid)/,
-  'Friend removal must use participant-scoped lists instead of probing both directional IDs.');
-assert.match(rules, /request\.resource\.data\.fromUid == request\.auth\.uid/, 'Request sender must match the authenticated UID.');
-assert.match(rules, /resource\.data\.toUid == request\.auth\.uid/, 'Only the recipient may accept or decline.');
-const friendRequestListRuleStart = rules.indexOf('match /friendRequests/{requestId}');
-const friendRequestListRuleEnd = rules.indexOf('allow create:', friendRequestListRuleStart);
-assert.ok(friendRequestListRuleStart >= 0 && friendRequestListRuleEnd > friendRequestListRuleStart,
-  'Friend request list rule must exist.');
-const friendRequestListRule = rules.slice(friendRequestListRuleStart, friendRequestListRuleEnd);
-assert.ok(friendRequestListRule.includes("allow list: if signedIn()")
-  && friendRequestListRule.includes("resource.data.toUid == request.auth.uid")
-  && friendRequestListRule.includes("resource.data.fromUid == request.auth.uid"),
-  'Users may list only their own friend requests for cleanup and inbox display.');
-assert.match(rules, /!blockedBetween\(resource\.data\.fromUid, resource\.data\.toUid\)/, 'Block state must be checked before changing existing requests.');
-assert.match(tests, /friend requests/, 'Firestore Emulator tests for friend requests are required.');
-assert.match(tests, /rejects requests to private profiles/, 'Private-profile requests must be rejected in tests.');
-assert.match(tests, /blocks requests in either direction/, 'Blocked requests must be rejected in tests.');
-
-console.log('Friend request UI, account isolation, comment reporting, and Firestore authorization checks passed.');
+assert.match(html, /id="sns"[^>]*hidden[^>]*aria-hidden="true"/,
+  'SNS UI must remain hidden in the MVP.');
+const start = rules.indexOf('match /friendRequests/{requestId}');
+assert.ok(start >= 0, 'Friend request path must be explicitly declared.');
+const block = rules.slice(start, rules.indexOf('\n    // Recipient snapshots', start));
+assert.match(block, /allow read, write: if false;/,
+  'Direct client access to friend requests must be denied.');
+assert.match(tests, /SNS and friend-sharing data are disabled for the MVP/);
+assert.match(tests, /friendRequests\/alice_bob/);
+console.log('MVP friend-request gate passed: SNS UI hidden and Firestore access denied.');
