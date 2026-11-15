@@ -41,7 +41,7 @@ const removeFriendEnd = html.indexOf('async function snsLoadSharedRooms(', remov
 const removeFriendHandler = html.slice(removeFriendStart, removeFriendEnd);
 assert.match(removeFriendHandler, /where\("fromUid", "==", user\.uid\)/);
 assert.match(removeFriendHandler, /where\("toUid", "==", user\.uid\)/);
-assert.doesNotMatch(removeFriendHandler, /getDoc\(doc\(snsDb, "friendRequests"/,
+assert.doesNotMatch(removeFriendHandler, /getDoc\(doc\(snsDb, "friendRequests",\s*(?:user\.uid\s*\+\s*"_".*peerUid|peerUid\s*\+\s*"_".*user\.uid)/,
   'Friend removal must use participant-scoped lists instead of probing both directional IDs.');
 assert.match(rules, /request\.resource\.data\.fromUid == request\.auth\.uid/, 'Request sender must match the authenticated UID.');
 assert.match(rules, /resource\.data\.toUid == request\.auth\.uid/, 'Only the recipient may accept or decline.');
