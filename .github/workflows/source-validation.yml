@@ -78,6 +78,19 @@ jobs:
           const html = readFileSync('index.html', 'utf8');
           const fn = readFileSync('functions/index.js', 'utf8');
 
+          const requiredHostingIgnores = [
+            'scripts/**',
+            'tests/**',
+            'firestore.indexes.json',
+            'package.json',
+            'package-lock.json'
+          ];
+          for (const pattern of requiredHostingIgnores) {
+            if (!config.hosting?.ignore?.includes(pattern)) {
+              throw new Error('Firebase Hosting must exclude development source/config file: ' + pattern);
+            }
+          }
+
           if (project.projects?.default !== 'kokoro-family') {
             throw new Error('Unexpected default Firebase project.');
           }
