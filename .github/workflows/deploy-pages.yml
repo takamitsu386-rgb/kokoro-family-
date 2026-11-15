@@ -21,12 +21,20 @@ jobs:
     steps:
       - name: Check out development branch
         uses: actions/checkout@v4
+      - name: Prepare static app artifact
+        run: |
+          mkdir -p _site
+          cp index.html manifest.webmanifest icon.svg sw.js _site/
+          test -s _site/index.html
+          test -s _site/manifest.webmanifest
+          test -s _site/icon.svg
+          test -s _site/sw.js
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload app files
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
   deploy:
     environment:
