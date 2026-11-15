@@ -17,6 +17,7 @@ assert.match(endpoint, /req\.method !== "POST"/, 'AI endpoint must reject non-PO
 assert.match(source, /Cache-Control\", \"no-store, max-age=0, private\"/, 'JSON API responses must not be cached because they may contain private user data.');
 assert.match(source, /Pragma\", \"no-cache\"/, 'JSON API responses must include a legacy no-cache directive.');
 assert.match(endpoint, /allowedOrigins\.has\(origin\)/, 'AI endpoint must enforce the origin allowlist.');
+assert.match(endpoint, /process\\.env\\.AI_CONSULTATION_ENABLED !== \"true\"[\\s\\S]*?return sendJson\\(res, 503/, 'AI consultation must fail closed until age safeguards and consent flows are ready.');
 assert.match(source, /"https:\/\/takamitsu386-rgb\.github\.io"/, 'AI endpoint must allow the development GitHub Pages origin.');
 assert.match(endpoint, /message\.length > 1200/, 'User messages must have a strict size limit.');
 assert.match(endpoint, /history\.slice\(-6\)/, 'Conversation history must be limited to the latest six entries.');
