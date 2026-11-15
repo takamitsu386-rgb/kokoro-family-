@@ -246,3 +246,14 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 上記は静的検証・CI結果であり、スマホ実機ログイン、Firestore同期、AI実応答、Functions/Rules/Indexesの本番反映を保証しない。
 - 未完了の公開ゲート：Firebase Authenticationの承認済みドメイン・APIキー制限、Secret Managerへの `OPENAI_API_KEY` 登録、Cloud Functions/Firestore Rules/Indexes/Hostingの反映と実機試験、SNSを公開する場合の年齢保護・人による通報運営体制。
 - PRマージ・本番公開・Firebaseデプロイは実施していない。引き続きmainは変更しない。
+
+
+## 2026-11-15 AI相談利用枠の予約処理・最新CI確認
+
+- AI相談の利用回数制限について、同時リクエスト時に失敗した処理が別リクエストの利用枠を返却しないよう、リクエスト固有のFirestore予約ドキュメントを利用する方式へ変更。
+- 利用回数の加算と予約作成は同一トランザクションで実施。失敗時は自分の予約が存在する場合だけ削除して利用回数を戻す。
+- 成功時は利用回数を維持したまま、自分の予約ドキュメントだけを削除し、一時記録が残らないよう変更。
+- 専用validatorに、予約の原子的作成、失敗時の自分の予約だけの返却、成功時の予約削除を検査する項目を追加。
+- 最新コミット `d3446c1e72ce68ee64e21d7cd5efac51e9fbaa6e` のGitHub Actions PR run `43705064826` と push run `43705060901` は両方 completed / success。各validate jobの32ステップすべて成功。
+- PR #1 は open / draft / mergeable、headは上記コミット。未マージ・未公開。
+- これはコード検証結果であり、Firebase本番Functionsへのデプロイや同時アクセスを含む実機動作の確認ではない。Firebase Secret登録、Functions/Rules/Indexes反映、Authentication設定、スマホ実機ログイン・同期・AI応答、SNS年齢保護・人による運営体制は引き続き未完了。
