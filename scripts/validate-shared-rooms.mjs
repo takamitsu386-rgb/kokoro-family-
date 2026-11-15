@@ -32,7 +32,7 @@ assert.match(html, /snsSharedRoomList\.replaceChildren\(\);\s*snsRoomShareStatus
 
 assert.match(rules, /match \/sharedRooms\/{shareId}/);
 assert.match(rules, /match \/users\/{userId}\/sharedRooms\/{shareId}/);
-assert.match(rules, /allow list: if signedIn\(\)\s*&& resource\.data\.recipientUid == request\.auth\.uid\s*&& !blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\);/);
+assert.match(rules, /allow list: if signedIn\(\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?!blockedBetween\(request\.auth\.uid, resource\.data\.ownerUid\);/);
 assert.match(rules, /allow get, list: if owns\(userId\);/);
 assert.match(rules, /allow delete: if signedIn\(\)\s*&& \(!exists\([\s\S]*?owns\(userId\)[\s\S]*?resource\.data\.recipientUid == request\.auth\.uid[\s\S]*?!acceptedFriend\(resource\.data\.ownerUid, resource\.data\.recipientUid\)[\s\S]*?blockedBetween\(resource\.data\.ownerUid, resource\.data\.recipientUid\)/, 'Recipients may remove an owner mirror only after access ends or blocking.');
 assert.match(rules, /acceptedFriend\(request\.auth\.uid, request\.resource\.data\.recipientUid\)/);
