@@ -325,6 +325,26 @@ exports.publicTimeline = onRequest({
     if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
     const decoded = await getAuth().verifyIdToken(match[1], true);
     const db = getFirestore();
+    const tokyoDate = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(new Date()).reduce((parts, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
+    const timelineUsageRef = db.doc(`users/${decoded.uid}/timelineUsage/${dayKey}`);
+    // Bound expensive multi-query feed reads per account and Tokyo calendar day.
+    const withinDailyLimit = await db.runTransaction(async tx => {
+      const usage = await tx.get(timelineUsageRef);
+      const storedCount = usage.exists ? usage.data().count : 0;
+      const count = Number.isSafeInteger(storedCount) && storedCount >= 0 ? storedCount : 120;
+      if (count >= 120) return false;
+      tx.set(timelineUsageRef, { count: count + 1, updatedAt: Timestamp.now() }, { merge: true });
+      return true;
+    });
+    if (!withinDailyLimit) {
+      return sendJson(res, 429, { error: "本日のタイムライン読み込み上限に達しました。明日また利用してください。" });
+    }
 
     const [publicPosts, friendPosts, incomingFriends, outgoingFriends, viewerBlocksSnapshot] = await Promise.all([
       // Fetch extra candidates because block/profile filtering happens after the query.
