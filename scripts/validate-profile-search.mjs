@@ -30,6 +30,16 @@ assert.ok(indexes.indexes.some(item =>
   && item.fields.some(field => field.fieldPath === 'nickname')
 ), 'Profile prefix search composite index must exist.');
 
+const profilePreviewStart = html.indexOf('function snsUpdateProfilePreview()');
+const profilePreviewEnd = html.indexOf('snsNickname.addEventListener', profilePreviewStart);
+assert.ok(profilePreviewStart >= 0 && profilePreviewEnd > profilePreviewStart,
+  'Profile preview updater must exist.');
+const profilePreview = html.slice(profilePreviewStart, profilePreviewEnd);
+assert.match(profilePreview, /private:\s*"自分のみ"/);
+assert.match(profilePreview, /friends:\s*"友達のみ"/);
+assert.match(profilePreview, /public:\s*"公開"/,
+  'The profile preview must accurately describe every visibility choice.');
+
 for (const id of ['snsProfileSearchInput', 'snsProfileSearchButton', 'snsProfileSearchStatus', 'snsProfileSearchResults']) {
   assert.match(html, new RegExp('id="' + id + '"'), 'Profile search UI element missing: ' + id);
 }

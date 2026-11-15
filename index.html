@@ -5429,7 +5429,7 @@ const snsAvatarEmojis = { "avatar-01":"🌷", "avatar-02":"🐱", "avatar-03":"�
 function snsUpdateProfilePreview() {
   if (snsPreviewAvatar) snsPreviewAvatar.textContent = snsAvatarEmojis[snsAvatar.value] || "🌷";
   if (snsPreviewNickname) snsPreviewNickname.textContent = snsNickname.value.trim() || "ニックネーム未設定";
-  if (snsPreviewVisibility) snsPreviewVisibility.textContent = "公開範囲：" + (snsProfileVisibility.value === "public" ? "公開" : "自分のみ");
+  if (snsPreviewVisibility) { const visibilityLabels = { private: "自分のみ", friends: "友達のみ", public: "公開" }; snsPreviewVisibility.textContent = "公開範囲：" + (visibilityLabels[snsProfileVisibility.value] || "自分のみ"); }
 }
 snsNickname.addEventListener("input", snsUpdateProfilePreview);
 snsAvatar.addEventListener("change", snsUpdateProfilePreview);
