@@ -297,3 +297,6 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 共有ルームvalidatorも新しいルールを検査するよう更新。
 - 最新コミット `9089674d2ddef08590ceafaab579fa6f13ae14cc` のpush CI・PR CIは両方成功。各34/34 steps。Firestore Rules Emulatorテストを含む。
 - PR #1はopen/draftのまま。Firebase本番へのRules反映、Googleログイン・同期の実機確認、SNS年齢保護・人による運営体制は未完了。
+
+
+- 共有ルームvalidatorの検査対象を `sharedRooms/{shareId}` のルールブロックに限定し、受信者の `get` と `list` の双方で承認済み友達関係・ブロック状態を個別に確認するよう強化。コミット `0bd9ed4` のpush CI・PR CIも34/34 steps成功。
