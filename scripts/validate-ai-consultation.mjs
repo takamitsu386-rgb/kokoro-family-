@@ -27,6 +27,9 @@ assert.match(endpoint, /users\/\$\{decoded\.uid\}\/aiUsage\/\$\{dayKey\}/, 'Quot
 assert.match(endpoint, /Number\.isSafeInteger\(storedCount\)[\s\S]*?\? storedCount : 10/, 'Malformed quota counters must fail closed.');
 assert.match(endpoint, /if \(count >= 10\) return false/, 'Daily AI usage must be capped.');
 assert.match(endpoint, /runTransaction\(async tx =>/, 'Quota updates must be transactional.');
+assert.match(endpoint, /usageRef\.collection\("reservations"\)\.doc\(\)/, 'Each concurrent AI request must have its own quota reservation.');
+assert.match(endpoint, /tx\.create\(reservationRef/, 'Quota reservation must be created atomically with the counter.');
+assert.match(endpoint, /if \(!reservation\.exists\) return/, 'A failed request must refund only its own reservation.');
 assert.match(endpoint, /model:\s*"gpt-4\.1-mini"/, 'The configured AI model must be explicit.');
 assert.match(endpoint, /store:\s*false/, 'Provider-side response storage must be disabled.');
 assert.match(endpoint, /max_output_tokens:\s*500/, 'AI output must be bounded.');
