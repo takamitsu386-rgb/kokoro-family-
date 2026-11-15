@@ -191,6 +191,8 @@ jobs:
         run: node scripts/validate-ai-consultation.mjs
       - name: Validate cloud sync and account isolation
         run: node scripts/validate-sync-safety.mjs
+      - name: Validate cross-device sync coverage disclosure
+        run: node scripts/validate-sync-coverage.mjs
       - name: Validate DOM injection sinks
         run: node scripts/validate-dom-safety.mjs
       - name: Validate family shopping and cloud sharing safety
