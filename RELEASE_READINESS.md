@@ -341,3 +341,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 最新head a7e58ada0f2eec01b6594aabea7aed9fb17d05b5 のSource validation run 43718204492 はcompleted / success。Firestore Rules Emulatorを含む32工程すべて成功。
 - この結果は開発ブランチのコードとEmulatorの検証。Firebase本番Firestore Rulesへのデプロイや、既存公開環境の設定変更は未実施。PR #1はopen / draft / unmergedを維持。
 - AI相談APIは年齢別安全設定が整うまでサーバー側で停止。年齢確認・保護者関与の仕組み、包括的なアカウント削除、Firebase本番設定と実機受け入れ試験は引き続き公開前ブロッカー。
+
+
+## 2026-11-15 AI相談の画面停止表示とPWA更新
+
+- AI相談APIのサーバー側停止ゲートに加え、画面にも「年齢に応じた安全設定の準備が整うまで一時停止中」と表示し、送信イベントでも停止判定を行うよう変更。
+- 年齢帯確認・保護者関与の仕組みが未実装の状態で、AI相談画面から誤って送信できないようにした。AI相談機能は公開・利用可能とは扱わない。
+- 画面・安全ゲートの変更を端末へ配信するため、Service Worker cacheを kokoro-family-v368 に更新。
+- 最新head 02b19c84586e6f9c2ca20822ce0f6d32ff904708 のSource validation run 43718531537 はcompleted / success。Firestore Rules Emulator、AI相談停止表示、個人買い物同期、PWA cache、その他の全32検証工程が成功。
+- Firebase本番反映・Pages公開・PRマージは未実施。公開前ブロッカー（年齢保護、アカウント削除、Firebase本番設定、実機受け入れ試験）は継続。
