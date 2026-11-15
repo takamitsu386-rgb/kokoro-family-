@@ -194,6 +194,8 @@ jobs:
         run: node scripts/validate-profile-search.mjs
       - name: Test Firestore rules in an isolated emulator
         run: npm run test:firestore
+      - name: Validate GitHub Pages static artifact
+        run: node scripts/validate-pages-artifact.mjs
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('node:fs').readFileSync('firebase.json', 'utf8'))"
