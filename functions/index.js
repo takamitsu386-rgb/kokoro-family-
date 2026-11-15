@@ -66,6 +66,8 @@ exports.aiConsultation = onRequest({
     }, {});
     const dayKey = `${tokyoDate.year}-${tokyoDate.month}-${tokyoDate.day}`;
     const usageRef = getFirestore().doc(`users/${decoded.uid}/aiUsage/${dayKey}`);
+    // Keep a unique reservation per request so a failed concurrent request can only refund itself.
+    const reservationRef = usageRef.collection("reservations").doc();
 
     const allowed = await getFirestore().runTransaction(async tx => {
       const snap = await tx.get(usageRef);
@@ -77,6 +79,7 @@ exports.aiConsultation = onRequest({
         count: count + 1,
         updatedAt: Timestamp.now()
       }, { merge: true });
+      tx.create(reservationRef, { createdAt: Timestamp.now() });
       return true;
     });
     if (!allowed) return sendJson(res, 429, { error: "本日の相談回数の上限に達しました。時間をおいて利用してください。" });
@@ -124,7 +127,13 @@ exports.aiConsultation = onRequest({
       if (!keepUsageReservation) {
         try {
           await getFirestore().runTransaction(async tx => {
-            const latestUsage = await tx.get(usageRef);
+            const [latestUsage, reservation] = await Promise.all([
+              tx.get(usageRef),
+              tx.get(reservationRef)
+            ]);
+            // A request may refund only its own still-existing reservation.
+            if (!reservation.exists) return;
+            tx.delete(reservationRef);
             const count = latestUsage.exists ? latestUsage.data().count : 0;
             if (!Number.isSafeInteger(count) || count <= 0) return;
             if (count === 1) {
