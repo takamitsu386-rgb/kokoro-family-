@@ -203,6 +203,8 @@ jobs:
         run: node scripts/validate-today-plan.mjs
       - name: Validate saved room bulk management and furniture search
         run: node scripts/validate-saved-room-bulk.mjs
+      - name: Validate SNS release safety gate
+        run: node scripts/validate-sns-release-gate.mjs
       - name: Validate public SNS timeline privacy and access
         run: node scripts/validate-public-timeline.mjs
       - name: Validate friend request and comment report flows
