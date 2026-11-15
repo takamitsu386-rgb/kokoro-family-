@@ -21,6 +21,16 @@ assert.match(postVisibilityOptions, /<option value="public">/,
 for (const id of ['snsFriendUid', 'snsSendFriendRequest', 'snsFriendNotice', 'snsIncomingFriends', 'snsOutgoingFriends']) {
   assert.match(html, new RegExp('id="' + id + '"'), 'Friend request UI element is required: ' + id);
 }
+const ownPostRendererStart = html.indexOf('function snsRenderPosts(items)');
+const ownPostRendererEnd = html.indexOf('function snsRenderPublicTimeline(items)', ownPostRendererStart);
+assert.ok(ownPostRendererStart >= 0 && ownPostRendererEnd > ownPostRendererStart,
+  'Own post renderer must exist.');
+const ownPostRenderer = html.slice(ownPostRendererStart, ownPostRendererEnd);
+assert.match(ownPostRenderer, /private:\s*"自分のみ"/);
+assert.match(ownPostRenderer, /friends:\s*"友達のみ"/);
+assert.match(ownPostRenderer, /public:\s*"公開投稿"/,
+  'Own posts must show the actual visibility instead of mislabeling friends-only posts.');
+
 assert.match(html, /async function snsLoadFriendRequests\(/, 'Friend request lists must load after authentication.');
 assert.match(html, /where\("toUid", "==", user\.uid\)/, 'Incoming requests must be scoped to the signed-in recipient.');
 assert.match(html, /where\("fromUid", "==", user\.uid\)/, 'Outgoing requests must be scoped to the signed-in sender.');

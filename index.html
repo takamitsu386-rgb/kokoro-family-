@@ -5509,7 +5509,7 @@ function snsRenderPosts(items) {
     body.style.whiteSpace = "pre-wrap";
     body.textContent = item.text;
     const meta = document.createElement("small");
-    meta.textContent = item.visibility === "public" ? "公開投稿" : "自分のみ";
+    meta.textContent = ({ private: "自分のみ", friends: "友達のみ", public: "公開投稿" })[item.visibility] || "公開範囲不明";
     const edit = document.createElement("button");
     edit.type = "button";
     edit.textContent = "投稿を編集";
