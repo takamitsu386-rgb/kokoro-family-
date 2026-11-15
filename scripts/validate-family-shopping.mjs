@@ -43,7 +43,7 @@ for (const [name, source] of [
   ["friend upload", shareUpload],
   ["friend download", shareDownload]
 ]) {
-  assert.match(source, /const generation=authStateGeneration/,
+  assert.match(source, /generation=authStateGeneration/,
     name + " must capture the authentication generation.");
   assert.match(source, /authStateGeneration===generation/,
     name + " must reject account switches.");
