@@ -229,6 +229,20 @@ assert.match(googleLoginHandler, /finally \{\s*loginInProgress = false;\s*loginB
   'Google login must release its in-progress lock and restore the button state after popup or redirect failure.');
 assert.match(googleLoginHandler, /const startRedirect = async \(\) => \{[\s\S]*?await signInWithRedirect\(auth, provider\);[\s\S]*?catch \(error\) \{\s*try \{ sessionStorage\.removeItem\("kokoroReturnToAiAfterLogin"\); \} catch \(storageError\) \{\}[\s\S]*?throw error;/,
   'A failed redirect must clear the pending return-to-AI marker before a later login attempt.');
+const redirectResultStart = sync.indexOf('let redirectResult = null;');
+const authObserverStart = sync.indexOf('onAuthStateChanged(auth, user =>', redirectResultStart);
+assert.ok(redirectResultStart >= 0 && authObserverStart > redirectResultStart,
+  'Redirect completion must be handled before the main auth-state observer is registered.');
+const redirectHandling = sync.slice(redirectResultStart, authObserverStart);
+assert.match(redirectHandling, /redirectResult = await getRedirectResult\(auth\)/,
+  'Mobile redirect sign-in results must be awaited when the app returns.');
+assert.match(redirectHandling, /catch \(error\) \{[\s\S]*?sessionStorage\.removeItem\("kokoroReturnToAiAfterLogin"\)[\s\S]*?authErrorMessage = "ログイン結果を確認できません："/,
+  'A failed redirect result must clear its pending AI return marker and show a login diagnostic.');
+assert.match(redirectHandling, /returnToAi = sessionStorage\.getItem\("kokoroReturnToAiAfterLogin"\) === "1";\s*if \(returnToAi\) sessionStorage\.removeItem\("kokoroReturnToAiAfterLogin"\)/,
+  'The one-time return-to-AI marker must be consumed so it cannot affect a later unrelated login.');
+assert.match(redirectHandling, /if \(returnToAi && redirectResult\?\.user\) \{\s*location\.hash = "ai-consultation";\s*requestAnimationFrame\(\(\) => document\.getElementById\("ai-consultation"\)\?\.scrollIntoView/,
+  'The app must return to AI consultation only after a successful redirect result with a signed-in user.');
+
 const uploadLocalStart = html.indexOf('async function uploadLocal(uid = currentUser?.uid)');
 const uploadLocalEnd = html.indexOf('\nasync function downloadCloud()', uploadLocalStart);
 assert.ok(uploadLocalStart >= 0 && uploadLocalEnd > uploadLocalStart, 'Cloud upload operation must exist.');
