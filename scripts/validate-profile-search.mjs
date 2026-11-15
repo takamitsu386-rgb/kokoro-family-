@@ -16,6 +16,14 @@ assert.match(endpoint, /where\("visibility", "==", "public"\)/, 'Only public pro
 assert.match(endpoint, /orderBy\("nickname"\)[\s\S]*?startAt\(prefix\)[\s\S]*?endAt\(prefix \+ "\\uf8ff"\)[\s\S]*?limit\(30\)/, 'Search must fetch a bounded candidate set for post-query block filtering.');
 assert.match(endpoint, /candidates\.filter\([\s\S]*?\)\.slice\(0, 10\)/, 'Search must return at most ten profiles after reverse-block filtering.');
 assert.match(endpoint, /count >= 30/, 'Daily search rate limit must be enforced.');
+assert.match(endpoint, /const reservationRef = usageRef\.collection\("reservations"\)\.doc\(\)/,
+  'Each profile search must have a request-specific quota reservation.');
+assert.match(endpoint, /tx\.create\(reservationRef, \{ createdAt: Timestamp\.now\(\) \}\)/,
+  'Quota increment and request reservation must be created atomically.');
+assert.match(endpoint, /const \[latestUsage, reservation\] = await Promise\.all\([\s\S]*?tx\.get\(reservationRef\)[\s\S]*?if \(!reservation\.exists\) return;[\s\S]*?tx\.delete\(reservationRef\)/,
+  'A failed search may refund only its own still-existing reservation.');
+assert.match(endpoint, /await db\.runTransaction\(async tx => \{\s*const reservation = await tx\.get\(reservationRef\);\s*if \(reservation\.exists\) tx\.delete\(reservationRef\);\s*\}\);\s*keepSearchReservation = true/,
+  'A successful search must remove its temporary reservation while keeping the quota count.');
 assert.match(endpoint, /viewerBlocks\.docs\.some/, 'The viewer block list must be excluded.');
 assert.match(endpoint, /users\/\$\{item\.id\}\/blocks\/\$\{decoded\.uid\}/, 'Reverse blocks must be excluded.');
 assert.match(endpoint, /uid: item\.id,[\s\S]*?nickname:[\s\S]*?avatarId:/, 'Only UID, nickname, and allowlisted avatar are returned.');
