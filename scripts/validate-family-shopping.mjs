@@ -17,7 +17,7 @@ for (const id of [
 ]) {
   assert.match(html, new RegExp('id="' + id + '"'), "Missing shopping UI: " + id);
 }
-assert.match(html, /const KEY = "kokoroFamilyShoppingV1"/);
+assert.match(html, /const KEY\s*=\s*"kokoroFamilyShoppingV1"/);
 assert.match(html, /function validEntry\(item\)/);
 assert.match(html, /Object\.hasOwn\(categories,item\.category\)/);
 assert.match(html, /name\.textContent=item\.name/);
