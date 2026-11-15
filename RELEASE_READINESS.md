@@ -288,3 +288,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 共有ルームの受信者側読み取り・一覧取得に、現在も承認済みの友達関係であることを追加。友達解除後は共有ルーム本文を読めず、所有者側のアクセスは維持。
 - Firestore Emulatorテストに、友達関係がない受信者による直接取得と一覧取得の拒否を追加。既存のブロック後アクセス拒否・共有解除テストも維持。
 - これはコードとルールの修正であり、本番Firestore Rulesへのデプロイは未実施。
+
+
+## 2026-11-15 追加のDOM安全検査と共有ルーム再検証
+
+- `index.html`内のHTML挿入sinkを全件確認。`innerHTML`は固定された開発者作成テンプレート2箇所のみであることを確認し、追加のHTMLパーサー・動的コード実行sinkを禁止する `scripts/validate-dom-safety.mjs` をCIへ追加。
+- 共有ルームの受信者は、友達関係が終了した後に本文を直接取得・一覧取得できないようFirestore Rulesを変更。Emulatorテストで両方の拒否を検証。
+- 共有ルームvalidatorも新しいルールを検査するよう更新。
+- 最新コミット `9089674d2ddef08590ceafaab579fa6f13ae14cc` のpush CI・PR CIは両方成功。各34/34 steps。Firestore Rules Emulatorテストを含む。
+- PR #1はopen/draftのまま。Firebase本番へのRules反映、Googleログイン・同期の実機確認、SNS年齢保護・人による運営体制は未完了。
