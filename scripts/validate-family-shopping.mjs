@@ -55,7 +55,7 @@ assert.match(download, /shoppingLocalSnapshotMatches\(localSnapshot\)/,
   "Personal cloud import must reject intervening local edits.");
 assert.match(download, /Shopping cloud rollback failed/,
   "Personal cloud import must restore local data after a storage failure.");
-assert.match(html, /<div hidden aria-hidden="true"[^>]*>[\\s\\S]*?familyShoppingSharedFriend[\\s\\S]*?familyShoppingShareStatus/,
+assert.match(html, /<div hidden aria-hidden="true"[^>]*>[\s\S]*?familyShoppingSharedFriend[\s\S]*?familyShoppingShareStatus/,
   "Friend-sharing shopping controls must remain hidden for the MVP.");
 assert.match(html, /友達との共有機能は初期版では利用できません。/);
 const rules = await readFile(new URL("../firestore.rules", import.meta.url), "utf8");
