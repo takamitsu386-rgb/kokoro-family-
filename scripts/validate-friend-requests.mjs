@@ -6,6 +6,18 @@ const rules = readFileSync('firestore.rules', 'utf8');
 const tests = readFileSync('tests/firestore.rules.test.mjs', 'utf8');
 const f = readFileSync('functions/index.js', 'utf8');
 
+const postVisibilityStart = html.indexOf('<select id="snsPostVisibility"');
+const postVisibilityEnd = html.indexOf('</select>', postVisibilityStart);
+assert.ok(postVisibilityStart >= 0 && postVisibilityEnd > postVisibilityStart,
+  'Post visibility selector must exist.');
+const postVisibilityOptions = html.slice(postVisibilityStart, postVisibilityEnd);
+assert.match(postVisibilityOptions, /<option value="private">/,
+  'New posts must default to private visibility.');
+assert.match(postVisibilityOptions, /<option value="friends">/,
+  'Users must be able to choose friends-only posts.');
+assert.match(postVisibilityOptions, /<option value="public">/,
+  'Public post visibility must remain available.');
+
 for (const id of ['snsFriendUid', 'snsSendFriendRequest', 'snsFriendNotice', 'snsIncomingFriends', 'snsOutgoingFriends']) {
   assert.match(html, new RegExp('id="' + id + '"'), 'Friend request UI element is required: ' + id);
 }
