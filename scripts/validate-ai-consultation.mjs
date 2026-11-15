@@ -30,6 +30,7 @@ assert.match(endpoint, /runTransaction\(async tx =>/, 'Quota updates must be tra
 assert.match(endpoint, /usageRef\.collection\("reservations"\)\.doc\(\)/, 'Each concurrent AI request must have its own quota reservation.');
 assert.match(endpoint, /tx\.create\(reservationRef/, 'Quota reservation must be created atomically with the counter.');
 assert.match(endpoint, /if \(!reservation\.exists\) return/, 'A failed request must refund only its own reservation.');
+assert.match(endpoint, /const reservation = await tx\.get\(reservationRef\);[\s\S]*?if \(reservation\.exists\) tx\.delete\(reservationRef\);[\s\S]*?keepUsageReservation = true/, 'Successful requests must remove their temporary reservation without refunding the quota count.');
 assert.match(endpoint, /model:\s*"gpt-4\.1-mini"/, 'The configured AI model must be explicit.');
 assert.match(endpoint, /store:\s*false/, 'Provider-side response storage must be disabled.');
 assert.match(endpoint, /max_output_tokens:\s*500/, 'AI output must be bounded.');
