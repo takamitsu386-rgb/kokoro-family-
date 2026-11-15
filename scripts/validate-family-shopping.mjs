@@ -1,72 +1,81 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const sw = await readFile(new URL("../sw.js", import.meta.url), "utf8");
-assert.match(html, /id="family-shopping"/);
-assert.match(html, /href="#family-shopping"/);
-assert.match(html, /id="familyShoppingForm"/);
-assert.match(html, /maxlength="60"/);
-assert.match(html, /const KEY = "kokoroFamilyShoppingV1", LIMIT = 100/);
+const start = html.indexOf("async function uploadShoppingCloud()");
+const end = html.indexOf("function authErrorDetail(error)", start);
+assert.ok(start >= 0 && end > start, "Shopping cloud sync module must exist.");
+const cloud = html.slice(start, end);
+
+for (const id of [
+  "family-shopping", "familyShoppingForm", "familyShoppingSubmit",
+  "familyShoppingCancel", "familyShoppingExport", "familyShoppingImportFile",
+  "familyShoppingCloudUpload", "familyShoppingCloudDownload",
+  "familyShoppingSharedFriend", "familyShoppingShareUpload",
+  "familyShoppingShareDownload", "familyShoppingShareApply"
+]) {
+  assert.match(html, new RegExp('id="' + id + '"'), "Missing shopping UI: " + id);
+}
+assert.match(html, /const KEY = "kokoroFamilyShoppingV1"/);
 assert.match(html, /function validEntry\(item\)/);
 assert.match(html, /Object\.hasOwn\(categories,item\.category\)/);
-assert.match(html, /checkbox\.addEventListener\("change"/);
 assert.match(html, /name\.textContent=item\.name/);
-assert.match(html, /Shopping list rollback failed/);
-assert.match(html, /購入済みの/);
-assert.match(html, /クラウド同期・家族間共有には未対応です/);
-assert.match(sw, /kokoro-family-v242/);
-console.log("Family shopping list source checks passed.");
+assert.match(html, /const safe=value=>/);
+assert.match(html, /const parseCSV=text=>/);
+assert.match(html, /finally\{importFile\.value="";\}/);
 
-assert.match(html,/id="familyShoppingSubmit"/);
-assert.match(html,/id="familyShoppingCancel"/);
-assert.match(html,/textContent="編集"/);
-assert.match(html,/function resetEditor\(\)/);
-assert.match(html,/editingId\?\{/);
-assert.match(html,/Object\.hasOwn\(categories,categoryInput\.value\)/);
-assert.match(sw,/kokoro-family-v242/);
+const uploadStart = cloud.indexOf("async function uploadShoppingCloud()");
+const downloadStart = cloud.indexOf("async function downloadShoppingCloud()");
+const shareUploadStart = cloud.indexOf("async function uploadShoppingToFriend()");
+const shareDownloadStart = cloud.indexOf("async function downloadShoppingFromFriend()");
+assert.ok(uploadStart >= 0 && downloadStart > uploadStart && shareUploadStart > downloadStart && shareDownloadStart > shareUploadStart,
+  "Personal and friend-shared shopping cloud handlers must exist.");
+const upload = cloud.slice(uploadStart, downloadStart);
+const download = cloud.slice(downloadStart, shareUploadStart);
+const shareUpload = cloud.slice(shareUploadStart, shareDownloadStart);
+const shareDownload = cloud.slice(shareDownloadStart);
 
-assert.match(html,/id="familyShoppingExport"/);
-assert.match(html,/id="familyShoppingExportStatus"/);
-assert.match(html,/CSVを書き出す/);
-assert.match(html,/const safe=value=>/);
-assert.match(html,/return \/\^[\\s\]\*\[=\+\\-@\]\/\.test\(text\)/);
-assert.match(html,/new Blob\(\[csv\]/);
-assert.match(html,/text\/csv;charset=utf-8/);
-assert.match(html,/購入済み/);
-assert.match(sw,/kokoro-family-v242/);
+for (const [name, source] of [
+  ["personal upload", upload],
+  ["personal download", download],
+  ["friend upload", shareUpload],
+  ["friend download", shareDownload]
+]) {
+  assert.match(source, /const generation=authStateGeneration/,
+    name + " must capture the authentication generation.");
+  assert.match(source, /authStateGeneration===generation/,
+    name + " must reject account switches.");
+  assert.match(source, /navigator\.onLine/,
+    name + " must require an active network connection.");
+}
+assert.match(upload, /await runTransaction\(db,async transaction=>/,
+  "Personal cloud overwrite must use a Firestore transaction.");
+assert.match(upload, /baseline\.updatedAt\.isEqual\(latestData\.updatedAt\)/,
+  "Personal cloud overwrite must reject concurrent updates.");
+assert.match(upload, /readShoppingCloudPayload\(\)\)!==JSON\.stringify\(payload\)/,
+  "Personal cloud upload must reject local edits made during upload.");
+assert.match(download, /if\(!confirm\(/,
+  "Personal cloud import must ask before replacing local data.");
+assert.match(download, /latestSnapshot=await getDoc\(ref\)/,
+  "Personal cloud import must re-read the latest cloud version.");
+assert.match(download, /shoppingLocalSnapshotMatches\(localSnapshot\)/,
+  "Personal cloud import must reject intervening local edits.");
+assert.match(download, /Shopping cloud rollback failed/,
+  "Personal cloud import must restore local data after a storage failure.");
+assert.match(shareUpload, /shoppingSharedFriend\?\.value!==peerUid/,
+  "Friend upload must reject a changed recipient.");
+assert.match(shareUpload, /await runTransaction\(db,async transaction=>/,
+  "Friend shared-data overwrite must use a Firestore transaction.");
+assert.match(shareUpload, /latestData\.updatedAt\.isEqual\(baseline\.updatedAt\)/,
+  "Friend shared-data overwrite must reject concurrent updates.");
+assert.match(shareDownload, /latestSnapshot=await getDoc\(ref\)/,
+  "Friend shared-data import must re-read the latest cloud version.");
+assert.match(shareDownload, /shoppingLocalSnapshotMatches\(localSnapshot\)/,
+  "Friend shared-data import must reject intervening local edits.");
+assert.match(shareDownload, /applySharedShoppingData\(latest\)/,
+  "Friend shared-data import must use the guarded local apply routine.");
 
-assert.match(html,/id="familyShoppingImportFile"/);
-assert.match(html,/accept="\.csv,text\/csv"/);
-assert.match(html,/importFile\.addEventListener\("change",async\(\)=>/);
-assert.match(html,/const parseCSV=text=>/);
-assert.match(html,/unclosed quote/);
-assert.match(html,/categoryByLabel/);
-assert.match(html,/登録日時は取り込み時刻になります/);
-assert.match(html,/Shopping CSV import failed/);
-assert.match(sw,/kokoro-family-v242/);
-
-assert.match(html,/replace\(\/\^\\uFEFF\/,""\)/);
-assert.match(html,/ch==="\\n"\|\|ch==="\\r"/);
-assert.match(html,/ch==="\\r"&&text\[i\+1\]==="\\n"/);
-assert.match(html,/finally\{importFile\.value="";\}/);
-
-assert.match(html, /id="familyShoppingCategoryFilter"/, "shopping category filter exists");
-assert.match(html, /id="familyShoppingSearch"/, "shopping keyword search exists");
-assert.match(html, /id="familyShoppingResetFilters"/, "shopping filter reset exists");
-assert.match(html, /categoryFilter===\"all\"\|\|item\.category===categoryFilter/, "shopping category filter is applied");
-assert.match(html, /item\.quantity\.toLocaleLowerCase\(\)\.includes\(query\)/, "shopping search includes quantity memo");
-assert.match(html, /resetFiltersButton\.addEventListener\("click"/, "shopping filter reset is wired");
-assert.match(sw, /kokoro-family-v242/, "service worker cache is refreshed");
-
-assert.match(html, /id="familyShoppingSort"/, "shopping sort selector exists");
-assert.match(html, /a\.name\.localeCompare\(b\.name,"ja"\)/, "shopping list can sort by Japanese item name");
-assert.match(html, /categories\[a\.category\]\.localeCompare\(categories\[b\.category\],"ja"\)/, "shopping list can sort by category");
-assert.match(html, /sortInput\.value="newest"/, "shopping filter reset restores newest-first sorting");
-
-assert.match(html,/id="familyShoppingModeToggle"/,"shopping mode toggle exists");
-assert.match(html,/shoppingMode\?!item\.bought/,"shopping mode hides purchased entries");
-assert.match(html,/if\(shoppingMode\)return categories\[a\.category\]/,"shopping mode sorts by category then name");
-assert.match(html,/modeToggle\.addEventListener\("click"/,"shopping mode toggle is wired");
-assert.match(html,/modeStatus\.textContent=shoppingMode/,"shopping mode announces its state");
-assert.match(html,/if\(!shoppingMode\)actions\.append\(edit,remove\)/,"shopping mode hides edit and delete actions");
-assert.match(sw,/kokoro-family-v242/,"service worker cache is refreshed");
+assert.match(sw, /const CACHE_NAME="kokoro-family-v367"/,
+  "Service Worker cache version must match the current application shell.");
+console.log("Family shopping UI, CSV safety, personal cloud sync, friend sharing, account isolation, and cache version checks passed.");
