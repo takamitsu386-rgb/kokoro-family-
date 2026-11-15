@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const sw = await readFile(new URL("../sw.js", import.meta.url), "utf8");
-const start = html.indexOf("async function uploadShoppingCloud()");
+const start = html.indexOf("async function uploadShoppingToFriend()");
 const end = html.indexOf("function authErrorDetail(error)", start);
 assert.ok(start >= 0 && end > start, "Shopping cloud sync module must exist.");
 const cloud = html.slice(start, end);
@@ -25,16 +25,17 @@ assert.match(html, /const safe=value=>/);
 assert.match(html, /const parseCSV=text=>/);
 assert.match(html, /finally\{importFile\.value="";\}/);
 
-const uploadStart = cloud.indexOf("async function uploadShoppingCloud()");
-const downloadStart = cloud.indexOf("async function downloadShoppingCloud()");
 const shareUploadStart = cloud.indexOf("async function uploadShoppingToFriend()");
 const shareDownloadStart = cloud.indexOf("async function downloadShoppingFromFriend()");
-assert.ok(uploadStart >= 0 && downloadStart > uploadStart && shareUploadStart > downloadStart && shareDownloadStart > shareUploadStart,
+const uploadStart = cloud.indexOf("async function uploadShoppingCloud()");
+const downloadStart = cloud.indexOf("async function downloadShoppingCloud()");
+assert.ok(shareUploadStart >= 0 && shareDownloadStart > shareUploadStart &&
+  uploadStart > shareDownloadStart && downloadStart > uploadStart,
   "Personal and friend-shared shopping cloud handlers must exist.");
-const upload = cloud.slice(uploadStart, downloadStart);
-const download = cloud.slice(downloadStart, shareUploadStart);
 const shareUpload = cloud.slice(shareUploadStart, shareDownloadStart);
-const shareDownload = cloud.slice(shareDownloadStart);
+const shareDownload = cloud.slice(shareDownloadStart, uploadStart);
+const upload = cloud.slice(uploadStart, downloadStart);
+const download = cloud.slice(downloadStart);
 
 for (const [name, source] of [
   ["personal upload", upload],
