@@ -6814,12 +6814,19 @@ snsShareCurrentRoom.addEventListener("click", async () => {
   const operationGeneration = snsSetBusy(true);
   snsRoomShareStatus.textContent = "友達との関係と共有内容を確認しています…";
   try {
-    const [requestSnaps, ownerShares] = await Promise.all([
-      Promise.all([user.uid + "_" + recipientUid, recipientUid + "_" + user.uid].map(id => getDoc(doc(snsDb, "friendRequests", id)))),
+    const [outgoingRequests, incomingRequests, ownerShares] = await Promise.all([
+      getDocs(query(collection(snsDb, "friendRequests"), where("fromUid", "==", user.uid))),
+      getDocs(query(collection(snsDb, "friendRequests"), where("toUid", "==", user.uid))),
       getDocs(query(collection(snsDb, "users", user.uid, "sharedRooms"), limit(50)))
     ]);
     if (!snsUser || snsUser.uid !== user.uid || snsAuthGeneration !== authGeneration) return;
-    if (!requestSnaps.some(snap => snap.exists() && snap.data().status === "accepted")) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
+    const isAcceptedFriend = [...outgoingRequests.docs, ...incomingRequests.docs].some(snap => {
+      const data = snap.data();
+      return data.status === "accepted"
+        && ((data.fromUid === user.uid && data.toUid === recipientUid)
+          || (data.fromUid === recipientUid && data.toUid === user.uid));
+    });
+    if (!isAcceptedFriend) throw new Error("承認済みの友達ではありません。友達一覧を更新してください。");
     if (ownerShares.size >= 50) throw new Error("共有できるお部屋は50件までです。不要な共有を解除してください。");
     const shareRef = doc(collection(snsDb, "sharedRooms"));
     const snapshot = { ownerUid: user.uid, recipientUid, title, currentRoom, createdAt: serverTimestamp() };
