@@ -396,11 +396,13 @@ service cloud.firestore {
           resource.data.ownerUid == request.auth.uid
           || (
             resource.data.recipientUid == request.auth.uid
+            && acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
             && !blockedBetween(request.auth.uid, resource.data.ownerUid)
           )
         );
       allow list: if signedIn()
         && resource.data.recipientUid == request.auth.uid
+        && acceptedFriend(resource.data.ownerUid, resource.data.recipientUid)
         && !blockedBetween(request.auth.uid, resource.data.ownerUid);
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['ownerUid', 'recipientUid', 'title', 'currentRoom', 'createdAt'])
