@@ -67,6 +67,7 @@ for (const [pattern, path] of [
   [/match\s+\/comments\/\{commentId\}\s*\{/g, 'post comments'],
   [/match\s+\/likes\/\{likerUid\}\s*\{/g, 'post likes'],
   [/match\s+\/users\/\{userId\}\/aiUsage\/\{dayKey\}\s*\{/g, 'AI usage counters'],
+  [/match\\s+\\/users\\/\\{userId\\}\\/timelineUsage\\/\\{dayKey\\}\\s*\\{/g, 'timeline usage counters'],
   [/match\s+\/reports\/\{reportId\}\s*\{/g, 'reports'],
   [/match\s+\/users\/\{userId\}\/reportUsage\/\{dayKey\}\s*\{/g, 'report usage counters'],
   [/match\s+\/sharedRooms\/\{shareId\}\s*\{/g, 'shared room snapshots'],
@@ -91,6 +92,8 @@ assert.match(rules, /data\.text\.size\(\)\s*<=\s*300/,
   'Comments must be limited to 300 characters.');
 assert.match(rules, /match\s+\/users\/\{userId\}\/aiUsage\/\{dayKey\}\s*\{\s*allow\s+read,\s*write:\s*if\s+false;/,
   'AI usage counters must be explicitly inaccessible to clients.');
+assert.match(rules, /match\\s+\\/users\\/\\{userId\\}\\/timelineUsage\\/\\{dayKey\\}\\s*\\{\\s*allow\\s+read,\\s*write:\\s*if\\s+false;/,
+  'Timeline usage counters must be explicitly inaccessible to clients.');
 assert.doesNotMatch(rules, /match\s+\/\{document=\*\*\}/,
   'A recursive catch-all match could unintentionally expose new collections.');
 
