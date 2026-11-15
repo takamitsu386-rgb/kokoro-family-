@@ -15,6 +15,12 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:5000"
 ]);
 
+function snsFeatureEnabled(res) {
+  if (process.env.SNS_ENABLED === "true") return true;
+  sendJson(res, 503, { error: "SNS機能は安全な年齢保護・運営体制の準備が整うまで停止しています。" });
+  return false;
+}
+
 function sendJson(res, status, body) {
   res.status(status)
     .set("Content-Type", "application/json; charset=utf-8")
@@ -195,6 +201,7 @@ exports.submitReport = onRequest({
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
   if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+  if (!snsFeatureEnabled(res)) return;
 
   try {
     const authHeader = req.get("authorization") || "";
@@ -322,6 +329,7 @@ exports.publicTimeline = onRequest({
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
   if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+  if (!snsFeatureEnabled(res)) return;
 
   try {
     const authHeader = req.get("authorization") || "";
@@ -431,6 +439,7 @@ exports.searchPublicProfiles = onRequest({
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return sendJson(res, 405, { error: "POSTで送信してください。" });
   if (origin && !allowedOrigins.has(origin)) return sendJson(res, 403, { error: "この接続元からは利用できません。" });
+  if (!snsFeatureEnabled(res)) return;
 
   try {
     const authHeader = req.get("authorization") || "";
