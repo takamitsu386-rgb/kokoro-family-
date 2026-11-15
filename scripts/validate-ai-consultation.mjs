@@ -60,6 +60,8 @@ const aiClient = html.slice(aiClientStart, aiClientEnd);
 assert.match(aiClient, /p\.textContent = text/, 'AI messages must be rendered as text, not interpreted as HTML.');
 assert.doesNotMatch(aiClient, /\.innerHTML\s*=|insertAdjacentHTML\s*\(/, 'AI messages must not be inserted as executable HTML.');
 assert.match(aiClient, /const aiHistory = \[\]/, 'Conversation history must be held only in page memory.');
+assert.match(html, /id="aiStatus" data-release-gate="disabled"/, "AI consultation must be visibly marked unavailable until age safeguards are ready.");
+assert.match(aiClient, /aiStatus\?\.dataset\.releaseGate === "disabled"/, "The client must stop AI submission while the release gate is closed.");
 assert.doesNotMatch(aiClient, /localStorage|sessionStorage|indexedDB/, 'AI conversation content must not be persisted by the client.');
 assert.match(aiClient, /aiAuthGeneration\s*\+=\s*1/, 'Account changes must invalidate outstanding AI requests.');
 assert.match(aiClient, /let aiRequestController = null/, 'The AI client must track the active network request.');
