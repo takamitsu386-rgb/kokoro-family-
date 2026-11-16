@@ -36,7 +36,7 @@ const completionCheck = spec.indexOf("**完了確認**");
 assert.ok(firestoreDeletion >= 0 && authDeletion > firestoreDeletion && completionCheck > authDeletion,
   "Deletion order must be Firestore data, then Auth account, then completion verification.");
 
-const stateLine = spec.match(/状態例：([^\\n]+)/)?.[1] ?? "";
+const stateLine = spec.split("\n").find(line => line.includes("状態例：")) ?? "";
 const orderedStates = ["requested", "writes_blocked", "deleting", "auth_deleting", "completed"];
 let previousIndex = -1;
 for (const state of orderedStates) {
