@@ -108,7 +108,7 @@ assert.match(authChangeHandler, /if \(currentUser\?\.uid !== user\?\.uid\) \{[\s
   'An account change must cancel old scheduled uploads and retries and reset per-account sync state.');
 assert.match(authChangeHandler, /authStateGeneration \+= 1;/,
   'Every authentication identity transition must advance a generation counter, including rapid switches back to a prior UID.');
-assert.match(authChangeHandler, /if \\(user\\) queueSync\\(\\);/,
+assert.match(authChangeHandler, /if \(user\) queueSync\(\);/,
   'Restoring a previously initialized account after login must resume automatic cloud sync; queueSync keeps first-time sync manual.');
 const offlineStart = sync.indexOf('window.addEventListener("offline"');
 const onlineStart = sync.indexOf('window.addEventListener("online"', offlineStart);
