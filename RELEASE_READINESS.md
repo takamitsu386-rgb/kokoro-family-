@@ -363,3 +363,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - この棚卸しはソースコードの静的確認であり、Firebase本番データの中身・Storageの実データ・実機での削除動作は未確認。アカウント削除は引き続き公開前ブロッカー。
 
 - アカウント削除の実装前仕様を `ACCOUNT_DELETION_SPEC.md` に追加。UID検証、再認証、再帰削除、通報記録の保持、Storage確認、冪等な再実行、必須テストを整理。設計案であり、削除機能は未実装。
+
+
+## 2026-11-16 PR分岐解消・最新統合検証
+
+- PR #1 の取り込み先 `development-kokoro-app` が先行していたコミットを、内容を確認して開発ブランチの統合コミット `1946ac21e80992677092f3005d3c7ee36ab67a90` に親コミットとして取り込み。仕様書の調整済み内容を保持した。
+- GitHub上のPR状態は open / draft / mergeable。比較結果は開発ブランチが1425コミットahead、取り込み先からのbehindは0。PRのマージは未実施。
+- GitHub Actions run `43854686564` は2026-11-16にcompleted / success。Cloud Functions・Service Worker・アプリ内JavaScriptの構文、Firebase配線、モバイルナビ、AI相談の安全性、同期・アカウント分離、DOM安全、SNS停止ゲート、Firestore Rules Emulator、Pages成果物、JSON設定の検証工程が成功。
+- これは開発ブランチ上の自動検証結果であり、Firebase本番環境へのRules/Functions/Hosting反映、Googleログイン・クラウド同期・AI応答の実機確認、アカウント削除機能の実装を意味しない。
+- 本番公開前の未完了事項は継続：Firebase管理者による設定確認と反映、スマホ実機受け入れ試験、AI相談の年齢・同意管理体制、包括的なアカウント削除機能、公開判断。PRマージ・本番デプロイは引き続き未実施。
