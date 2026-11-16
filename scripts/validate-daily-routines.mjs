@@ -13,6 +13,8 @@ assert.match(html,/new Set\(data\.routines\.map\(item=>item\.id\)\)/,"Duplicate 
 assert.match(html,/new Set\(ids\)\.size===ids\.length/,"Duplicate completion entries must be rejected.");
 assert.match(html,/localStorage\.setItem\(KEY,JSON\.stringify\(next\)\)/,"Routine state must persist locally.");
 assert.match(html,/Daily routine rollback failed/,"Failed writes must attempt rollback.");
+assert.match(html,/Object\.keys\(next\.completions\)\.sort\(\)\.reverse\(\)\.slice\(14\)/,"Completion history must be pruned to the latest 14 days.");
+assert.match(html,/let previous=null;try\{previous=localStorage\.getItem\(KEY\)/,"Storage reads and writes must share the guarded error path.");
 assert.match(html,/保存データを読み取れないため、上書きを止めています/,"Invalid stored data must fail closed.");
 assert.match(html,/今日の達成：/,"Daily completion progress must be shown.");
 assert.match(html,/aria-live="polite"/,"Routine status must be announced accessibly.");
