@@ -55,7 +55,6 @@
 - `kokoroSavedRoomsBeforeCloudImport`
 - `kokoroSavedRoomPrefsBeforeCloudImport`
 - `kokoroCustomRoomPalettesBeforeCloudImport`
-- `kokoroReturnToAiAfterLogin`
 - `kokoroTodayTasksV1`
 - `kokoroDailyRoutinesV1`
 - `kokoroFamilyCalendarV1`
@@ -65,6 +64,11 @@
 - `kokoroFamilyTasksV1`
 
 この一覧は現時点で検出できたキーの基準であり、動的に組み立てるキーや別モジュールの保存先がないことを保証しません。削除機能の実装前にコード全体の再棚卸しを必須とします。
+
+
+### セッション内データ
+
+- `kokoroReturnToAiAfterLogin`（`sessionStorage`）：Googleログイン後の画面復帰用。一時データのため、現在のセッション終了時にも残らないことを確認する。
 
 ## 必須の削除フロー
 
