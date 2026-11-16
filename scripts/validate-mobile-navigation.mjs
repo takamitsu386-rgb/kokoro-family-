@@ -20,7 +20,7 @@ assert.match(html, /env\(safe-area-inset-bottom\)/, "bottom navigation respects 
 assert.match(html, /min-height:52px/, "quick navigation touch targets are sufficiently tall");
 assert.match(html, /scroll-snap-type:x proximity/, "top navigation supports touch scrolling");
 assert.match(sw, /kokoro-family-v369/, "service worker cache is refreshed");
-assert.match(mvpScope, /Service Worker cacheは v369\./, "MVP documentation cache version is current");
-assert.match(aiSetup, /Service Workerは v369\./, "AI setup documentation cache version is current");
+assert.match(mvpScope, /Service Worker cacheは v369。/, "MVP documentation cache version is current");
+assert.match(aiSetup, /Service Workerは v369。/, "AI setup documentation cache version is current");
 
 console.log("Mobile navigation source checks passed.");
