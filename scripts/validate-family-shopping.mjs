@@ -61,6 +61,6 @@ assert.match(html, /友達との共有機能は初期版では利用できませ
 const rules = await readFile(new URL("../firestore.rules", import.meta.url), "utf8");
 assert.match(rules, /match \/sharedShopping\/\{shareId\}\s*\{[\s\S]*?allow read, write: if false;/,
   "Friend-shared shopping data must be denied in the MVP.");
-assert.match(sw, /const CACHE_NAME="kokoro-family-v371"/,
+assert.match(sw, /const CACHE_NAME="kokoro-family-v372"/,
   "Service Worker cache version must match the current application shell.");
 console.log("Family shopping UI, CSV safety, personal cloud sync, friend sharing, account isolation, and cache version checks passed.");
