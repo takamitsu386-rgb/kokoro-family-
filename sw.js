@@ -14,7 +14,8 @@ self.addEventListener("activate",event=>{
   );
 });
 self.addEventListener("fetch",event=>{
-  if(event.request.method!=="GET"||new URL(event.request.url).origin!==self.location.origin)return;
+  const requestURL=new URL(event.request.url);
+  if(event.request.method!=="GET"||requestURL.origin!==self.location.origin||requestURL.pathname.startsWith("/api/"))return;
   const isAppNavigation=event.request.mode==="navigate"||new URL(event.request.url).pathname.endsWith("/index.html");
   if(isAppNavigation){
     event.respondWith(
