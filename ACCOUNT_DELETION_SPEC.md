@@ -81,13 +81,13 @@
 - `posts/{postId}/comments/{commentId}`、`posts/{postId}/likes/{likerUid}`：投稿配下のサブコレクション。投稿者・コメント投稿者・いいねした利用者の関係を個別に判定する。
 - `users/{uid}/following/{targetUid}`、`users/{uid}/hiddenSharedRooms/{shareId}`、`users/{uid}/receivedSharedRooms/{shareId}`、`users/{uid}/sharedRooms/{shareId}`：友達・共有ルーム関連の本人側インデックス。
 
+これらは利用枠や関係性の補助データであり、保持例外のある通報本文・他者所有の共有データと同じ扱いにしません。実装時には対象UIDが所有者・参加者・参照先のどの立場かを確認します。
+
 ### 外部保存先の確認限界
 
 - 現在のリポジトリでは、firebase.json にFirebase Storageのルール設定はなく、functions/index.js にStorage SDK・バケット操作の参照も検出されていない。
 - これはFirebaseプロジェクト側にStorageファイルが存在しない証明ではない。Console上のStorageバケット、Cloud Logging、Analytics、バックアップ、外部サービス、エクスポート済みファイルは、プロジェクト管理者が別途確認する。
 - 対象保存先の存在・所有権・削除API・保持要件が確定するまでは、削除完了と表示しない。
-これらは利用枠や関係性の補助データであり、保持例外のある通報本文・他者所有の共有データと同じ扱いにしません。実装時には対象UIDが所有者・参加者・参照先のどの立場かを確認します。
-
 ## データ所有関係ごとの処理基準
 
 | データ分類 | 削除要求時の扱い | 必ず守る境界 |
