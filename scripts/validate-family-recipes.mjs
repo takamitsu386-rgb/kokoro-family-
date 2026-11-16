@@ -21,7 +21,7 @@ assert.match(html,/steps\.length<=1000/);
 assert.match(html,/Family recipes rollback failed/);
 assert.match(html,/上書きせず保護しました/);
 assert.match(html,/クラウド同期・家族間共有には未対応です/);
-assert.match(sw,/kokoro-family-v369/);
+assert.match(sw,/kokoro-family-v370/);
 console.log("Family recipe notebook source checks passed.");
 
 assert.match(html,/familyRecipesShoppingStatus/);
@@ -30,41 +30,41 @@ assert.match(html,/kokoroFamilyShoppingV1/);
 assert.match(html,/new Set\(current\.map\(x=>x\.id\)\)/);
 assert.match(html,/上限100件に達しています/);
 assert.match(html,/Recipe shopping import rollback failed/);
-assert.match(sw,/kokoro-family-v369/);
+assert.match(sw,/kokoro-family-v370/);
 
 assert.match(html,/id="familyRecipesMealStatus"/);
 assert.match(html,/addToMeal\.textContent="献立に追加"/);
 assert.match(html,/familyMealsForm/);
 assert.match(html,/レシピノートから追加/);
 assert.match(html,/actions\.append\(edit,addToMeal,addIngredients,remove\)/);
-assert.match(sw,/kokoro-family-v369/);
+assert.match(sw,/kokoro-family-v370/);
 
 assert.match(html, /option value="favorites">お気に入り/);
 assert.match(html, /const FAVORITES_KEY="kokoroFamilyRecipeFavoritesV1"/);
 assert.match(html, /favorites\.has\(x\.id\)/);
 assert.match(html, /aria-pressed/);
 assert.match(html, /Recipe favorite save failed/);
-assert.match(sw, /kokoro-family-v369/);
+assert.match(sw, /kokoro-family-v370/);
 
 assert.match(html, /id="familyRecipesSort"/);
 assert.match(html, /option value="title">料理名順/);
 assert.match(html, /option value="category">分類順/);
 assert.match(html, /sortInput.addEventListener\("change",render\)/);
 assert.match(html, /a\.title\.localeCompare\(b\.title,"ja"\)/);
-assert.match(sw, /kokoro-family-v369/);
+assert.match(sw, /kokoro-family-v370/);
 
 assert.match(html, /材料チェック（料理中に確認）/);
 assert.match(html, /recipe\.ingredients\.split\(\/\\r\?\\n\/\)/);
 assert.match(html, /チェックをすべて解除/);
 assert.match(html, /checkbox\.addEventListener\("change"/);
 assert.match(html, /li\.append\(title,ingredients,checklist,steps,cookingChecklist,actions\)/);
-assert.match(sw, /kokoro-family-v369/);
+assert.match(sw, /kokoro-family-v370/);
 
 assert.match(html, /checklistProgress\.textContent="準備済み "\+checked/);
 assert.match(html, /updateChecklistProgress/);
 assert.match(html, /checklistProgress\.textContent/);
 assert.match(html, /checklist\.append\(checklistTitle,checklistProgress,checklistItems,resetChecklist\)/);
-assert.match(sw, /kokoro-family-v369/);
+assert.match(sw, /kokoro-family-v370/);
 
 assert.match(html, /調理ステップチェック/);
 assert.match(html, /recipe\.steps\.split\(\/\\r\?\\n\//);
@@ -72,4 +72,4 @@ assert.match(html, /updateCookingProgress/);
 assert.match(html, /cookingProgress\.textContent="完了 "\+boxes\.filter\(input=>input\.checked\)\.length/);
 assert.match(html, /ステップをすべて解除/);
 assert.match(html, /cookingChecklist,actions/);
-assert.match(sw, /kokoro-family-v369/);
+assert.match(sw, /kokoro-family-v370/);
