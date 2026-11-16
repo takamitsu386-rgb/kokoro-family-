@@ -7694,6 +7694,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   searchInput.addEventListener("input",render);
   resetFiltersButton.addEventListener("click",()=>{filterInput.value="week";typeFilterInput.value="all";searchInput.value="";render();});
   categoryFilterInput.addEventListener("change",render);
+  priorityFilterInput.addEventListener("change",render);
   assigneeFilterInput.addEventListener("change",render);
   dueFilterInput.addEventListener("change",render);
   searchInput.addEventListener("input",render);
