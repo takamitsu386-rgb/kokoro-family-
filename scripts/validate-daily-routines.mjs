@@ -18,7 +18,7 @@ assert.match(html,/let previous=null;try\{previous=localStorage\.getItem\(KEY\)/
 assert.match(html,/保存データを読み取れないため、上書きを止めています/,"Invalid stored data must fail closed.");
 assert.match(html,/今日の達成：/,"Daily completion progress must be shown.");
 assert.match(html,/aria-live="polite"/,"Routine status must be announced accessibly.");
-assert.match(html,/function today\(\)/,"Completion must use the current local date.");
+assert.match(html,/const today=\(\)=>/,"Completion must use the current local date.");
 assert.match(html,/毎日くり返したいことを登録できます/,"Routine behavior must be explained.");
 assert.match(sw,/kokoro-family-v370/,"Service worker cache must be refreshed for the new feature.");
 console.log("Daily routine persistence, validation, completion, and navigation checks passed.");
