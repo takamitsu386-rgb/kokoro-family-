@@ -378,3 +378,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - GitHub Actions Source validation run `43870429644` は completed / success。41項目すべて成功。Firestore Rules Emulator、GitHub Pages成果物、JSON設定検証を含む。
 - これは作業ブランチ上の自動検証成功。Firebase本番環境・スマートフォン実機の受け入れ試験が完了した意味ではない。
 - PR #2はopen / draft / mergeableのまま。GoogleログインのFirebase設定、Functions/Rules/Indexesの本番反映、AI年齢・同意管理、SNS運営体制、包括的アカウント削除、実機試験は未完了。公開ゲート解除・マージ・デプロイは行わない。
+
+## 2026-11-16 公開経路・Firebase設定の追加点検
+
+- PR #2の現在状態：`open`、draft=`true`、merged=`false`、mergeable=`true`。head branch=`feature/ai-consultation-reconciled`、base branch=`development-kokoro-app`。マージ・公開は未実施。
+- GitHub Pagesの公開workflowは `development-kokoro-app` へのpushまたは手動実行でビルドし、deploy jobはリポジトリ変数 `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の場合だけ実行する。承認変数は変更していない。
+- Pages成果物は `index.html`、`manifest.webmanifest`、`icon.svg`、`sw.js` の4ファイルのみ。Firebase Functions、Firestore Rules、IndexesはPagesからは反映されない。
+- リポジトリにはFirebaseプロジェクトの既定値として `kokoro-family` が記録されている。誤った本番反映を避けるため、Firebase Console・対象プロジェクト・差分を管理者が照合するまでFirebase deployコマンドは実行しない。今回もFirebaseへのデプロイや設定変更は行っていない。
+- Source validation workflowは最新のルーティン修正コミット `0ed2267beada91282afd43dbb4559635d448932c` で全41項目成功（run `43870429644`）。その後の公開準備文書更新はドキュメントのみの変更であり、別のソース検証を実施したとは扱わない。
+- Googleログインの実機確認、Firebase本番Rules・Indexes・Functions反映、包括的アカウント削除、AIの年齢・同意管理、SNS運営体制、スマートフォン受け入れ試験は引き続き未完了。よって公開可能判定にはしない。
