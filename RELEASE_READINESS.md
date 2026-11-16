@@ -403,3 +403,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 現時点では「ソース検証成功」であり、「一般公開可能」ではない。未確認のFirebase設定・実機動作・削除手段を推測で完了扱いにしない。特に、AI相談とSNSは停止状態を維持し、未成年者保護の確認を飛ばさない。
 
 公開に進む際は、PRレビュー・マージ、Firebase本番反映、GitHub Pages承認ゲートの解除をそれぞれ別の変更として扱い、実施結果を確認する。公開ゲートの解除や本番デプロイは、明示的な公開承認後にのみ行う。
+
+
+
+## 2026-11-16 最新CI再確認（head `d7e63c1b2b77f2677fc2433362eb0e5392fcc9c7`）
+
+- 最新PR head `d7e63c1b2b77f2677fc2433362eb0e5392fcc9c7` のSource validation run `43856139055` は completed / success（2026-11-16 11:16 UTC）。
+- validate jobはcompleted / success。失敗ステップなし。Firestore Rulesテスト依存関係のインストールを含む検証工程が完了。
+- PR #1はopen / draft / unmerged / mergeable。base `development-kokoro-app` に対してahead 1427 / behind 0。
+- 今回のhead更新は公開前ブロッカーとデプロイゲートを文書化した変更。アプリ本体、Firebase本番設定、公開承認変数は変更していない。
+- 自動検証成功は一般公開可能の判定ではない。Googleログイン・Firebase本番反映・実機同期・包括的アカウント削除・法務運営確認は未完了。AI相談とSNSの停止ゲートを維持し、PRマージ・本番デプロイは未実施。
