@@ -8,7 +8,7 @@ assert.match(html,/href="#daily-routines"/,"Daily routine navigation must exist.
 assert.match(html,/id="dailyRoutineForm"/,"Routine creation form must exist.");
 assert.match(html,/maxlength="60"/,"Routine title input must be bounded.");
 assert.match(html,/const KEY="kokoroDailyRoutinesV1",LIMIT=30,MAX_TITLE=60/,"Routine storage key and bounds must be explicit.");
-assert.match(html,/function validState\(data\)/,"Routine storage schema must be validated.");
+assert.match(html,/const validState=data=>/,"Routine storage schema must be validated.");
 assert.match(html,/new Set\(data\.routines\.map\(item=>item\.id\)\)/,"Duplicate routine IDs must be rejected.");
 assert.match(html,/new Set\(ids\)\.size===ids\.length/,"Duplicate completion entries must be rejected.");
 assert.match(html,/localStorage\.setItem\(KEY,JSON\.stringify\(next\)\)/,"Routine state must persist locally.");
