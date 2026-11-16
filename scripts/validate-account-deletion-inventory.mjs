@@ -49,12 +49,16 @@ assert.ok(spec.includes("`kokoroReturnToAiAfterLogin`") && spec.includes("`sessi
 for (const collection of [
   "sharedShopping", "profiles", "posts", "comments", "likes",
   "friendRequests", "sharedRooms", "reports", "reservations",
-  "timelineUsage", "blocks"
+  "timelineUsage", "blocks", "aiUsage", "profileSearchUsage", "reportUsage", "following", "hiddenSharedRooms", "receivedSharedRooms"
 ]) {
   assert.ok(spec.includes("`" + collection + "`"),
     "Deletion specification is missing a known Firestore collection: " + collection);
 }
 
+for (const path of ["users/{uid}/aiUsage/{dayKey}", "users/{uid}/timelineUsage/{dayKey}", "users/{uid}/profileSearchUsage/{dayKey}", "users/{uid}/reportUsage/{dayKey}", "users/{uid}/blocks/{targetUid}", "users/{uid}/following/{targetUid}", "users/{uid}/hiddenSharedRooms/{shareId}", "users/{uid}/receivedSharedRooms/{shareId}", "users/{uid}/sharedRooms/{shareId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}"]) {
+  assert.ok(spec.includes("`" + path + "`"), "Deletion specification is missing a Firestore path: " + path);
+}
+assert.ok(spec.includes("`reservations`"), "Deletion specification must include AI quota reservation subcollections.");
 assert.match(spec, /この一覧は現時点で検出できたキーの基準/);
 assert.match(spec, /動的に組み立てるキーや別モジュールの保存先がないことを保証しません/);
 console.log("Account-deletion inventory: " + localKeys.length + " local keys and 11 Firestore collection references checked.");
