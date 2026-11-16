@@ -20,5 +20,5 @@ assert.match(html,/今日の達成：/,"Daily completion progress must be shown.
 assert.match(html,/aria-live="polite"/,"Routine status must be announced accessibly.");
 assert.match(html,/const today=\(\)=>/,"Completion must use the current local date.");
 assert.match(html,/毎日くり返したいことを登録できます/,"Routine behavior must be explained.");
-assert.match(sw,/kokoro-family-v371/,"Service worker cache must be refreshed for the new feature.");
+assert.match(sw,/kokoro-family-v372/,"Service worker cache must be refreshed for the new feature.");
 console.log("Daily routine persistence, validation, completion, and navigation checks passed.");
