@@ -40,6 +40,8 @@ assert.match(endpoint, /store:\s*false/, 'Provider-side response storage must be
 assert.match(endpoint, /max_output_tokens:\s*500/, 'AI output must be bounded.');
 assert.match(endpoint, /AbortSignal\.timeout\(45000\)/, 'Upstream requests must have a timeout.');
 assert.match(endpoint, /個人情報を尋ねないでください/, 'The system instructions must discourage collecting personal information.');
+assert.match(endpoint, /差し迫った危険があると読み取れる場合は、チャットだけで解決しようとせず/, "Urgent danger must be escalated beyond the chatbot.");
+assert.match(endpoint, /学校の先生・スクールカウンセラーなど別の信頼できる大人/, "Potential abuse at home must be routed toward a safer trusted adult.");
 assert.match(endpoint, /診断や専門家の代替を名乗らないでください/, 'The system instructions must avoid presenting the model as a clinician.');
 assert.match(endpoint, /自傷・自殺、暴力、虐待、危険な行為について具体的な方法や詳細を示さず/, 'Safety instructions must avoid dangerous procedural details.');
 assert.match(endpoint, /if \(!reply\) return sendJson\(res, 502/, 'Empty provider responses must not be returned as success.');
