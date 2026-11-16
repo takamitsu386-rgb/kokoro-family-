@@ -7696,6 +7696,13 @@ snsRefreshPosts.addEventListener("click", async () => {
   resetFiltersButton.addEventListener("click",()=>{filterInput.value="week";typeFilterInput.value="all";searchInput.value="";render();});
   categoryFilterInput.addEventListener("change",render);
   priorityFilterInput.addEventListener("change",render);
+  completeAllButton.addEventListener("click",()=>{
+    const pending=tasks.filter(task=>!task.completed);
+    if(!pending.length){summaryEl.textContent="未完了のやることはありません。";return;}
+    if(!confirm("未完了の"+pending.length+"件をすべて完了にしますか？"))return;
+    if(persist(tasks.map(task => task.completed ? task : {...task, completed: true})))
+      summaryEl.textContent=pending.length+"件のやることをすべて完了にしました。";
+  });
   assigneeFilterInput.addEventListener("change",render);
   dueFilterInput.addEventListener("change",render);
   searchInput.addEventListener("input",render);
