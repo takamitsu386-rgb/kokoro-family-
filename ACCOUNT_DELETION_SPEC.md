@@ -70,6 +70,19 @@
 
 - `kokoroReturnToAiAfterLogin`（`sessionStorage`）：Googleログイン後の画面復帰用。一時データのため、現在のセッション終了時にも残らないことを確認する。
 
+
+### Cloud Functions・Firestore Rulesで確認した補助データ
+
+- `users/{uid}/aiUsage/{dayKey}` とその `reservations` サブコレクション：AI相談の日次利用枠と処理予約。
+- `users/{uid}/timelineUsage/{dayKey}`：タイムラインの日次利用枠。
+- `users/{uid}/profileSearchUsage/{dayKey}`：プロフィール検索の日次利用枠。
+- `users/{uid}/reportUsage/{dayKey}`：通報の日次利用枠。
+- `users/{uid}/blocks/{targetUid}`：本人が作成したブロック記録。相手側に作成された本人UID宛てのブロック記録も照合する。
+- `posts/{postId}/comments/{commentId}`、`posts/{postId}/likes/{likerUid}`：投稿配下のサブコレクション。投稿者・コメント投稿者・いいねした利用者の関係を個別に判定する。
+- `users/{uid}/following/{targetUid}`、`users/{uid}/hiddenSharedRooms/{shareId}`、`users/{uid}/receivedSharedRooms/{shareId}`、`users/{uid}/sharedRooms/{shareId}`：友達・共有ルーム関連の本人側インデックス。
+
+これらは利用枠や関係性の補助データであり、保持例外のある通報本文・他者所有の共有データと同じ扱いにしません。実装時には対象UIDが所有者・参加者・参照先のどの立場かを確認します。
+
 ## 必須の削除フロー
 
 1. **再認証と確認**：ログイン中の本人であることを再認証し、削除対象・取り消せないこと・保持例外を画面で説明して最終確認を得る。
