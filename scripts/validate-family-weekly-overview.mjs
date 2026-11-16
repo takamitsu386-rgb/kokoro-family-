@@ -14,6 +14,8 @@ assert.match(html, /kokoroFamilyMealsV1/, "meal plans are included");
 assert.match(html, /kokoroFamilyShoppingV1/, "shopping list is included");
 assert.match(html, /期限を過ぎたやること/, "overdue tasks are shown separately");
 assert.match(html, /window\.print\(\)/, "browser print dialog is invoked");
+assert.equal((html.match(/dispatchEvent\(new CustomEvent\("kokoro-family-weekly-data-updated"\)\)/g) || []).length, 3, "task, calendar, and meal saves notify the weekly overview");
+assert.match(html, /addEventListener\("kokoro-family-weekly-data-updated",render\)/, "weekly overview refreshes immediately after same-tab family data changes");
 assert.match(html, /@media print/, "print-specific layout exists");
 assert.match(html, /const read=\(key,validate,limit\)=>/, "source data is validated before display");
 assert.match(html, /const validISODate=value=>/, "weekly overview uses strict calendar-date validation");
