@@ -419,3 +419,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - v370以前のコミットでは週間まとめの日付検証テストが実装と不一致で失敗したが、後続コミットで実装を統一し、同コミットのCIはcompleted / success（run `43889574556`、`43889560243`）。
 - v371への更新後のCIは実行中。完了結果を確認するまで最新コミットのCI成功とは扱わない。
 - 実機でのiPhone Safari / Android Chrome確認、Firebase本番環境の設定・Rules・Functions反映、Googleログインとクラウド同期、包括的アカウント削除、AI年齢・同意管理、SNS運営体制は未完了。PR #2のマージ・本番デプロイ・一般公開は未実施。
+
+
+## 2026-11-17 Service Worker APIキャッシュ除外・最新CI
+
+- Service Workerのキャッシュ名を `kokoro-family-v372` に更新し、同一オリジンの `/api/` GETリクエストもキャッシュ処理前に除外するよう変更。
+- `scripts/validate-service-worker.mjs` は非GET・クロスオリジン・APIパスの除外条件を確認する。
+- コミット `a0cc171acdd8358009ecbe817a7c807914dfbaca` のSource validation run `43893075248` は completed / success。validate jobの全49ステップが成功（JavaScript構文、Service Worker、Firebase Hosting、Firestore Rules Emulator、Pages成果物、各機能validatorを含む）。
+- GitHub Pages workflowは引き続き `development-kokoro-app` へのpushまたは手動実行でbuildし、deploy jobは `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の場合のみ実行する。承認変数の変更・PRマージ・公開デプロイは行っていない。
+- PR #2はopen / draft / unmerged。CI成功はソース検証とFirestore Emulatorの結果であり、Firebase本番設定・Functions/Rules/Indexesの反映、Googleログイン、実機同期、AI実応答の確認を意味しない。
+- 公開前ブロッカー：AI年齢・同意管理、包括的アカウント削除の実装と運用判断、SNSを将来有効化する場合の年齢保護・人による通報運営体制、Firebase本番設定、スマートフォン実機受け入れ試験。これらが未完了のため公開可能判定にはしない。
