@@ -23,6 +23,6 @@ assert.match(html, /const validISODate=value=>/, "weekly overview uses strict ca
 assert.match(html, /validISODate\(x\.dueDate\)/, "weekly overview rejects impossible task due dates");
 assert.match(html, /validISODate\(x\.date\)/, "weekly overview rejects impossible event and meal dates");
 assert.match(html, /x\.plannedDate===""\|\|validISODate\(x\.plannedDate\)/, "weekly overview rejects impossible shopping dates");
-assert.match(sw, /kokoro-family-v371/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v372/, "service worker cache is refreshed");
 
 console.log("Family weekly overview source checks passed.");
