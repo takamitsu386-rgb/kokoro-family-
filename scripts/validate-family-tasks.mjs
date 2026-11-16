@@ -66,7 +66,7 @@ assert.match(html, /searchInput\.addEventListener\("input",\s*render\)/, "task k
 
 assert.match(html, /id="familyTaskResetFilters"/, "task filter reset button exists");
 assert.match(html, /resetFiltersButton\.addEventListener\("click"/, "task filter reset action is wired");
-assert.match(html, /searchInput\.value\\s*=\\s*""/, "task filter reset clears keyword search");
+assert.match(html, /searchInput\.value\s*=\s*""/, "task filter reset clears keyword search");
 
 assert.match(html, /id="familyTaskCompleteAll"/, "complete all tasks button exists");
 assert.match(html, /未完了の.*件をすべて完了にしますか/, "bulk completion requires confirmation");
