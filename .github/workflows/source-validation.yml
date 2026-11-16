@@ -230,6 +230,8 @@ jobs:
         run: node scripts/validate-saved-room-bulk.mjs
       - name: Validate room persistence, rollback, and startup recovery
         run: node scripts/validate-room-persistence.mjs
+      - name: Validate room backup export, import, and rollback
+        run: node scripts/validate-room-backup.mjs
       - name: Validate SNS release safety gate
         run: node scripts/validate-sns-release-gate.mjs
       - name: Validate public SNS timeline privacy and access
