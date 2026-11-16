@@ -67,6 +67,6 @@ assert.match(html, /id="familyCalendarWeekOverview"/);
 assert.match(html, /今週の予定一覧/);
 assert.match(html, /weekOverview\.replaceChildren\(\)/);
 assert.match(html, /offset<7/);
-assert.match(html, /item\.time\.localeCompare\(b\.time\)/);
+assert.match(html, /a\.time\.localeCompare\(b\.time\)/);
 assert.match(html, /この日に予定を追加/);
 assert.match(html, /weekOverview\.append\(card\)/);
