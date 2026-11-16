@@ -200,6 +200,22 @@ jobs:
         run: node scripts/validate-family-shopping.mjs
       - name: Validate ready-made room templates
         run: node scripts/validate-room-templates.mjs
+      - name: Validate automatic furniture arrangement
+        run: node scripts/validate-auto-arrange-furniture.mjs
+      - name: Validate room furniture report
+        run: node scripts/validate-room-furniture-report.mjs
+      - name: Validate room goal planner
+        run: node scripts/validate-room-goals.mjs
+      - name: Validate family tasks
+        run: node scripts/validate-family-tasks.mjs
+      - name: Validate family calendar
+        run: node scripts/validate-family-calendar.mjs
+      - name: Validate family meal planner
+        run: node scripts/validate-family-meals.mjs
+      - name: Validate family recipe notebook
+        run: node scripts/validate-family-recipes.mjs
+      - name: Validate family weekly overview
+        run: node scripts/validate-family-weekly-overview.mjs
       - name: Validate Today Plan local data safety
         run: node scripts/validate-today-plan.mjs
       - name: Validate saved room bulk management and furniture search
