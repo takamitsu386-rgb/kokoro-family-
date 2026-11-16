@@ -5071,11 +5071,17 @@ const aiInput = document.getElementById("aiMessage");
 const aiSend = document.getElementById("aiSend");
 const aiClear = document.getElementById("aiClear");
 const aiStatus = document.getElementById("aiStatus");
+const aiReleaseDisabled = aiStatus?.dataset.releaseGate === "disabled";
 const aiHistory = [];
 let aiBusy = false;
 let aiCurrentUid = null;
 let aiAuthGeneration = 0;
 let aiRequestController = null;
+if (aiReleaseDisabled) {
+  aiInput.disabled = true;
+  aiSend.disabled = true;
+  aiStatus.textContent = "AI相談は年齢・同意などの安全設定が整うまで一時停止中です。";
+}
 const aiFirebaseApp = getApps()[0];
 if (aiFirebaseApp) {
   onAuthStateChanged(getAuth(aiFirebaseApp), user => {
@@ -5087,9 +5093,9 @@ if (aiFirebaseApp) {
       aiRequestController = null;
       // Release the old request's UI lock immediately; its finally block is generation-guarded.
       aiBusy = false;
-      aiSend.disabled = false;
+      aiSend.disabled = aiReleaseDisabled;
       if (aiClear) aiClear.disabled = false;
-      aiInput.disabled = false;
+      aiInput.disabled = aiReleaseDisabled;
       aiLog.setAttribute("aria-busy", "false");
       // Never carry an unsent draft across account identities.
       aiInput.value = "";
@@ -5104,7 +5110,9 @@ if (aiFirebaseApp) {
       aiStatus.textContent = "アカウント切り替えに伴い、会話をリセットしました。";
     }
     aiCurrentUid = nextUid;
-    if (user) {
+    if (aiReleaseDisabled) {
+      aiStatus.textContent = "AI相談は年齢・同意などの安全設定が整うまで一時停止中です。";
+    } else if (user) {
       if (!aiBusy) aiStatus.textContent = "相談を入力して送信できます。";
     } else {
       aiStatus.textContent = "Googleログイン後に送信できます。";
@@ -5137,7 +5145,7 @@ aiInput?.addEventListener("keydown", event => {
   }
 });
 aiSend?.addEventListener("click", async () => {
-  if (aiStatus?.dataset.releaseGate === "disabled") {
+  if (aiReleaseDisabled) {
     aiStatus.textContent = "AI相談は年齢に応じた安全設定の準備が整うまで一時停止中です。";
     return;
   }
