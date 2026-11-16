@@ -23,7 +23,7 @@ assert.match(html, /task\.dueDate===item\.date/);
 assert.match(html, /Calendar task import rollback failed/);
 assert.match(html, /id="familyCalendarDate" type="date"/);
 assert.match(html, /const KEY = "kokoroFamilyCalendarV1", LIMIT = 100/);
-assert.match(html, /function validDate\(value\)/);
+assert.match(html, /const validDate\s*=\s*value\s*=>/);
 assert.match(html, /function validEvent\(item\)/);
 assert.match(html, /editingId\?\{\.\.\.item,title,date,time,place\}/);
 assert.match(html, /cancelButton\.addEventListener\("click",resetEditor\)/);
