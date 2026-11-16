@@ -46,6 +46,21 @@ for (const state of orderedStates) {
 }
 assert.ok(stateLine.includes("`retry_required`"), "Deletion state must include retry_required.");
 
+const ownershipSection = spec.slice(spec.indexOf("## データ所有関係ごとの処理基準"), spec.indexOf("## 必須の削除フロー"));
+const requiredOwnershipRules = [
+  "本人だけが所有する個人データ",
+  "本人が参加者である共有データ",
+  "本人が所有者で他者が参加する共有データ",
+  "他者が所有し本人が投稿・反応した記録",
+  "通報・安全対応・監査記録",
+  "Storage・ログ・Analytics・バックアップ等",
+  "完了済みステップを再実行しても他者データに副作用を起こさない",
+  "一部の削除に失敗した場合、全体を `completed` にしない",
+  "Auth削除の結果が不明な場合はAuthの存在状態を再照会し"
+];
+for (const rule of requiredOwnershipRules) {
+  assert.ok(ownershipSection.includes(rule), "Deletion ownership/retry rule is missing: " + rule);
+}
 const requiredTestCases = [
   "同一要求の二重実行",
   "途中タイムアウト",
