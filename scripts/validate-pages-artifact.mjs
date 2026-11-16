@@ -20,7 +20,7 @@ assert.ok(manifest.start_url === './' && manifest.scope === './',
   'PWA manifest must remain relative to the project Pages subpath.');
 assert.ok(html.includes('rel="manifest"') && html.includes('href="./manifest.webmanifest"'),
   'The app must reference its staged manifest.');
-assert.ok(serviceWorker.includes('const APP_SHELL = ["./","./index.html","./manifest.webmanifest","./icon.svg"]'),
+assert.ok(serviceWorker.includes('const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"]'),
   'The service worker app shell must use files included in the Pages artifact.');
 
 console.log('GitHub Pages artifact is restricted to the static app shell and requires manual release dispatch.');
