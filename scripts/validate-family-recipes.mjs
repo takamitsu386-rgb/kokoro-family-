@@ -57,7 +57,7 @@ assert.match(html, /材料チェック（料理中に確認）/);
 assert.match(html, /recipe\.ingredients\.split\(\/\\r\?\\n\/\)/);
 assert.match(html, /チェックをすべて解除/);
 assert.match(html, /checkbox\.addEventListener\("change"/);
-assert.match(html, /li\.append\(title,ingredients,checklist,steps,actions\)/);
+assert.match(html, /li\.append\(title,ingredients,checklist,steps,cookingChecklist,actions\)/);
 assert.match(sw, /kokoro-family-v369/);
 
 assert.match(html, /準備済み \+checked\+\//);
