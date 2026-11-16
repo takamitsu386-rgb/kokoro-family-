@@ -27,6 +27,40 @@
 
 現行画面コードには、お部屋・保存したお部屋・履歴・復旧用退避・設定・同期UID等のlocalStorageキーがある。削除画面では、現在の端末からアプリ関連データとバックアップ／復旧用データを消去する範囲を明示する。ブラウザー内の他サイトデータや、利用者が別途保存したエクスポートファイルまでは消去できないことを説明する。別端末のローカルデータは、その端末でログアウト・アプリデータ消去が必要になる場合がある。
 
+
+
+### 現行コードで確認した端末内キー（棚卸し基準）
+
+以下は削除実装時に消去対象として照合するキー一覧です。`localStorage` のみを対象とし、ブラウザー全体の保存領域は消去しません。機能追加でキーが増えた場合は、この一覧と検証スクリプトを同時に更新します。
+
+- `kokoroCustomRoomPalettesBeforePaletteImport`
+- `kokoroSavedRooms`
+- `kokoroSavedRoomsUndo`
+- `kokoroSavedRoomPrefs`
+- `kokoroRoom`
+- `kokoroRoomHistory`
+- `kokoroRoomRedo`
+- `kokoroRoomRecovery`
+- `kokoroSavedRoomsRecovery`
+- `kokoroRoomBeforeImport`
+- `kokoroSavedRoomsBeforeImport`
+- `kokoroSavedRoomPrefsBeforeImport`
+- `kokoroCustomRoomPalettesBeforeImport`
+- `kokoroRoomBeforeRecovery`
+- `kokoroSavedRoomsBeforeRecovery`
+- `kokoroSavedRoomPrefsBeforeRecovery`
+- `kokoroCustomRoomPalettesBeforeRecovery`
+- `kokoroCloudSyncUid`
+- `kokoroRoomBeforeCloudImport`
+- `kokoroSavedRoomsBeforeCloudImport`
+- `kokoroSavedRoomPrefsBeforeCloudImport`
+- `kokoroCustomRoomPalettesBeforeCloudImport`
+- `kokoroReturnToAiAfterLogin`
+- `kokoroTodayTasksV1`
+- `kokoroDailyRoutinesV1`
+
+この一覧は現時点で検出できたキーの基準であり、動的に組み立てるキーや別モジュールの保存先がないことを保証しません。削除機能の実装前にコード全体の再棚卸しを必須とします。
+
 ## 必須の削除フロー
 
 1. **再認証と確認**：ログイン中の本人であることを再認証し、削除対象・取り消せないこと・保持例外を画面で説明して最終確認を得る。
