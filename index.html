@@ -170,6 +170,18 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 @media(max-width:600px){.brand-header{gap:11px;padding:15px 14px}.brand-mark{width:58px;height:58px;flex-basis:58px;border-width:4px;font-size:29px}.brand-copy p{font-size:12px}.home-welcome{padding-top:0}.ai-feature-banner{padding:13px}.ai-feature-copy strong{font-size:19px}.ai-feature-copy small{font-size:10px}.home-menu-grid{gap:8px}.menu-tile{grid-template-columns:43px minmax(0,1fr);column-gap:8px;min-height:96px;padding:11px 8px;border-radius:14px}.menu-icon{width:42px;height:42px;font-size:24px;border-radius:13px}.menu-title{font-size:13px}.menu-description{font-size:10px}.menu-status{right:6px;top:5px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){.menu-tile{transition:none}}
 
+
+/* 毎日のルーティン */
+.daily-routines{border:1px solid #dce9df;background:#fbfff9}
+.daily-routine-form{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.daily-routine-form input{flex:1 1 210px;min-width:0;border:1px solid #d7e5d8;border-radius:12px;padding:12px;background:#fff}
+.daily-routine-list{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
+.daily-routine-item{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid #e2ebdf;border-radius:12px;background:#fff}
+.daily-routine-item input{width:22px;height:22px;flex:0 0 auto;accent-color:#7eae91}
+.daily-routine-item span{flex:1;min-width:0;overflow-wrap:anywhere}
+.daily-routine-item.done span{text-decoration:line-through;color:#718078}
+.daily-routine-item button{min-height:40px;margin:0;padding:7px 10px;background:#f7eeee;color:#805b5b}
+.daily-routine-status{min-height:1.5em;color:#667085;font-size:13px}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#dba5bd">
@@ -184,7 +196,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 <div class="brand-copy"><h1>こころファミリー</h1><p>家族の毎日を、もっとやさしく。</p></div>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">🏠 ホーム</a><a href="#ai-consultation">💗 AI相談</a><a href="#today-plan">🌷 今日の予定</a><a href="#family-weekly-plan">🗓️ 週間まとめ</a><a href="#family-tasks">📝 やること</a><a href="#family-calendar">📅 家族カレンダー</a><a href="#family-meals">🍱 献立</a><a href="#family-recipes">📖 レシピ</a><a href="#family-shopping">🛒 買い物</a><a href="#room-design">🎨 お部屋づくり</a><a href="#room-presets">🏡 お部屋セット</a><a href="#cloud-sync">☁️ 同期</a><a href="#backupTitle">🛡️ バックアップ</a><a href="#sns">👥 みんなの投稿（停止中）</a>
+<a href="#home">🏠 ホーム</a><a href="#ai-consultation">💗 AI相談</a><a href="#today-plan">🌷 今日の予定</a><a href="#daily-routines">🔁 毎日のルーティン</a><a href="#family-weekly-plan">🗓️ 週間まとめ</a><a href="#family-tasks">📝 やること</a><a href="#family-calendar">📅 家族カレンダー</a><a href="#family-meals">🍱 献立</a><a href="#family-recipes">📖 レシピ</a><a href="#family-shopping">🛒 買い物</a><a href="#room-design">🎨 お部屋づくり</a><a href="#room-presets">🏡 お部屋セット</a><a href="#cloud-sync">☁️ 同期</a><a href="#backupTitle">🛡️ バックアップ</a><a href="#sns">👥 みんなの投稿（停止中）</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
@@ -208,6 +220,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 <div class="home-menu-grid" aria-label="アプリのメニュー">
 <a class="menu-tile tile-pink" href="#ai-consultation"><span class="menu-icon" aria-hidden="true">💗</span><span class="menu-title">AI相談</span><span class="menu-description">相談機能の準備状況</span></a>
 <a class="menu-tile tile-blue" href="#today-plan"><span class="menu-icon" aria-hidden="true">🌷</span><span class="menu-title">今日の予定</span><span class="menu-description">今日の予定を確認</span></a>
+<a class="menu-tile tile-lavender" href="#daily-routines"><span class="menu-icon" aria-hidden="true">🔁</span><span class="menu-title">毎日のルーティン</span><span class="menu-description">習慣を自分のペースで確認</span></a>
 <a class="menu-tile tile-green" href="#family-weekly-plan"><span class="menu-icon" aria-hidden="true">🗓️</span><span class="menu-title">週間まとめ</span><span class="menu-description">家族の1週間を一覧</span></a>
 <a class="menu-tile tile-lavender" href="#family-tasks"><span class="menu-icon" aria-hidden="true">📝</span><span class="menu-title">やること</span><span class="menu-description">タスクを管理</span></a>
 <a class="menu-tile tile-blue" href="#family-calendar"><span class="menu-icon" aria-hidden="true">📅</span><span class="menu-title">家族カレンダー</span><span class="menu-description">予定を日付で管理</span></a>
@@ -842,6 +855,22 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 <p class="today-note">予定データはこの端末内に保存されます。お部屋のバックアップには含まれません。</p>
 </section>
 
+
+<section class="panel daily-routines" id="daily-routines" aria-labelledby="dailyRoutinesTitle">
+<h2 id="dailyRoutinesTitle">🔁 毎日のルーティン</h2>
+<p class="today-date" id="dailyRoutinesDate"></p>
+<p>毎日くり返したいことを登録できます。できた項目にチェックを入れて、自分のペースで使いましょう。通知や連続記録の競争はありません。</p>
+<form class="daily-routine-form" id="dailyRoutineForm">
+<label for="dailyRoutineInput" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">ルーティンの名前</label>
+<input id="dailyRoutineInput" name="routine" type="text" maxlength="60" autocomplete="off" placeholder="例：明日の持ち物を確認する" required>
+<button class="today-add" type="submit">＋ 追加</button>
+</form>
+<p class="today-note" id="dailyRoutineHint">最大30件・各60文字以内。登録内容と今日のチェック状態はこの端末内だけに保存されます。</p>
+<p class="daily-routine-status" id="dailyRoutineStatus" role="status" aria-live="polite"></p>
+<p id="dailyRoutineProgress" class="today-note"></p>
+<ul class="daily-routine-list" id="dailyRoutineList" aria-label="毎日のルーティン一覧"></ul>
+<p id="dailyRoutineEmpty" class="today-empty" hidden>ルーティンはまだありません。毎日やりたいことをひとつ登録できます。</p>
+</section>
 </main>
 <script>
 function kokoroLocalDateStamp(){const now=new Date();return now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");}
@@ -8847,5 +8876,27 @@ snsRefreshPosts.addEventListener("click", async () => {
 <a href="#family-shopping" aria-label="買い物リスト"><span aria-hidden="true">🛒</span><span>買い物</span></a>
 <a href="#room-design" aria-label="お部屋づくり"><span aria-hidden="true">🎨</span><span>お部屋</span></a>
 </nav>
+
+<script>
+/* 毎日のルーティン：日付ごとの完了状態を端末内に保存 */
+(function(){
+"use strict";
+const KEY="kokoroDailyRoutinesV1",LIMIT=30,MAX_TITLE=60;
+const form=document.getElementById("dailyRoutineForm");
+if(!form)return;
+const input=document.getElementById("dailyRoutineInput"),list=document.getElementById("dailyRoutineList"),status=document.getElementById("dailyRoutineStatus"),progress=document.getElementById("dailyRoutineProgress"),empty=document.getElementById("dailyRoutineEmpty"),dateLabel=document.getElementById("dailyRoutinesDate"),submit=form.querySelector('button[type="submit"]');
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const validDate=value=>{if(typeof value!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;const d=new Date(value+"T00:00:00");return Number.isFinite(d.getTime())&&d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")===value;};
+const validRoutine=item=>item&&typeof item==="object"&&!Array.isArray(item)&&typeof item.id==="string"&&/^[a-zA-Z0-9_-]{1,64}$/.test(item.id)&&typeof item.title==="string"&&item.title.trim().length>0&&item.title.length<=MAX_TITLE&&Number.isSafeInteger(item.createdAt)&&item.createdAt>0;
+const validState=data=>data&&typeof data==="object"&&!Array.isArray(data)&&data.version===1&&Array.isArray(data.routines)&&data.routines.length<=LIMIT&&data.routines.every(validRoutine)&&new Set(data.routines.map(item=>item.id)).size===data.routines.length&&data.completions&&typeof data.completions==="object"&&!Array.isArray(data.completions)&&Object.keys(data.completions).length<=400&&Object.entries(data.completions).every(([date,ids])=>validDate(date)&&Array.isArray(ids)&&ids.length<=LIMIT&&ids.every(id=>typeof id==="string"&&data.routines.some(item=>item.id===id))&&new Set(ids).size===ids.length);
+let state={version:1,routines:[],completions:{}},storageReady=true;
+try{const raw=localStorage.getItem(KEY);if(raw!==null){const parsed=JSON.parse(raw);if(!validState(parsed))throw new Error("invalid routine data");state=parsed;}}
+catch(error){storageReady=false;console.error("Daily routine data could not be read",error);status.textContent="保存データを読み取れないため、上書きを止めています。データを消さずにブラウザーの保存状態を確認してください。";form.hidden=true;}
+function persist(next){if(!storageReady)return false;const previous=localStorage.getItem(KEY);try{localStorage.setItem(KEY,JSON.stringify(next));state=next;return true;}catch(error){try{if(previous===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous);}catch(rollbackError){console.error("Daily routine rollback failed",rollbackError);}console.error("Daily routine save failed",error);status.textContent="保存できませんでした。前の内容を保護しています。端末の空き容量を確認してください。";return false;}}
+function render(){const stamp=today(),done=new Set(state.completions[stamp]||[]);dateLabel.textContent=new Intl.DateTimeFormat("ja-JP",{dateStyle:"long"}).format(new Date(stamp+"T00:00:00"));list.replaceChildren();empty.hidden=state.routines.length!==0;progress.textContent=state.routines.length?"今日の達成："+done.size+" / "+state.routines.length+" 件":"";for(const routine of state.routines){const li=document.createElement("li");li.className="daily-routine-item"+(done.has(routine.id)?" done":"");const check=document.createElement("input");check.type="checkbox";check.checked=done.has(routine.id);check.setAttribute("aria-label",routine.title+" 完了");check.addEventListener("change",()=>{const next={...state,completions:{...state.completions}},items=new Set(next.completions[stamp]||[]);if(check.checked)items.add(routine.id);else items.delete(routine.id);next.completions[stamp]=[...items];if(!persist(next)){check.checked=!check.checked;return;}status.textContent=check.checked?"「"+routine.title+"」を今日の完了にしました。":"「"+routine.title+"」の今日のチェックを戻しました。";render();});const title=document.createElement("span");title.textContent=routine.title;const remove=document.createElement("button");remove.type="button";remove.textContent="削除";remove.setAttribute("aria-label",routine.title+"を削除");remove.addEventListener("click",()=>{if(!confirm("「"+routine.title+"」をルーティンから削除しますか？"))return;const next={...state,routines:state.routines.filter(item=>item.id!==routine.id),completions:Object.fromEntries(Object.entries(state.completions).map(([date,ids])=>[date,ids.filter(id=>id!==routine.id)]))};if(persist(next)){status.textContent="ルーティンを削除しました。";render();}});li.append(check,title,remove);list.append(li);}}
+form.addEventListener("submit",event=>{event.preventDefault();const title=input.value.trim();if(!title){status.textContent="ルーティンの名前を入力してください。";input.focus();return;}if(title.length>MAX_TITLE){status.textContent="名前は60文字以内にしてください。";return;}if(state.routines.length>=LIMIT){status.textContent="登録できるのは30件までです。";return;}const now=Date.now(),id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):"routine_"+now.toString(36)+"_"+Math.random().toString(36).slice(2,10);const next={...state,routines:[...state.routines,{id,title,createdAt:now}]};if(persist(next)){input.value="";status.textContent="「"+title+"」を追加しました。";render();input.focus();}});
+if(storageReady)render();
+})();
+</script>
 </body>
 </html>
