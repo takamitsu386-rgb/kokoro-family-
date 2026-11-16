@@ -5,7 +5,7 @@ const html=readFileSync('index.html','utf8');
 assert.match(html,/onclick="autoArrangeFurniture\(\)"/,'Automatic arrangement control must be visible.');
 assert.match(html,/onclick="autoArrangeFurnitureByCategory\(\)"/,'Category arrangement control must be visible.');
 assert.match(html,/function arrangeFurnitureItems\(items,successLabel\)/,'Shared arrangement routine must exist.');
-const start=html.indexOf('function arrangeFurnitureItems(items,successLabel){');
+const start=html.indexOf('function arrangeFurnitureItems(items,successLabel,spacingScale=1){');
 assert.notEqual(start,-1,'Shared arrangement routine must exist.');
 const end=html.indexOf('\nfunction autoArrangeFurniture(){',start);
 assert.notEqual(end,-1,'Shared routine must end before public handlers.');
