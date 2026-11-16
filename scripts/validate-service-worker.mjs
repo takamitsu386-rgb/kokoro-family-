@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 
 const sw = readFileSync('sw.js', 'utf8');
 
+assert.match(sw, /requestURL\.pathname\.startsWith\("\\/api\\/"\)/,
+  'Dynamic same-origin API endpoints must bypass the service worker cache.');
 assert.match(sw, /const CACHE_NAME\s*=\s*"kokoro-family-v\d+"/,
   'The service worker cache must use a versioned app-specific name.');
 assert.match(sw, /const CACHE_PREFIX\s*=\s*"kokoro-family-"/,
