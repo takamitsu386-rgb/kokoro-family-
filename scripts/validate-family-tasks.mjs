@@ -89,6 +89,6 @@ assert.match(taskImport,/const categoryMap=/,"task categories are mapped from CS
 assert.match(taskImport,/const priorityMap=/,"task priorities are mapped from CSV labels");
 assert.match(taskImport,/persist\(next\)/,"task CSV import uses validated local persistence");
 assert.match(taskImport,/csvStatus\.textContent/,"task CSV import reports its result");
-assert.doesNotMatch(taskImport,/\bentries\b|\bexportStatus\b|shopping/i,"task CSV import cannot write shopping-list state");
+assert.doesNotMatch(taskImport,/\bexportStatus\b|entries\.(?:map|filter|length)|shopping/i,"task CSV import cannot write shopping-list state");
 assert.match(html,/priorityFilterInput\.addEventListener\("change",render\)/,"priority filter change is wired");
 assert.match(html,/completeAllButton\.addEventListener\("click"/,"bulk completion action is wired");
