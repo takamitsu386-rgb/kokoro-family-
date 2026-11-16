@@ -61,7 +61,7 @@ function createHarness({ raw = null, date = "2026-11-16", confirmResult = true, 
   vm.runInNewContext(source, {
     document, localStorage, Date: FixedDate, Intl, JSON, Object, Array, Set,
     Number, String, RegExp, Math, Error, console: { error() {} },
-    crypto: { randomUUID: () => "routine-test-id" },
+    crypto: { randomUUID: () => "routinetestid" },
     confirm: () => confirmResult
   });
   return {
@@ -91,7 +91,7 @@ test("completion is stored against the local calendar date and can be unchecked"
   let checkbox = h.elements.dailyRoutineList.children[0].children[0];
   checkbox.checked = true;
   checkbox.listeners.change();
-  assert.deepEqual(h.state().completions, { "2026-11-16": ["routine-test-id"] });
+  assert.deepEqual(h.state().completions, { "2026-11-16": ["routinetestid"] });
   checkbox = h.elements.dailyRoutineList.children[0].children[0];
   checkbox.checked = false;
   checkbox.listeners.change();
@@ -99,12 +99,12 @@ test("completion is stored against the local calendar date and can be unchecked"
 });
 
 test("removing a routine also removes its completion references", () => {
-  const seed = JSON.stringify({
-    version: 1,
-    routines: [{ id: "routine-1", title: "片づける", createdAt: 1760000000000 }],
-    completions: { "2026-11-16": ["routine-1"] }
-  });
-  const h = createHarness({ raw: seed });
+  const h = createHarness();
+  h.elements.dailyRoutineInput.value = "片づける";
+  h.elements.dailyRoutineForm.listeners.submit({ preventDefault() {} });
+  const checkbox = h.elements.dailyRoutineList.children[0].children[0];
+  checkbox.checked = true;
+  checkbox.listeners.change();
   const remove = h.elements.dailyRoutineList.children[0].children[2];
   remove.listeners.click();
   assert.equal(h.state().routines.length, 0);
