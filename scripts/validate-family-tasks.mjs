@@ -30,13 +30,13 @@ assert.match(html, /option value="priority"/, "priority sort option exists");
 assert.match(html, /option value="newest"/, "newest-first sort option exists");
 assert.match(html, /option value="oldest"/, "oldest-first sort option exists");
 assert.match(html, /const priorityRank = \{high: 0, normal: 1, low: 2\}/, "priority sort order is explicit");
-assert.match(html, /sortInput\.addEventListener\("change", render\)/, "sort selector rerenders task list");
+assert.match(html, /sortInput\.addEventListener\("change",\s*render\)/, "sort selector rerenders task list");
 assert.match(html, /id="familyTaskCategoryFilter"/, "task category filter exists");
 assert.match(html, /id="familyTaskPriorityFilter"/, "task priority filter exists");
 assert.match(html, /categoryFilterInput\.value === "all" \|\| task\.category === categoryFilterInput\.value/, "task category filter combines with status and due filters");
 assert.match(html, /priorityFilterInput\.value === "all" \|\| task\.priority === priorityFilterInput\.value/, "task priority filter combines with other filters");
-assert.match(html, /categoryFilterInput\.addEventListener\("change", render\)/, "category filter rerenders task list");
-assert.match(html, /priorityFilterInput\.addEventListener\("change", render\)/, "priority filter rerenders task list");
+assert.match(html, /categoryFilterInput\.addEventListener\("change",\s*render\)/, "category filter rerenders task list");
+assert.match(html, /priorityFilterInput\.addEventListener\("change",\s*render\)/, "priority filter rerenders task list");
 assert.match(html, /option value="overdue"/, "overdue task filter exists");
 assert.match(html, /option value="today"/, "today task filter exists");
 assert.match(html, /option value="upcoming"/, "upcoming task filter exists");
@@ -62,7 +62,7 @@ assert.match(sw,/kokoro-family-v369/);
 
 assert.match(html, /id="familyTaskSearch"/, "task keyword search input exists");
 assert.match(html, /task\.title\.toLocaleLowerCase\(\)\.includes\(query\)/, "task keyword search filters titles");
-assert.match(html, /searchInput\.addEventListener\("input", render\)/, "task keyword search updates as the user types");
+assert.match(html, /searchInput\.addEventListener\("input",\s*render\)/, "task keyword search updates as the user types");
 
 assert.match(html, /id="familyTaskResetFilters"/, "task filter reset button exists");
 assert.match(html, /resetFiltersButton\.addEventListener\("click"/, "task filter reset action is wired");
