@@ -27,7 +27,6 @@ const localKeys = [
   "kokoroSavedRoomsBeforeCloudImport",
   "kokoroSavedRoomPrefsBeforeCloudImport",
   "kokoroCustomRoomPalettesBeforeCloudImport",
-  "kokoroReturnToAiAfterLogin",
   "kokoroTodayTasksV1",
   "kokoroDailyRoutinesV1",
   "kokoroFamilyCalendarV1",
@@ -41,6 +40,11 @@ for (const key of localKeys) {
   assert.ok(html.includes(key), "Storage key no longer appears in application source: " + key);
   assert.ok(spec.includes("`" + key + "`"), "Deletion specification is missing local storage key: " + key);
 }
+
+assert.ok(html.includes('sessionStorage.setItem("kokoroReturnToAiAfterLogin"'),
+  "Session-only login return state must remain visible in the deletion inventory.");
+assert.ok(spec.includes("`kokoroReturnToAiAfterLogin`") && spec.includes("`sessionStorage`"),
+  "Session storage must be documented separately from persistent local storage.");
 
 for (const collection of [
   "sharedShopping", "profiles", "posts", "comments", "likes",
