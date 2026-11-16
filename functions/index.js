@@ -58,6 +58,13 @@ exports.aiConsultation = onRequest({
     if (!match) return sendJson(res, 401, { error: "Googleログインが必要です。" });
 
     const decoded = await getAuth().verifyIdToken(match[1], true);
+    // Only a trusted administrator may assign these Firebase custom claims after
+    // completing the age and consent checks required for the deployment region.
+    const ageBand = decoded.aiAgeBand;
+    const consentVersion = decoded.aiConsultationConsentVersion;
+    if (decoded.aiConsultationAllowed !== true || !["13-17", "18+"].includes(ageBand) || consentVersion !== "2026-11-v1") {
+      return sendJson(res, 403, { error: "このアカウントはAI相談の利用条件が確認できていません。保護者または運営者に確認してください。" });
+    }
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
     if (!message || message.length > 1200) {
       return sendJson(res, 400, { error: "相談内容は1〜1200文字で入力してください。" });
