@@ -15,8 +15,8 @@ assert.match(sw, /event\.waitUntil\(caches\.open\(CACHE_NAME\)\.then\(cache=>cac
   'Installation must wait for the app shell to be cached.');
 assert.match(sw, /keys\.filter\(key=>key\.startsWith\(CACHE_PREFIX\)&&key!==CACHE_NAME\)/,
   'Activation may delete only outdated caches belonging to this app.');
-assert.match(sw, /if\(event\.request\.method!=="GET"\|\|new URL\(event\.request\.url\)\.origin!==self\.location\.origin\)return/,
-  'Non-GET and cross-origin requests must bypass the service worker cache.');
+assert.ok(sw.includes('if(event.request.method!=="GET"||requestURL.origin!==self.location.origin||requestURL.pathname.startsWith("/api/"))return'),
+  'Non-GET, cross-origin, and API requests must bypass the service worker cache.');
 assert.match(sw, /if\(isAppNavigation\)[\s\S]*?fetch\(event\.request\)[\s\S]*?cache\.put\(event\.request,copy\)[\s\S]*?cache\.match\(event\.request\)[\s\S]*?cache\.match\("\.\/index\.html"\)/,
   'App navigation must prefer fresh content and fall back to cached app HTML offline.');
 assert.match(sw, /cached\|\|fetch\(event\.request\)/,
