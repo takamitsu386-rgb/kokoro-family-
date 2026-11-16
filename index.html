@@ -7434,6 +7434,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       localStorage.setItem(KEY, JSON.stringify(next));
       tasks = next;
       render();
+      window.dispatchEvent(new CustomEvent("kokoro-family-weekly-data-updated"));
       return true;
     } catch (error) {
       try {
@@ -7904,7 +7905,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       return false;
     }
     const previous = JSON.stringify(entries);
-    try { localStorage.setItem(KEY,JSON.stringify(next)); entries=next; render(); return true; }
+    try { localStorage.setItem(KEY,JSON.stringify(next)); entries=next; render(); window.dispatchEvent(new CustomEvent("kokoro-family-weekly-data-updated")); return true; }
     catch(error) {
       try { if(previous==="[]") localStorage.removeItem(KEY); else localStorage.setItem(KEY,previous); }
       catch(rollbackError) { console.error("Family calendar rollback failed",rollbackError); }
@@ -8189,7 +8190,7 @@ snsRefreshPosts.addEventListener("click", async () => {
       summaryEl.textContent="保存データを確認できないため、変更を保留しました。";return false;
     }
     const previous=JSON.stringify(entries);
-    try{localStorage.setItem(KEY,JSON.stringify(next));entries=next;render();return true;}
+    try{localStorage.setItem(KEY,JSON.stringify(next));entries=next;render();window.dispatchEvent(new CustomEvent("kokoro-family-weekly-data-updated"));return true;}
     catch(error){
       try{if(previous==="[]")localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous);}
       catch(rollbackError){console.error("Meal plan rollback failed",rollbackError);}
@@ -8856,6 +8857,7 @@ snsRefreshPosts.addEventListener("click", async () => {
   };
   refresh.addEventListener("click",render);
   window.addEventListener("kokoro-family-shopping-updated",render);
+  window.addEventListener("kokoro-family-weekly-data-updated",render);
   window.addEventListener("storage",event=>{if(!event.key||Object.values(keys).includes(event.key))render();});
   shoppingAddButton.addEventListener("click",()=>{
     const form=document.getElementById("familyShoppingForm");
