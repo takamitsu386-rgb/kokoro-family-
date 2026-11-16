@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 const html = readFileSync('index.html', 'utf8');
-assert.match(html, /<a href="#room-presets">お部屋セット<\/a>/,
-  'Room templates must be reachable from the main navigation.');
-assert.match(html, /<a href="#room-presets">🏡 お部屋セットから始める<\/a>/,
+assert.match(html, /<a href="#room-presets">(?:🏡 )?お部屋セット<\/a>/,
+  'Room templates must be reachable from the icon-enhanced main navigation.');
+assert.match(html, /<a href="#room-presets">🏡 お部屋セットから始める<\/a>|<a class="menu-tile [^"]+" href="#room-presets">[\s\S]*?<span class="menu-title">お部屋セット<\/span>/,
   'The home screen must offer a direct entry to room templates.');
 assert.match(html, /<section class="panel" id="room-presets">[\s\S]*?id="roomTemplateList"/,
   'The room template section and render target must exist.');
