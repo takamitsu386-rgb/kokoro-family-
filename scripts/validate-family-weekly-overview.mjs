@@ -16,6 +16,6 @@ assert.match(html, /期限を過ぎたやること/, "overdue tasks are shown se
 assert.match(html, /window\.print\(\)/, "browser print dialog is invoked");
 assert.match(html, /@media print/, "print-specific layout exists");
 assert.match(html, /const read=\(key,validate,limit\)=>/, "source data is validated before display");
-assert.match(sw, /kokoro-family-v369/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v370/, "service worker cache is refreshed");
 
 console.log("Family weekly overview source checks passed.");
