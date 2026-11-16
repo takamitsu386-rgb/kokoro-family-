@@ -220,6 +220,8 @@ jobs:
         run: node scripts/validate-today-plan.mjs
       - name: Validate daily routines
         run: node scripts/validate-daily-routines.mjs
+      - name: Test daily routine behavior with mocked browser storage
+        run: node --test tests/daily-routines.test.mjs
       - name: Validate account deletion data inventory
         run: node scripts/validate-account-deletion-inventory.mjs
       - name: Validate account deletion safety design
