@@ -29,7 +29,12 @@ const localKeys = [
   "kokoroCustomRoomPalettesBeforeCloudImport",
   "kokoroReturnToAiAfterLogin",
   "kokoroTodayTasksV1",
-  "kokoroDailyRoutinesV1"
+  "kokoroDailyRoutinesV1",
+  "kokoroFamilyCalendarV1",
+  "kokoroFamilyMealsV1",
+  "kokoroFamilyRecipesV1",
+  "kokoroFamilyShoppingV1",
+  "kokoroFamilyTasksV1"
 ];
 
 for (const key of localKeys) {
