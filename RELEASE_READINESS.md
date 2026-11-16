@@ -354,9 +354,19 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 ## 2026-11-16 PR #2 統合ブランチの再検証
 
 - PR #2（`feature/ai-consultation-reconciled` → `development-kokoro-app`）に、元の機能差分49ファイルを保持した統合スナップショットを用意。初回利用ガイドと、AI相談・SNSが停止中であることの画面案内を追加。
-- CIで見つかった買い物機能validatorのService Worker cache期待値を、実際の `kokoro-family-v369` に合わせて修正。
+- CIで見つかった買い物機能validatorのService Worker cache期待値を、実際の `kokoro-family-v370` に合わせて修正。
 - 最新コミット `69beebb8d7c8584864ba2cc8bfd5c64c77dbd3f7` のSource validation run `43846110908` は completed / success。JavaScript構文、Hosting/PWA、AI相談・SNS安全ゲート、同期・アカウント分離、Firestore Rules Emulator、Pages成果物、JSON設定を含む全検証ステップが成功。
 - PR #2はopen / draft。GitHubのmergeable判定はtrue。レビュー投稿・インラインレビューはまだなし。
 - このCI成功は静的検証とFirestore Emulatorの結果であり、スマートフォン実機、Firebase本番設定・Rules・Functions、Googleログイン、クラウド同期の受け入れ試験を代替しない。
 - AI相談は年齢・同意を確認する管理者ワークフローが未整備のため、画面とAPIの停止ゲートを維持。SNSもMVPでは画面・API・Firestore Rulesで停止。包括的なアカウント削除設計、運営責任者・通報対応体制、実機試験は未完了。
 - PRマージ、Firebaseデプロイ、一般公開は実施していない。公開ゲートは解除しない。
+
+
+## 2026-11-16 毎日のルーティン機能追加
+
+- `index.html` に「毎日のルーティン」を追加。最大30件の習慣を登録・削除でき、日付ごとに完了状態を端末内保存する。
+- 不正な保存データは上書きせず、保存失敗時は直前の内容へのロールバックを試みる。完了履歴は直近14日分に制限する。
+- 通知・連続達成の競争要素・クラウド同期は追加していない。画面に端末内保存のみであることを明示。
+- `scripts/validate-daily-routines.mjs` を追加し、Source validation workflowに組み込んだ。
+- Service Worker cacheを `kokoro-family-v370` に更新。スマホナビゲーション検証とMVP/AIセットアップ文書のバージョン表記も更新。
+- GitHub Actionsの新しい実行結果はまだ確認できていないため、CI成功とは判定しない。
