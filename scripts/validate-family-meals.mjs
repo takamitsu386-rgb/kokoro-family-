@@ -31,21 +31,21 @@ assert.match(html, /Meal plan rollback failed/);
 assert.match(html, /過去の献立/);
 assert.match(html, /上書きせず保護しました/);
 assert.match(html, /クラウド同期・家族間共有には未対応です/);
-assert.match(sw, /kokoro-family-v370/);
+assert.match(sw, /kokoro-family-v371/);
 console.log("Family meal planner source checks passed.");
 
 assert.match(html, /id="familyMealsWeeklyShopping"/, "weekly meal shopping import button exists");
 assert.match(html, /entries\.filter\(item=>item\.date>=start&&item\.date<=end\)/, "weekly import includes only next seven days");
 assert.match(html, /Weekly meal shopping rollback failed/, "weekly shopping import rolls back failed writes");
 assert.match(html, /7日分の献立から数量付きで買い物リストに追加しました/, "weekly shopping import reports success");
-assert.match(sw, /kokoro-family-v370/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v371/, "service worker cache is refreshed");
 
 assert.match(html, /id="familyMealsTypeFilter"/);
 assert.match(html, /id="familyMealsSearch"/);
 assert.match(html, /id="familyMealsResetFilters"/);
 assert.match(html, /x\.name\+" "\+x\.note/);
 assert.match(html, /typeFilterInput\.addEventListener\("change",render\)/);
-assert.match(sw, /kokoro-family-v370/);
+assert.match(sw, /kokoro-family-v371/);
 
 assert.match(html, /id="familyMealsSort"/);
 assert.match(html, /option value="newest">登録が新しい順/);
@@ -53,7 +53,7 @@ assert.match(html, /option value="oldest">登録が古い順/);
 assert.match(html, /option value="name">メニュー名順/);
 assert.match(html, /sortInput.addEventListener\("change",render\)/);
 assert.match(html, /a\.name\.localeCompare\(b\.name,"ja"\)/);
-assert.match(sw, /kokoro-family-v370/);
+assert.match(sw, /kokoro-family-v371/);
 
 assert.match(html, /id="familyMealsWeekOverview"/);
 assert.match(html, /今週の献立一覧/);
