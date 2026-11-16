@@ -21,7 +21,7 @@ assert.match(html, /checkbox\.addEventListener\("change"/, "tasks can be complet
 assert.match(html, /const edit = document\.createElement\("button"\)/, "tasks can be edited");
 assert.match(html, /editingId = task\.id/, "edit action loads the selected task");
 assert.match(html, /\{\.\.\.task, title, category: categoryInput\.value, priority: priorityInput\.value, dueDate: dueInput\.value\}/, "editing preserves completion and creation metadata");
-assert.match(html, /cancelButton\.addEventListener\("click", resetEditor\)/, "task editing can be cancelled");
+assert.match(html, /cancelButton\.addEventListener\("click",resetEditor\)/, "task editing can be cancelled");
 assert.match(html, /tasks\.length >= LIMIT && editingId === null/, "existing tasks remain editable at the item limit");
 assert.match(html, /confirm\("「" \+ task\.title/, "task deletion is confirmed");
 assert.match(html, /familyTaskClearDone/, "completed tasks can be cleared");
