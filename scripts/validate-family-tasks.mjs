@@ -1,0 +1,81 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const sw = await readFile(new URL("../sw.js", import.meta.url), "utf8");
+
+assert.match(html, /id="family-tasks"/, "family task section exists");
+assert.match(html, /href="#family-tasks"/, "family task navigation exists");
+assert.match(html, /id="familyTaskForm"/, "task form exists");
+assert.match(html, /id="familyTaskSubmit"/, "task edit submit button exists");
+assert.match(html, /id="familyTaskCancel"/, "task edit cancel button exists");
+assert.match(html, /maxlength="80"/, "task title length is limited");
+assert.match(html, /const LIMIT = 100/, "task count is bounded");
+assert.match(html, /date\\.getUTCFullYear\(\)!==year/, "CSV due dates reject impossible calendar dates");
+assert.match(html, /date\\.getUTCMonth\(\)!==month-1/, "CSV due month is checked strictly");
+assert.match(html, /function validTask\(task\)/, "task schema is validated");
+assert.match(html, /Object\.hasOwn\(categories, task\.category\)/, "task category is allowlisted");
+assert.match(html, /Object\.hasOwn\(priorities, task\.priority\)/, "task priority is allowlisted");
+assert.match(html, /title\.textContent = task\.title/, "task titles use safe text rendering");
+assert.match(html, /checkbox\.addEventListener\("change"/, "tasks can be completed");
+assert.match(html, /const edit = document\.createElement\("button"\)/, "tasks can be edited");
+assert.match(html, /editingId = task\.id/, "edit action loads the selected task");
+assert.match(html, /\{\.\.\.task, title, category: categoryInput\.value, priority: priorityInput\.value, dueDate: dueInput\.value\}/, "editing preserves completion and creation metadata");
+assert.match(html, /cancelButton\.addEventListener\("click", resetEditor\)/, "task editing can be cancelled");
+assert.match(html, /tasks\.length >= LIMIT && editingId === null/, "existing tasks remain editable at the item limit");
+assert.match(html, /confirm\("「" \+ task\.title/, "task deletion is confirmed");
+assert.match(html, /familyTaskClearDone/, "completed tasks can be cleared");
+assert.match(html, /id="familyTaskSort"/, "task sort selector exists");
+assert.match(html, /option value="priority"/, "priority sort option exists");
+assert.match(html, /option value="newest"/, "newest-first sort option exists");
+assert.match(html, /option value="oldest"/, "oldest-first sort option exists");
+assert.match(html, /const priorityRank = \{high: 0, normal: 1, low: 2\}/, "priority sort order is explicit");
+assert.match(html, /sortInput\.addEventListener\("change", render\)/, "sort selector rerenders task list");
+assert.match(html, /id="familyTaskCategoryFilter"/, "task category filter exists");
+assert.match(html, /id="familyTaskPriorityFilter"/, "task priority filter exists");
+assert.match(html, /categoryFilterInput\.value === "all" \|\| task\.category === categoryFilterInput\.value/, "task category filter combines with status and due filters");
+assert.match(html, /priorityFilterInput\.value === "all" \|\| task\.priority === priorityFilterInput\.value/, "task priority filter combines with other filters");
+assert.match(html, /categoryFilterInput\.addEventListener\("change", render\)/, "category filter rerenders task list");
+assert.match(html, /priorityFilterInput\.addEventListener\("change", render\)/, "priority filter rerenders task list");
+assert.match(html, /option value="overdue"/, "overdue task filter exists");
+assert.match(html, /option value="today"/, "today task filter exists");
+assert.match(html, /option value="upcoming"/, "upcoming task filter exists");
+assert.match(html, /const isOverdue = task => !task\.completed/, "overdue counts exclude completed tasks");
+assert.match(html, /const dueToday = tasks\.filter\(isToday\)/, "today due count is summarized");
+assert.match(html, /（期限切れ）/, "overdue tasks are visibly labeled");
+assert.match(html, /Task storage rollback failed/, "failed writes attempt rollback");
+assert.match(html, /保存データに問題があるため、上書きせず保護しました/, "invalid stored data fails closed");
+assert.match(html, /クラウド同期・家族間共有にはまだ対応していません/, "local-only scope is disclosed");
+assert.match(sw, /kokoro-family-v241/, "service worker cache is refreshed");
+
+console.log("Family task list source checks passed.");
+
+assert.match(html,/id="familyTaskExport"/);
+assert.match(html,/id="familyTaskImportFile"/);
+assert.match(html,/id="familyTaskCsvStatus"/);
+assert.match(html,/const parseCSV=text=>/);
+assert.match(html,/categoryMap/);
+assert.match(html,/priorityMap/);
+assert.match(html,/Task CSV import failed/);
+assert.match(html,/Task CSV export failed/);
+assert.match(sw,/kokoro-family-v241/);
+
+assert.match(html, /id="familyTaskSearch"/, "task keyword search input exists");
+assert.match(html, /task\.title\.toLocaleLowerCase\(\)\.includes\(query\)/, "task keyword search filters titles");
+assert.match(html, /searchInput\.addEventListener\("input", render\)/, "task keyword search updates as the user types");
+
+assert.match(html, /id="familyTaskResetFilters"/, "task filter reset button exists");
+assert.match(html, /resetFiltersButton\.addEventListener\("click"/, "task filter reset action is wired");
+assert.match(html, /searchInput\.value = ""/, "task filter reset clears keyword search");
+
+assert.match(html, /id="familyTaskCompleteAll"/, "complete all tasks button exists");
+assert.match(html, /未完了の.*件をすべて完了にしますか/, "bulk completion requires confirmation");
+assert.match(html, /tasks\.map\(task => task\.completed \? task : \{\.\.\.task, completed: true\}\)/, "bulk completion preserves task data and marks open tasks complete");
+
+assert.match(html, /id="familyTaskWeekOverview"/);
+assert.match(html, /今後7日間のやること/);
+assert.match(html, /weekOverview\.replaceChildren\(\)/);
+assert.match(html, /offset<7/);
+assert.match(html, /task\.dueDate===date/);
+assert.match(html, /この日を期限に設定/);
+assert.match(html, /weekOverview\.append\(card\)/);

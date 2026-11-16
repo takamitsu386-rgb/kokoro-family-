@@ -1,0 +1,198 @@
+# こころファミリー SNS機能 設計メモ
+
+## 方針
+
+既存の部屋づくり・端末保存・クラウド同期を変更せず、SNSデータを別コレクションとして追加する。公開前にFirestore Rules、Emulatorテスト、実機テスト、運営体制の確認を必須にする。プロフィール・投稿のアクセスルール、本人用プロフィール／投稿UI、投稿編集・論理削除、ブロック操作、通報UIとサーバー側通報受付・管理APIを開発ブランチに実装済み。投稿編集は本文と updatedAt のみ、削除は status=deleted とし、削除済み投稿の編集・復元・物理削除を拒否する。公開投稿の個別読み取りは相互ブロックを確認する。本人の投稿一覧はFirestoreで本人限定とし、公開タイムラインは認証済みCloud Functions経由で取得する。公開投稿と承認済み友達の友達限定投稿を返し、閲覧者と投稿者の双方向ブロックをサーバー側で除外する。コメント・いいね、友達申請・承認・辞退・取り消しは開発ブランチに実装済み。
+
+## 最初の実装範囲（MVP）
+
+1. プロフィール
+   - Firebase UIDを内部識別子として使う。
+   - 表示名はニックネームのみ。初期値は非公開。
+   - メールアドレス、学校名、住所、電話番号、生年月日、正確な位置情報は公開プロフィールに保存しない。
+   - アイコンは用意された選択肢から選ぶ方式を優先する。
+
+2. 投稿とタイムライン
+   - 投稿本文は最大500文字。
+   - 投稿の公開範囲は「自分のみ」を初期値にし、本人が明示的に選んだ場合だけ公開する。
+   - 画像添付、位置情報添付、外部リンクの自動プレビューは初期版では扱わない。
+   - 削除済み投稿はタイムラインに表示しない。
+
+3. 友達・フォロー
+   - 申請と承認の両方が必要。相手の操作なしに友達関係を成立させない。
+   - ブロック中の相手からの申請・閲覧・コメントを拒否する。
+   - 初期版では個別メッセージ機能を作らない。
+
+4. コメント・いいね
+   - コメントは最大300文字。
+   - 投稿者は自分の投稿へのコメントを削除できる。コメント投稿者も自分のコメントを削除できる。
+   - いいねはユーザーごとに一件だけ登録できる。
+
+5. 安全機能
+   - 投稿・コメントの通報、ユーザーのブロックを用意する。
+   - 通報内容は一般ユーザーから読めない管理用領域へ分離する。
+   - ブロック・通報を画面から簡単に実行できるようにする。
+   - 未成年者向けに、個人情報の公開を促さない。危険な内容や嫌がらせへの対応導線を用意する。
+
+## Firestoreデータ構造案
+
+- `profiles/{uid}`: 公開用ニックネーム、選択式アイコン、作成日時、公開範囲設定
+- `posts/{postId}`: authorUid、本文、visibility、createdAt、updatedAt、status
+- `posts/{postId}/comments/{commentId}`: authorUid、本文、createdAt、status
+- `posts/{postId}/likes/{uid}`: createdAt
+- `users/{uid}/following/{targetUid}`: 関係状態、createdAt
+- `users/{uid}/blocks/{targetUid}`: createdAt
+- `friendRequests/{requestId}`: fromUid、toUid、status、createdAt
+- `reports/{reportId}`: reporterUid、targetUid、category、status、createdAt、reviewedBy、reviewedAt（通報記録はサーバー側のみが読み書き）
+
+既存の `users/{uid}/kokoro/data` はそのまま維持し、SNS機能から読み書きしない。
+
+## 権限・安全性の必須条件
+
+- クライアントから送られたauthorUidを信用せず、認証UIDとの一致をFirestore Rulesで検証する。
+- プロフィールの公開範囲、投稿の公開範囲、友達関係、ブロック状態をルールで検証する。
+- 通報データは通報者本人による作成だけ許可し、一般ユーザーによる一覧取得・更新・削除を禁止する。
+- 投稿・コメントの文字数、必須項目、許可フィールドをルールで制限する。
+- 他人のメールアドレスや既存の部屋保存データを公開しない。
+- ルールを検証するテストを用意するまで、SNS用ルールを本番へ適用しない。
+
+## 実装順序
+
+1. データモデルとアクセス権限のテストを作る。
+2. Firestore Rulesを既存の個人用保存ルールと共存する形で設計する。
+3. プロフィールと投稿のFirestoreアクセスルールを実装し、Emulatorで権限を検証する。
+4. プロフィール画面、投稿画面・タイムラインを実装する。
+5. ブロック・通報・友達申請・承認・辞退・取り消しは開発ブランチに実装済み。
+6. コメント・いいねは公開中の親投稿、公開プロフィール、双方向ブロックをFirestore Rulesで検証し、Emulatorで権限をテストする。
+7. 未ログイン、別アカウント、ブロック関係、非公開投稿、削除済み投稿のテストを通す。
+8. 実機確認と管理者によるルール確認後に公開を検討する。
+
+## 未実施・未確認
+
+- プロフィール・投稿・ブロックのFirestoreルールとEmulatorテストはCI成功済み。相互ブロック時のプロフィール・投稿の個別読み取り拒否を検証している。
+- プロフィール編集、自分の投稿作成／一覧、投稿者本人による本文編集・論理削除UIを実装済み。削除済み投稿の編集・復元・物理削除を拒否するテストもCI成功済み。
+- ブロックUIはUID指定による登録・解除に対応。公開タイムラインはCloud Functionsで最新50件を取得し、相互ブロックとプロフィール公開範囲をサーバー側で確認する。Hosting rewriteと複合インデックスを追加済みだが、本番デプロイ・インデックス反映・実機確認は未完了。
+- 通報UI、認証済みサーバー通報受付、日次上限、管理者専用一覧・状態更新APIを開発ブランチに追加済み。管理者はFirebase custom claim admin=trueで判定し、一般ユーザーのFirestore直接アクセスは禁止。
+- 通報一覧の新しい順の取得に必要な複合インデックスを追加し、管理者検証とFirestore Emulatorを含むCIが成功済み。インデックス、Functions、Hostingは未デプロイ。管理者claimの付与、運営体制、実機テストも未完了。
+- 友達申請、コメント、いいね、友達限定投稿は開発ブランチに実装済み。公開／友達限定タイムラインは開発ブランチに実装済みだが、本番では未稼働。Firebase Consoleの設定変更、デプロイ、公開は行っていない。
+- 実際の運用には通報を確認して対応する管理者体制が必要。
+
+## アクセス権限のテスト計画
+
+### 現在のルールとの関係
+
+現在の `firestore.rules` は既存の `users/{uid}/kokoro/data` の本人限定権限を維持し、プロフィール・投稿・ブロックのルールを追加している。コメント・いいねは公開投稿または承認済み友達の友達限定投稿に限定し、親投稿の状態・プロフィール公開範囲・双方向ブロックを検証する。友達申請は公開プロフィールに限定し、宛先本人だけが承認・辞退できる。通報記録と日次利用数もクライアントからの読み書きを拒否し、通報受付・管理はCloud FunctionsのAdmin SDK経由に限定する。
+
+### ルール実装時の基本方針
+
+- プロフィールは公開用フィールドだけを保存し、メールアドレス等を含む既存ユーザー情報とは別管理にする。
+- 投稿の作成・更新は認証UIDと authorUid の一致を必須にし、更新時は authorUid と createdAt を変更不可にする。
+- 公開投稿の個別読み取りは公開範囲だけでなく、投稿者・閲覧者間のブロック状態も確認する。
+- 投稿コレクションの一覧取得は現状、authorUidをログインUIDに一致させた本人の投稿だけ許可する。公開タイムラインはサーバー側で相互ブロックを確認する。公開前にFunctions・Hosting・複合インデックスを反映し、実機で非公開プロフィール・ブロック双方・削除済み投稿の非表示を確認する。クライアント側フィルターだけに頼らない。
+- 非公開投稿は本人だけが読める。友達限定投稿は承認済み申請の存在を双方向に確認し、ブロック状態が優先する。
+- コメント作成時は投稿が公開または承認済み友達限定で有効であり、プロフィール公開範囲・友達関係・双方向ブロックを検証する。
+- いいねのドキュメントIDは認証UIDに固定し、同一ユーザーの重複登録を防ぐ。
+- 友達申請の作成者・宛先・状態遷移を検証し、承認できるのは宛先本人だけにする。
+- ブロック記録は本人だけが作成・削除できる。ブロック状態は投稿・コメント・申請のアクセス判定に反映する。
+- 通報はCloud Functionsで認証・入力検証・日次上限を確認して作成する。Firestore Rulesでは一般ユーザーの読み取り・更新・削除・直接作成を拒否し、管理者の閲覧・処理にはサーバー側のcustom claimを使う。
+
+### 必須の自動テスト
+
+1. 未ログイン利用者はプロフィール・投稿・コメント・いいね・申請・ブロックを読み書きできない。
+2. Aは自分のプロフィールを作成・更新できるが、Bのプロフィールを書き換えられない。
+3. Aは自分の投稿を作成・更新・削除できるが、Bの投稿を書き換えられない。
+4. 投稿者UIDの偽装、許可されていないフィールド追加、本文501文字以上を拒否する。
+5. 非公開投稿は第三者に読めず、削除済み投稿は読めない。
+6. AがBをブロックした場合、BからAへの申請・コメント等を拒否する。
+7. 申請を承認できるのは宛先本人だけで、申請者自身による承認を拒否する。
+8. コメントは300文字以内で、投稿者またはコメント投稿者以外による削除を拒否する。
+9. いいねの作成者UID偽装と、他人のいいねの削除を拒否する。
+10. 通報は作成者本人のみ作成でき、一般ユーザーによる一覧取得・変更・削除を拒否する。
+11. 既存の `users/{uid}/kokoro/data` は本人だけ読み書きでき、別ユーザーと未ログイン利用者を拒否する。
+12. SNS用ルールの追加後も、既存の部屋データ保存ルールの回帰テストがすべて成功する。
+
+### 実装ゲート
+
+Firestore Emulator と Rules Unit Testing を使ったテストをCIに追加し、上記の拒否ケースを含めて成功するまではSNSルールを本番へ適用しない。Firebase Consoleの既存ルール確認、実機テスト、管理者による公開承認も別途必要。
+
+## CI・テスト導入時の注意
+
+- 現在の `scripts/validate-firestore-rules.mjs` は、Firestoreの許可ルールが既存の1件だけであることを検査している。SNSルールを追加するときは、この検査を単純に削除せず、既存の部屋データ権限が本人限定のまま残ることを確認する回帰検査へ置き換える。
+- Emulatorテストでは実プロジェクトではなく `demo-` で始まる専用プロジェクトIDを使い、本番Firestoreへ接続しない。
+- CIではFirestore Emulatorを起動してRules Unit Testingを実行し、未ログイン・本人・他人の3種類の認証状態を必ず検証する。
+- Emulatorのテストが失敗した場合はCIを失敗させる。テストをスキップして成功扱いにしない。
+- SNS用の許可ルールを追加するコミットでは、テストコードと既存の部屋データ回帰テストも同じ変更に含める。
+- Firebase Consoleに設定済みの本番ルールはリポジトリ上のファイルだけでは確認できないため、公開前に管理者が現行ルールとの差分を確認する。
+- 公開タイムラインを追加。認証済みCloud Functionsが最新50件の公開・有効投稿を取得し、閲覧者側と投稿者側のブロック、プロフィール公開範囲をサーバー側で確認して返す。画面にはニックネーム・選択式アイコン・本文・日時のみを表示し、投稿者を通報する導線も追加。Hosting rewriteと複合インデックス、静的プライバシー回帰検証を追加。総合CI run `42436406627` は成功。デプロイと実機検証は未実施。
+
+
+## コメント・いいね（2026-11-08 開発ブランチ）
+
+- 公開タイムラインの各投稿に「いいね」登録・解除、コメント表示・送信・削除を追加。
+- いいねのドキュメントIDはログインUIDに固定し、二重登録や他人のUIDの偽装を拒否。
+- コメントは最大300文字、authorUid・本文・状態・作成日時のみ許可。投稿者またはコメント投稿者だけが削除可能。更新は不可。
+- Firestore Rulesは親投稿が公開・有効であること、投稿者プロフィールが公開であること（本人投稿は例外）、双方向ブロックがないことを検証。
+- Emulatorテストに公開・非公開・削除済み・非公開プロフィール・ブロック状態の拒否ケースを追加。GitHub Actionsで結果確認中。
+- コメント本文は安全なDOM textContentで描画。個人情報を投稿しない注意を表示。
+- 本番デプロイ・実機検証は未実施。コメント通報は運営確認画面に接続済み。友達限定投稿も開発ブランチに実装済み。
+
+
+## 友達申請・コメント通報（2026-11-08）
+
+- 公開プロフィールの相手に申請を送信し、受信側が承認または辞退できる。送信側は保留中の申請を取り消せる。
+- 申請ドキュメントは送信者・宛先の双方だけが読み取り可能。申請作成者の偽装、非公開プロフィールへの申請、相互ブロック中の申請、第三者による承認を拒否する。
+- 友達関係は承認済み申請から表示し、友達になっても「自分のみ」の投稿や部屋データ・連絡先は共有されず、本人が「友達のみ」に設定した投稿だけが表示される。
+- コメントから投稿者を通報フォームへ移動できる。コメント本文は送信せず、既存の通報APIへ投稿者UID・選択理由・投稿ID・コメントIDを送り、コメント本文は送信しない。
+- Firestore Emulatorの申請権限テストを追加。CI実行中。本番反映・実機確認は未実施。
+
+
+## 申請操作の安定化
+
+- 申請取り消し操作にも共通のビジー制御とアカウント切替チェックを適用し、二重操作と別アカウントへの表示更新を防止する。
+
+
+## 友達解除
+
+- 承認済みの友達関係は、送信側・受信側どちらからでも解除できる。
+- 解除は承認済み申請レコードを削除して対称的に反映する。保留中申請の取り消しとは別の権限条件で制御する。
+
+
+## コメント通報の運営連携
+
+- コメントの通報操作は投稿ID・コメントID・投稿者UIDのみを送信し、コメント本文は通報APIへ送らない。
+- サーバーは投稿が公開・有効であること、コメントが有効で対象UIDがコメント投稿者と一致することを検証する。
+- 運営の通報一覧には通報種別と対象参照IDを表示する。コメント本文そのものは通報レコードや一覧レスポンスへ複製しない。
+
+
+## 友達限定投稿
+
+- 投稿時に「自分のみ」「友達のみ」「公開」を選択できる。
+- 友達限定投稿は承認済み友達だけがサーバー側タイムラインとFirestore直接読み取りで閲覧できる。
+- コメント・いいねも承認済み友達に限定し、ブロック状態が優先して拒否される。
+- 友達限定の投稿本文は公開プロフィールの公開投稿として扱わない。
+
+
+## 公開プロフィール検索
+
+- ニックネームの先頭一致で公開プロフィールのみを検索し、最大10件を表示する。
+- 検索はログイン必須、1日30回まで。検索語は保存しない。
+- 自分自身と双方向ブロック中の相手を除外し、UID・ニックネーム・選択式アイコンだけを返す。
+- 結果から申請先をセットし、申請送信はユーザーが別途実行する。
+
+
+## 2026-11-08: friend room snapshot sharing
+
+- Accepted friends can receive a snapshot of the current room or a saved room from the SNS friends panel, without replacing the room currently open.
+- Shared content is limited to validated room design data and furniture placement; profile details and SNS content are not copied.
+- Recipients can import a snapshot as their own editable room. The original remains unchanged; this is not live collaborative editing.
+- Recipient snapshots are stored in `sharedRooms`; the owner's private mirror is stored in `users/{ownerUid}/sharedRooms` so Firestore queries remain scoped and rule-compatible.
+- Both copies are written and removed with a Firestore batch. Only accepted, unblocked friends can receive a new share.
+- Recipients can remove their received copy; owners can revoke a share. Blocking a user removes up to 124 matching shared snapshots from both sides.
+- Shared-room lists are bounded to 50 entries per direction. Snapshot uploads are limited to 700 KB client-side, 300 furniture items, and 40-character titles.
+- Emulator coverage verifies recipient-only listing, owner mirror privacy, accepted-friend creation, immutable snapshots, and removal permissions.
+- Live Firebase deployment and device testing are still outstanding.
+
+
+- Friend removal now also removes the shared room snapshots exchanged between those two accounts from both owner and recipient lists. The cleanup is bounded to the up to 124 shares in each direction.
+
+- Blocking a user and revoking up to 124 shared rooms in each direction now happen in one Firestore batch, avoiding a block record being saved while the matching share cleanup fails. The operation is bounded to stay below the Firestore 500-write batch ceiling.
