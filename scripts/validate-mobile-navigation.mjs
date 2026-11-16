@@ -5,6 +5,11 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 
 assert.match(html, /class="mobile-quick-nav"/, "mobile quick navigation exists");
+assert.match(html, /class="first-steps" role="region" aria-labelledby="firstStepsTitle"/, "first-use guide exists and has an accessible region label");
+for (const id of ["room-design", "today-plan", "family-tasks", "backupTitle"]) {
+  assert.match(html, new RegExp('class="first-steps"[\\s\\S]*?href="#' + id + '"'), "first-use guide links to " + id);
+}
+assert.match(html, /AI相談とSNS・友だち交流は現在停止中です/, "first-use guide discloses paused features");
 for (const id of ["home", "family-weekly-plan", "family-tasks", "family-calendar", "family-shopping"]) {
   assert.match(html, new RegExp('href="#' + id + '"'), "quick navigation links to " + id);
 }
