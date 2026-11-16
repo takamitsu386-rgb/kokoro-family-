@@ -218,6 +218,8 @@ jobs:
         run: node scripts/validate-family-weekly-overview.mjs
       - name: Validate Today Plan local data safety
         run: node scripts/validate-today-plan.mjs
+      - name: Validate daily routines
+        run: node scripts/validate-daily-routines.mjs
       - name: Validate saved room bulk management and furniture search
         run: node scripts/validate-saved-room-bulk.mjs
       - name: Validate SNS release safety gate
