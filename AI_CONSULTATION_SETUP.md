@@ -3,7 +3,7 @@
 ## このブランチに追加したもの
 
 - `index.html`: AI相談画面。スマホ幅で折り返し、会話は画面上のメモリだけに保持。
-- `functions/index.js`: Firebase AuthenticationのIDトークン確認、1日10回の利用制限、OpenAI Responses APIへのサーバー側リクエスト。
+- `functions/index.js`: Firebase AuthenticationのIDトークン確認、信頼された管理者が付与した年齢帯・同意カスタムクレームの確認、1日10回の利用制限、OpenAI Responses APIへのサーバー側リクエスト。
 - `functions/package.json`: Cloud Functions依存関係。Node.js 22を使用。
 - `firebase.json`: Node.js 22のFunctions設定と、`/api/ai-consultation` を asia-northeast1 の関数へ転送する設定。
 - `.firebaserc`: Firebase CLIの既定プロジェクトを `kokoro-family` に固定。
@@ -17,6 +17,19 @@
 - AI相談・通報・管理APIのJSON応答には `Cache-Control: no-store` と `Pragma: no-cache` を付け、ブラウザや中継キャッシュへの保存を抑止します。
 - Firestoreに保存するのは、利用者UIDと東京日付ごとの相談回数・更新時刻だけです。相談本文は利用回数記録へ含めません。
 - 公開前に、利用者へ「相談内容が外部AIサービスへ送信されること」「専門家や緊急窓口の代わりではないこと」を分かりやすく案内し、保護者・運営者が適切な利用条件を確認してください。
+
+## AI相談のサーバー側利用条件
+
+AI相談APIは、次の条件を**すべて**満たさない限り利用を拒否します。
+
+- Cloud Functionsの環境変数 `AI_CONSULTATION_ENABLED=true`
+- Firebase IDトークンのカスタムクレーム `aiConsultationAllowed: true`
+- `aiAgeBand` が `13-17` または `18+`
+- `aiConsultationConsentVersion: "2026-11-v1"`
+
+年齢帯・同意クレームはブラウザから設定してはいけません。Firebase Admin SDKを使える信頼された管理者だけが、対象地域の要件・年齢確認・必要な同意を確認した後に付与します。利用者がプロフィール画面で自己申告した値を、そのまま許可クレームに変換しないでください。確認できないアカウント、13歳未満、クレームがないアカウントは拒否されます。正確な生年月日はこのAPIのクレームに含めません。
+
+このリポジトリには年齢確認・保護者同意を自動で完了する管理者ワークフローはありません。したがって、現状は安全設定を完了した状態ではなく、AI相談は停止したままです。管理者による審査手順と運営責任者が決まるまでは、環境変数を有効にしないでください。
 
 ## 公開前に必要なこと
 
@@ -87,7 +100,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 ## 未完了の確認事項
 
-- この機能はまだデプロイされておらず、実際のAI応答テストも未実施。
+- Cloud Functionsのコードとブラウザ画面は実装済みだが、年齢・同意の管理者ワークフローが未整備のため、リリースゲートは閉じたまま。実際のAI応答テストも未実施。
 - Firebase Functionsの課金設定、Googleログインプロバイダ・承認済みドメイン確認、Secret登録は管理者による作業が必要。
 - Service Workerは v108。画面遷移時はネットワークから最新画面を取得し、通信できない場合はキャッシュを使う。これにより、古いログイン画面がキャッシュ優先で残る問題を避ける。
 - 既存の公開版・開発版・バックアップ版はこのブランチから自動変更されない。
