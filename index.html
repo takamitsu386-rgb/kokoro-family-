@@ -7992,7 +7992,7 @@ snsRefreshPosts.addEventListener("click", async () => {
           const now=Date.now();
           const id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"task_"+now.toString(36)+"_"+Math.random().toString(36).slice(2,10);
           const next=[...current,{id,title:item.title,category:"household",priority:"normal",dueDate:item.date,completed:false,createdAt:now}];
-          try{localStorage.setItem(taskKey,JSON.stringify(next));status.textContent="やることリストに追加しました。";}
+          try{localStorage.setItem(taskKey,JSON.stringify(next));window.dispatchEvent(new CustomEvent("kokoro-family-weekly-data-updated"));status.textContent="やることリストに追加しました。";}
           catch(error){try{if(raw===null)localStorage.removeItem(taskKey);else localStorage.setItem(taskKey,raw);}catch(rollbackError){console.error("Calendar task import rollback failed",rollbackError);}throw error;}
         }catch(error){console.error("Calendar task import failed",error);status.textContent="やることリストを読み込めないか、保存できませんでした。既存データは上書きしていません。";}
       });
