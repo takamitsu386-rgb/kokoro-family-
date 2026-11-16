@@ -37,8 +37,8 @@ jobs:
           path: _site
 
   deploy:
-    # Public deployment stays disabled until the release checklist is approved.
-    if: ${{ vars.KOKORO_PUBLIC_RELEASE_APPROVED == 'true' }}
+    # Require an explicit manual dispatch from the release branch and release approval.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development-kokoro-app' && vars.KOKORO_PUBLIC_RELEASE_APPROVED == 'true' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
