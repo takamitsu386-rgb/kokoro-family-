@@ -51,14 +51,16 @@ for (const collection of [
   "friendRequests", "sharedRooms", "reports", "reservations",
   "timelineUsage", "blocks", "aiUsage", "profileSearchUsage", "reportUsage", "following", "hiddenSharedRooms", "receivedSharedRooms"
 ]) {
-  assert.ok(spec.includes("`" + collection + "`"),
+  const documentedAsName = spec.includes("`" + collection + "`");
+  const documentedAsPathSegment = new RegExp("`[^\`]*\\/" + collection + "\\/");
+  assert.ok(documentedAsName || documentedAsPathSegment.test(spec),
     "Deletion specification is missing a known Firestore collection: " + collection);
 }
 
-for (const path of ["users/{uid}/aiUsage/{dayKey}", "users/{uid}/timelineUsage/{dayKey}", "users/{uid}/profileSearchUsage/{dayKey}", "users/{uid}/reportUsage/{dayKey}", "users/{uid}/blocks/{targetUid}", "users/{uid}/following/{targetUid}", "users/{uid}/hiddenSharedRooms/{shareId}", "users/{uid}/receivedSharedRooms/{shareId}", "users/{uid}/sharedRooms/{shareId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}"]) {
+for (const path of ["users/{uid}/aiUsage/{dayKey}", "users/{uid}/timelineUsage/{dayKey}", "users/{uid}/profileSearchUsage/{dayKey}", "users/{uid}/reportUsage/{dayKey}", "users/{uid}/blocks/{targetUid}", "users/{uid}/following/{targetUid}", "users/{uid}/hiddenSharedRooms/{shareId}", "users/{uid}/receivedSharedRooms/{shareId}", "users/{uid}/sharedRooms/{shareId}", "users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}"]) {
   assert.ok(spec.includes("`" + path + "`"), "Deletion specification is missing a Firestore path: " + path);
 }
 assert.ok(spec.includes("`reservations`"), "Deletion specification must include AI quota reservation subcollections.");
 assert.match(spec, /この一覧は現時点で検出できたキーの基準/);
 assert.match(spec, /動的に組み立てるキーや別モジュールの保存先がないことを保証しません/);
-console.log("Account-deletion inventory: " + localKeys.length + " local keys and 11 Firestore collection references checked.");
+console.log("Account-deletion inventory: " + localKeys.length + " local keys and 12 Firestore paths checked.");
