@@ -41,6 +41,15 @@ for (const key of localKeys) {
   assert.ok(spec.includes("`" + key + "`"), "Deletion specification is missing local storage key: " + key);
 }
 
+const literalLocalStorageKeys = [...new Set(
+  [...html.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\(\s*["']([^"']+)["']/g)]
+    .map(match => match[1])
+)];
+for (const key of literalLocalStorageKeys) {
+  assert.ok(spec.includes("`" + key + "`"),
+    "Deletion specification is missing a literal localStorage key: " + key);
+}
+
 assert.ok(html.includes('sessionStorage.setItem("kokoroReturnToAiAfterLogin"'),
   "Session-only login return state must remain visible in the deletion inventory.");
 assert.ok(spec.includes("`kokoroReturnToAiAfterLogin`") && spec.includes("`sessionStorage`"),
