@@ -138,6 +138,38 @@ button,select{background:#f4dce7;color:#684b5a}
 button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6380}
 
 
+/* こころファミリー：アイコン付きホーム画面 */
+.brand-header{display:flex;align-items:center;gap:16px;padding:22px clamp(16px,4vw,36px);background:linear-gradient(120deg,#fff0f5,#e9f5ff);color:#503745;border-bottom:1px solid #f2dce7}
+.brand-mark{width:76px;height:76px;flex:0 0 76px;display:grid;place-items:center;border:5px solid #f3b6cd;border-radius:50%;background:#fff;font-size:38px;box-shadow:0 4px 12px #d98eaa25}
+.brand-copy h1{font-size:clamp(23px,4vw,34px);letter-spacing:.02em;color:#d66f96}
+.brand-copy p{margin:4px 0 0;color:#695762;font-weight:600}
+.app-nav{background:#fffaf4ed;border-color:#f0dfe5}
+.app-nav a{background:#f8e9ef;color:#755267}
+.home-intro{padding:clamp(14px,3vw,26px);background:linear-gradient(145deg,#fff,#fff7fa);border:1px solid #f2dce7}
+.home-welcome{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 4px 18px}
+.home-welcome h2{margin:2px 0 5px;color:#5a4652;font-size:clamp(21px,4vw,29px)}
+.home-welcome p{margin:0;color:#766873}
+.home-welcome .eyebrow{font-size:11px;letter-spacing:.16em;font-weight:800;color:#d77c9e}
+.welcome-illustration{flex:0 0 auto;font-size:clamp(42px,8vw,68px);padding:10px;border-radius:22px;background:#fff0f5}
+.ai-feature-banner{display:flex;align-items:center;gap:14px;padding:17px 18px;margin:4px 0 16px;border:1px solid #cfe4fa;border-radius:18px;background:linear-gradient(110deg,#e7f4ff,#fff0f6);color:#354b69;text-decoration:none;box-shadow:0 4px 14px #8db9d51c}
+.ai-feature-icon{width:54px;height:54px;display:grid;place-items:center;flex:0 0 54px;border-radius:17px;background:#fff;color:#d66f96;font-size:29px}
+.ai-feature-copy{display:grid;gap:2px;min-width:0}
+.ai-feature-copy strong{font-size:22px;color:#3d638e}
+.ai-feature-copy small{font-size:12px;color:#6b6872}
+.ai-feature-arrow{margin-left:auto;font-size:32px;color:#65a9df}
+.menu-heading{margin:20px 2px 10px;color:#5b4c58}
+.home-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.menu-tile{position:relative;display:grid;grid-template-columns:56px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:11px;min-height:106px;padding:14px 12px;border:1px solid transparent;border-radius:17px;text-decoration:none;color:#3f3a40;box-shadow:0 3px 9px #60445b12;transition:transform .15s ease,box-shadow .15s ease}
+.menu-tile:hover{transform:translateY(-2px);box-shadow:0 6px 14px #60445b20}
+.menu-tile:focus-visible{outline:3px solid #8f6380;outline-offset:3px}
+.menu-icon{grid-row:1 / span 2;display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:#ffffffb8;font-size:30px}
+.menu-title{align-self:end;font-size:15px;font-weight:800;line-height:1.35}
+.menu-description{align-self:start;margin-top:3px;font-size:11px;color:#6f6870;line-height:1.35}
+.tile-pink{background:#fff0f5;border-color:#f5d4e1}.tile-blue{background:#eaf5ff;border-color:#d2e8fa}.tile-green{background:#eff9e9;border-color:#dcefd0}.tile-lavender{background:#f3efff;border-color:#e4daf8}.tile-peach{background:#fff3e3;border-color:#f8e3c5}
+.menu-status{position:absolute;right:9px;top:8px;padding:3px 8px;border-radius:999px;background:#f5b84b;color:#fff;font-size:10px;font-weight:800}
+@media(max-width:600px){.brand-header{gap:11px;padding:15px 14px}.brand-mark{width:58px;height:58px;flex-basis:58px;border-width:4px;font-size:29px}.brand-copy p{font-size:12px}.home-welcome{padding-top:0}.ai-feature-banner{padding:13px}.ai-feature-copy strong{font-size:19px}.ai-feature-copy small{font-size:10px}.home-menu-grid{gap:8px}.menu-tile{grid-template-columns:43px minmax(0,1fr);column-gap:8px;min-height:96px;padding:11px 8px;border-radius:14px}.menu-icon{width:42px;height:42px;font-size:24px;border-radius:13px}.menu-title{font-size:13px}.menu-description{font-size:10px}.menu-status{right:6px;top:5px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){.menu-tile{transition:none}}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#dba5bd">
@@ -147,19 +179,36 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline-color:#8f6
 </head>
 <body>
 <a class="skip-link" href="#main-content">メインコンテンツへ移動</a>
-<header>
-<h1>🏡 こころファミリー</h1>
-<p>自分だけのお部屋をつくろう！</p>
+<header class="brand-header">
+<div class="brand-mark" aria-hidden="true">👨‍👩‍👧</div>
+<div class="brand-copy"><h1>こころファミリー</h1><p>家族の毎日を、もっとやさしく。</p></div>
 </header>
 <nav class="app-nav" aria-label="アプリ内メニュー">
-<a href="#home">ホーム</a><a href="#today-plan">今日の予定</a><a href="#family-weekly-plan">週間まとめ</a><a href="#room-presets">お部屋セット</a><a href="#ai-consultation">AI相談</a><a href="#family-tasks">やること</a><a href="#family-calendar">家族カレンダー</a><a href="#family-meals">献立</a><a href="#family-recipes">レシピ</a><a href="#family-shopping">買い物</a><a href="#room-design">お部屋</a><a href="#design-options">壁・床</a><a href="#furniture-tools">家具・保存</a><a href="#cloud-sync">スマホ・PC同期</a><a href="#backupTitle">バックアップ</a>
+<a href="#home">🏠 ホーム</a><a href="#ai-consultation">💗 AI相談</a><a href="#today-plan">🌷 今日の予定</a><a href="#family-weekly-plan">🗓️ 週間まとめ</a><a href="#family-tasks">📝 やること</a><a href="#family-calendar">📅 家族カレンダー</a><a href="#family-meals">🍱 献立</a><a href="#family-recipes">📖 レシピ</a><a href="#family-shopping">🛒 買い物</a><a href="#room-design">🎨 お部屋づくり</a><a href="#room-presets">🏡 お部屋セット</a><a href="#cloud-sync">☁️ 同期</a><a href="#backupTitle">🛡️ バックアップ</a><a href="#sns">👥 みんなの投稿（停止中）</a>
 </nav>
 <main id="main-content" tabindex="-1">
 <section class="panel home-intro" id="home">
-<h2>🏡 マイホーム</h2>
-<p>こころファミリーへようこそ。ここから使いたい機能を選べるよ。</p>
-<div class="home-actions"><a href="#room-presets">🏡 お部屋セットから始める</a><a class="secondary" href="#family-shopping">🛒 買い物リスト</a><a class="secondary" href="#family-calendar">📅 家族の予定</a><a class="secondary" href="#family-meals">🍱 献立を考える</a><a class="secondary" href="#family-recipes">📖 レシピを保存</a><a href="#ai-consultation">💬 AIに相談する</a><a class="secondary" href="#room-design">🎨 お部屋をつくる</a><a class="secondary" href="#design-options">🌈 壁・床を変える</a><a class="secondary" href="#furniture-tools">🧸 家具を置く・保存</a><a class="secondary" href="#cloud-sync">☁️ スマホ・PC同期</a><a class="secondary" href="#backupTitle">🛡️ データを守る</a></div>
+<div class="home-welcome"><div><p class="eyebrow">WELCOME HOME</p><h2>家族の毎日を、ここから。</h2><p>予定も、食事も、お部屋づくりも。使いたい機能を選んでね。</p></div><div class="welcome-illustration" aria-hidden="true">🏡💗</div></div>
+<a class="ai-feature-banner" href="#ai-consultation" aria-label="AI相談の案内と準備状況を見る">
+<span class="ai-feature-icon" aria-hidden="true">💬</span><span class="ai-feature-copy"><strong>AI相談</strong><small>メイン機能 · 安全確認と準備を進めています</small></span><span class="ai-feature-arrow" aria-hidden="true">›</span>
+</a>
 <div class="today-preview" aria-labelledby="todayPreviewTitle"><h3 id="todayPreviewTitle">🌷 今日の予定</h3><p id="todayMiniSummary">予定を読み込んでいます…</p><ul id="todayMiniList" class="today-mini-list"></ul><a href="#today-plan">予定を確認・追加する →</a></div>
+<h3 class="menu-heading">メニュー</h3>
+<div class="home-menu-grid" aria-label="アプリのメニュー">
+<a class="menu-tile tile-pink" href="#ai-consultation"><span class="menu-icon" aria-hidden="true">💗</span><span class="menu-title">AI相談</span><span class="menu-description">相談機能の準備状況</span></a>
+<a class="menu-tile tile-blue" href="#today-plan"><span class="menu-icon" aria-hidden="true">🌷</span><span class="menu-title">今日の予定</span><span class="menu-description">今日の予定を確認</span></a>
+<a class="menu-tile tile-green" href="#family-weekly-plan"><span class="menu-icon" aria-hidden="true">🗓️</span><span class="menu-title">週間まとめ</span><span class="menu-description">家族の1週間を一覧</span></a>
+<a class="menu-tile tile-lavender" href="#family-tasks"><span class="menu-icon" aria-hidden="true">📝</span><span class="menu-title">やること</span><span class="menu-description">タスクを管理</span></a>
+<a class="menu-tile tile-blue" href="#family-calendar"><span class="menu-icon" aria-hidden="true">📅</span><span class="menu-title">家族カレンダー</span><span class="menu-description">予定を日付で管理</span></a>
+<a class="menu-tile tile-green" href="#family-meals"><span class="menu-icon" aria-hidden="true">🍱</span><span class="menu-title">献立</span><span class="menu-description">毎日の食事を計画</span></a>
+<a class="menu-tile tile-peach" href="#family-recipes"><span class="menu-icon" aria-hidden="true">📖</span><span class="menu-title">レシピ</span><span class="menu-description">レシピを保存</span></a>
+<a class="menu-tile tile-peach" href="#family-shopping"><span class="menu-icon" aria-hidden="true">🛒</span><span class="menu-title">買い物リスト</span><span class="menu-description">買うものを整理</span></a>
+<a class="menu-tile tile-blue" href="#room-design"><span class="menu-icon" aria-hidden="true">🎨</span><span class="menu-title">お部屋づくり</span><span class="menu-description">自分好みにデザイン</span></a>
+<a class="menu-tile tile-green" href="#room-presets"><span class="menu-icon" aria-hidden="true">🏡</span><span class="menu-title">お部屋セット</span><span class="menu-description">セットから始める</span></a>
+<a class="menu-tile tile-lavender" href="#cloud-sync"><span class="menu-icon" aria-hidden="true">☁️</span><span class="menu-title">スマホ・PC同期</span><span class="menu-description">端末間の同期設定</span></a>
+<a class="menu-tile tile-blue" href="#backupTitle"><span class="menu-icon" aria-hidden="true">🛡️</span><span class="menu-title">バックアップ</span><span class="menu-description">大切なデータを保存</span></a>
+<a class="menu-tile tile-lavender" href="#sns"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-title">みんなの投稿・交流</span><span class="menu-description">現在は停止中</span><span class="menu-status">停止中</span></a>
+</div>
 </section>
 <section class="panel" id="family-weekly-plan">
 <h2>🗓️ 家族の週間まとめ</h2>
@@ -8772,11 +8821,11 @@ snsRefreshPosts.addEventListener("click", async () => {
 
 </script>
 <nav class="mobile-quick-nav" aria-label="スマートフォン用クイックメニュー">
-<a href="#home"><span aria-hidden="true">🏠</span><span>ホーム</span></a>
-<a href="#family-weekly-plan"><span aria-hidden="true">🗓️</span><span>週間</span></a>
-<a href="#family-tasks"><span aria-hidden="true">✓</span><span>やること</span></a>
-<a href="#family-calendar"><span aria-hidden="true">📅</span><span>予定</span></a>
-<a href="#family-shopping"><span aria-hidden="true">🛒</span><span>買い物</span></a>
+<a href="#home" aria-label="ホーム"><span aria-hidden="true">🏠</span><span>ホーム</span></a>
+<a href="#ai-consultation" aria-label="AI相談"><span aria-hidden="true">💗</span><span>AI相談</span></a>
+<a href="#today-plan" aria-label="今日の予定"><span aria-hidden="true">🌷</span><span>予定</span></a>
+<a href="#family-shopping" aria-label="買い物リスト"><span aria-hidden="true">🛒</span><span>買い物</span></a>
+<a href="#room-design" aria-label="お部屋づくり"><span aria-hidden="true">🎨</span><span>お部屋</span></a>
 </nav>
 </body>
 </html>
