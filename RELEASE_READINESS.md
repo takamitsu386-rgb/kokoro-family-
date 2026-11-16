@@ -429,3 +429,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - GitHub Pages workflowは引き続き `development-kokoro-app` へのpushまたは手動実行でbuildし、deploy jobは `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の場合のみ実行する。承認変数の変更・PRマージ・公開デプロイは行っていない。
 - PR #2はopen / draft / unmerged。CI成功はソース検証とFirestore Emulatorの結果であり、Firebase本番設定・Functions/Rules/Indexesの反映、Googleログイン、実機同期、AI実応答の確認を意味しない。
 - 公開前ブロッカー：AI年齢・同意管理、包括的アカウント削除の実装と運用判断、SNSを将来有効化する場合の年齢保護・人による通報運営体制、Firebase本番設定、スマートフォン実機受け入れ試験。これらが未完了のため公開可能判定にはしない。
+
+
+## 2026-11-17 PRレビュー状況の確認
+
+- PR #2は `feature/ai-consultation-reconciled` から `development-kokoro-app` への変更で、open / draft / unmerged。最新headは `3a753599c395e142fa5780614ef7b9fba775c7b0`。
+- PRには53ファイルの変更が含まれる。GitHub上のmergeable判定はtrueだが、これはコードレビュー完了や公開承認を意味しない。
+- GitHub APIで確認した時点では、レビュー決定はなく、レビュー依頼先も設定されていない。Firebase Rules・Cloud Functions・大規模なindex.html変更を含むため、マージ前に権限を持つ人による差分レビューが必要。
+- Source validation run `43893368746` は全49ステップ success。静的検証・Firestore Emulator成功と、独立した人間のコードレビュー・Firebase本番受け入れ試験は区別する。
+- この確認によるPRレビュー依頼、マージ、公開承認、Firebaseデプロイは行っていない。
