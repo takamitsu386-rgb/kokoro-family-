@@ -17,6 +17,6 @@ assert.match(html, /@media\(max-width:600px\)/, "mobile layout breakpoint exists
 assert.match(html, /env\(safe-area-inset-bottom\)/, "bottom navigation respects device safe area");
 assert.match(html, /min-height:52px/, "quick navigation touch targets are sufficiently tall");
 assert.match(html, /scroll-snap-type:x proximity/, "top navigation supports touch scrolling");
-assert.match(sw, /kokoro-family-v368/, "service worker cache is refreshed");
+assert.match(sw, /kokoro-family-v369/, "service worker cache is refreshed");
 
 console.log("Mobile navigation source checks passed.");
