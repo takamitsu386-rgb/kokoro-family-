@@ -370,3 +370,11 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - `scripts/validate-daily-routines.mjs` を追加し、Source validation workflowに組み込んだ。
 - Service Worker cacheを `kokoro-family-v370` に更新。スマホナビゲーション検証とMVP/AIセットアップ文書のバージョン表記も更新。
 - GitHub Actionsの新しい実行結果はまだ確認できていないため、CI成功とは判定しない。
+
+
+## 2026-11-16 毎日のルーティン検証修正・全CI成功
+
+- 最新コミット `0ed2267beada91282afd43dbb4559635d448932c` で、ルーティン検証スクリプトが実装と異なる `function today()` 宣言を前提にしていた問題を修正。実装に合わせて `const today=()=>` を確認する。
+- GitHub Actions Source validation run `43870429644` は completed / success。41項目すべて成功。Firestore Rules Emulator、GitHub Pages成果物、JSON設定検証を含む。
+- これは作業ブランチ上の自動検証成功。Firebase本番環境・スマートフォン実機の受け入れ試験が完了した意味ではない。
+- PR #2はopen / draft / mergeableのまま。GoogleログインのFirebase設定、Functions/Rules/Indexesの本番反映、AI年齢・同意管理、SNS運営体制、包括的アカウント削除、実機試験は未完了。公開ゲート解除・マージ・デプロイは行わない。
