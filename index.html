@@ -5008,6 +5008,9 @@ try {
     } else {
       status("未接続：この端末内に保存しています。");
     }
+    // Resume automatic sync after login only for an account whose first-sync
+    // choice was already recorded. queueSync keeps first-time accounts manual.
+    if (user) queueSync();
   });
   window.addEventListener("offline", () => {
     stopSharedShoppingListener();
