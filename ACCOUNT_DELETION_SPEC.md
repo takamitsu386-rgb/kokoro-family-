@@ -73,7 +73,7 @@
 
 ### Cloud Functions・Firestore Rulesで確認した補助データ
 
-- `users/{uid}/aiUsage/{dayKey}` とその `reservations` サブコレクション：AI相談の日次利用枠と処理予約。
+- `users/{uid}/aiUsage/{dayKey}` と `users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}`（サブコレクション `reservations`）：AI相談の日次利用枠と処理予約。
 - `users/{uid}/timelineUsage/{dayKey}`：タイムラインの日次利用枠。
 - `users/{uid}/profileSearchUsage/{dayKey}`：プロフィール検索の日次利用枠。
 - `users/{uid}/reportUsage/{dayKey}`：通報の日次利用枠。
