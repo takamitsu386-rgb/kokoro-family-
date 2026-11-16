@@ -350,3 +350,14 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 画面・安全ゲートの変更を端末へ配信するため、Service Worker cacheを kokoro-family-v368 に更新。
 - 最新head 02b19c84586e6f9c2ca20822ce0f6d32ff904708 のSource validation run 43718531537 はcompleted / success。Firestore Rules Emulator、AI相談停止表示、個人買い物同期、PWA cache、その他の全32検証工程が成功。
 - Firebase本番反映・Pages公開・PRマージは未実施。公開前ブロッカー（年齢保護、アカウント削除、Firebase本番設定、実機受け入れ試験）は継続。
+
+
+## 2026-11-16 アカウント削除・保存先の再棚卸し
+
+- 最新PR head `f39812790e7ba40c298266415680153575270409` を対象に再確認。アカウント削除UI、削除API、Authユーザー削除トリガー、Firestoreの再帰削除処理は見つからず、アカウント削除は未実装。
+- Firestoreの本人専用データは `users/{uid}/kokoro/data` と `users/{uid}/kokoro/shopping`。サーバー管理の利用記録には `aiUsage/{dayKey}`（配下の `reservations` を含む）、`timelineUsage/{dayKey}`、`reportUsage/{dayKey}` がある。
+- SNS/共有関連のプロフィール、投稿・コメント・いいね、友達申請、ブロック、共有ルーム、共有買い物はMVP向けFirestore Rulesでクライアントアクセス拒否。過去データが存在する可能性は残るため、削除設計から除外してよいとは判断しない。
+- `reports/{reportId}` は通報者・対象者・通報理由・審査状態を持つ運営用記録で、本人の個人データと同じ扱いで一括削除してはならない。保持期間、匿名化、法令・安全上の例外を運営方針として決める必要がある。
+- `firebase.json` にStorage bucket名は設定されているが、確認した `index.html` と `functions/index.js` にはFirebase Storage SDKによるファイル保存処理は見つからなかった。これはバケットに既存ファイルがないことの証明ではないため、公開前にFirebase Console側の実データも確認する。
+- 現状はFirebase Authだけを削除する処理も、Firestore全体をUID文字列検索で一括消去する処理も追加しない。共有データの所有者・相手側参照、通報記録の保持、利用枠のサブコレクション、再認証、途中失敗時の再実行を含む削除仕様とテストを先に確定する。
+- この棚卸しはソースコードの静的確認であり、Firebase本番データの中身・Storageの実データ・実機での削除動作は未確認。アカウント削除は引き続き公開前ブロッカー。
