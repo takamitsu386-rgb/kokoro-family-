@@ -372,3 +372,34 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - GitHub Actions run `43854686564` は2026-11-16にcompleted / success。Cloud Functions・Service Worker・アプリ内JavaScriptの構文、Firebase配線、モバイルナビ、AI相談の安全性、同期・アカウント分離、DOM安全、SNS停止ゲート、Firestore Rules Emulator、Pages成果物、JSON設定の検証工程が成功。
 - これは開発ブランチ上の自動検証結果であり、Firebase本番環境へのRules/Functions/Hosting反映、Googleログイン・クラウド同期・AI応答の実機確認、アカウント削除機能の実装を意味しない。
 - 本番公開前の未完了事項は継続：Firebase管理者による設定確認と反映、スマホ実機受け入れ試験、AI相談の年齢・同意管理体制、包括的なアカウント削除機能、公開判断。PRマージ・本番デプロイは引き続き未実施。
+
+
+## 2026-11-16 最新公開判定（head `f3f4cd0e712cfd72457a2db3b778a36baad3f5ab`）
+
+### 自動検証・GitHub状態
+
+- 最新head `f3f4cd0e712cfd72457a2db3b778a36baad3f5ab` のSource validationはpush run `43855362280` と `43855369985` の両方がcompleted / success。
+- PR #1はopen / draft / unmerged。base `development-kokoro-app` に対してahead 1426 / behind 0、mergeable true。
+- Pages workflowは `development-kokoro-app` へのpushをビルド対象とし、deploy jobはリポジトリ変数 `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` が設定されるまで実行しない。現在この承認ゲートを解除していない。
+- Pages成果物は `index.html`、`manifest.webmanifest`、`icon.svg`、`sw.js` の4ファイルに限定。Firebase Functions、Firestore Rules、Secret Managerの設定はPages公開だけでは反映されない。
+
+### 公開ブロッカー（現時点）
+
+| 項目 | 状態 | 公開前に必要な確認 |
+|---|---|---|
+| GitHub Actions | 完了 | 最新headのCI成功を確認済み |
+| PR統合 | 未完了 | Draft PRのレビューと明示的なマージ判断 |
+| Googleログイン | 未確認 | Firebase ConsoleのAPIキー・Identity Toolkit API・Googleプロバイダ・承認済みドメインとスマホ実機ログイン |
+| Firebase本番反映 | 未実施 | 対象プロジェクト、Rules、Indexes、Functions、Hostingの差分レビューと承認済み反映 |
+| AI相談 | 停止中 | 年齢・必要な保護者同意を確認する信頼できる運営フロー、責任者、プライバシー説明、限定テスト。準備完了までゲートを開けない |
+| SNS・共有 | MVPでは停止 | UI非表示、API停止ゲート、Firestore Rules拒否を維持。本番Rules/Functions未反映を忘れない |
+| アカウント削除 | 未実装 | 本人再認証、全保存先・共有参照・通報記録・Storageの扱い、冪等な削除と復旧、実機テスト |
+| 部屋・生活サポート | 実機未確認 | iPhone/Android相当の画面幅で編集・保存・再起動・バックアップ復元を受け入れ試験 |
+| 同期 | 実機未確認 | 2端末、アカウント切替、オフライン復帰、競合、ログアウト時のデータ分離を試験 |
+| 法務・運営 | 未確認 | 提供地域、対象年齢、プライバシーポリシー、利用規約、問い合わせ・事故対応の確認 |
+
+### 公開判断
+
+現時点では「ソース検証成功」であり、「一般公開可能」ではない。未確認のFirebase設定・実機動作・削除手段を推測で完了扱いにしない。特に、AI相談とSNSは停止状態を維持し、未成年者保護の確認を飛ばさない。
+
+公開に進む際は、PRレビュー・マージ、Firebase本番反映、GitHub Pages承認ゲートの解除をそれぞれ別の変更として扱い、実施結果を確認する。公開ゲートの解除や本番デプロイは、明示的な公開承認後にのみ行う。
