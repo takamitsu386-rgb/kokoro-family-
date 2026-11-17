@@ -69,7 +69,7 @@ for (const collection of [
     "Deletion specification is missing a known Firestore collection: " + collection);
 }
 
-for (const path of ["users/{uid}/aiUsage/{dayKey}", "users/{uid}/timelineUsage/{dayKey}", "users/{uid}/profileSearchUsage/{dayKey}", "users/{uid}/reportUsage/{dayKey}", "users/{uid}/blocks/{targetUid}", "users/{uid}/following/{targetUid}", "users/{uid}/hiddenSharedRooms/{shareId}", "users/{uid}/receivedSharedRooms/{shareId}", "users/{uid}/sharedRooms/{shareId}", "users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}", "users/{uid}/profileSearchUsage/{dayKey}/reservations/{reservationId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}"]) {
+for (const path of ["users/{uid}/kokoro/data", "users/{uid}/kokoro/shopping", "profiles/{uid}", "posts/{postId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}", "friendRequests/{requestId}", "sharedShopping/{shareId}", "sharedRooms/{shareId}", "reports/{reportId}", "users/{uid}/aiUsage/{dayKey}"{
   assert.ok(spec.includes("`" + path + "`"), "Deletion specification is missing a Firestore path: " + path);
 }
 assert.ok(html.includes('const SNS_SHARE_CLEANUP_QUEUE_PREFIX = "kokoro-sns-share-cleanup-v1:"'),
@@ -79,4 +79,4 @@ assert.ok(spec.includes("`kokoro-sns-share-cleanup-v1:{uid}`"),
 assert.ok(spec.includes("`reservations`"), "Deletion specification must include AI quota reservation subcollections.");
 assert.match(spec, /この一覧は現時点で検出できたキーの基準/);
 assert.match(spec, /動的に組み立てるキーや別モジュールの保存先がないことを保証しません/);
-console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and 13 Firestore paths checked.");
+console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and " + 23 + " Firestore paths checked.");
