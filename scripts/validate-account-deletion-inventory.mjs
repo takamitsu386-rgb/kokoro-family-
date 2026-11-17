@@ -5,6 +5,7 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const spec = readFileSync(new URL("../ACCOUNT_DELETION_SPEC.md", import.meta.url), "utf8");
 
 const localKeys = [
+  "kokoroCustomRoomPalettes",
   "kokoroCustomRoomPalettesBeforePaletteImport",
   "kokoroSavedRooms",
   "kokoroSavedRoomsUndo",
@@ -32,6 +33,8 @@ const localKeys = [
   "kokoroFamilyCalendarV1",
   "kokoroFamilyMealsV1",
   "kokoroFamilyRecipesV1",
+  "kokoroFamilyRecipeFavoritesV1",
+  "kokoroFamilyEventPrepV1",
   "kokoroFamilyShoppingV1",
   "kokoroFamilyTasksV1"
 ];
@@ -69,7 +72,11 @@ for (const collection of [
 for (const path of ["users/{uid}/aiUsage/{dayKey}", "users/{uid}/timelineUsage/{dayKey}", "users/{uid}/profileSearchUsage/{dayKey}", "users/{uid}/reportUsage/{dayKey}", "users/{uid}/blocks/{targetUid}", "users/{uid}/following/{targetUid}", "users/{uid}/hiddenSharedRooms/{shareId}", "users/{uid}/receivedSharedRooms/{shareId}", "users/{uid}/sharedRooms/{shareId}", "users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}"]) {
   assert.ok(spec.includes("`" + path + "`"), "Deletion specification is missing a Firestore path: " + path);
 }
+assert.ok(html.includes('const SNS_SHARE_CLEANUP_QUEUE_PREFIX = "kokoro-sns-share-cleanup-v1:"'),
+  "UID-scoped SNS cleanup queue prefix must remain visible in the source inventory.");
+assert.ok(spec.includes("`kokoro-sns-share-cleanup-v1:{uid}`"),
+  "Deletion specification must document the UID-scoped SNS cleanup queue.");
 assert.ok(spec.includes("`reservations`"), "Deletion specification must include AI quota reservation subcollections.");
 assert.match(spec, /この一覧は現時点で検出できたキーの基準/);
 assert.match(spec, /動的に組み立てるキーや別モジュールの保存先がないことを保証しません/);
-console.log("Account-deletion inventory: " + localKeys.length + " local keys and 12 Firestore paths checked.");
+console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and 12 Firestore paths checked.");
