@@ -82,7 +82,7 @@
 
 - `users/{uid}/aiUsage/{dayKey}` と `users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}`（サブコレクション `reservations`）：AI相談の日次利用枠と処理予約。
 - `users/{uid}/timelineUsage/{dayKey}`：タイムラインの日次利用枠。
-- `users/{uid}/profileSearchUsage/{dayKey}`：プロフィール検索の日次利用枠。
+- `users/{uid}/profileSearchUsage/{dayKey}` と `users/{uid}/profileSearchUsage/{dayKey}/reservations/{reservationId}`：プロフィール検索の日次利用枠と処理予約。
 - `users/{uid}/reportUsage/{dayKey}`：通報の日次利用枠。
 - `users/{uid}/blocks/{targetUid}`：本人が作成したブロック記録。相手側に作成された本人UID宛てのブロック記録も照合する。
 - `posts/{postId}/comments/{commentId}`、`posts/{postId}/likes/{likerUid}`：投稿配下のサブコレクション。投稿者・コメント投稿者・いいねした利用者の関係を個別に判定する。
