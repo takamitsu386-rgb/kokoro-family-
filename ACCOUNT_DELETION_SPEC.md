@@ -33,6 +33,7 @@
 
 以下は削除実装時に消去対象として照合するキー一覧です。`localStorage` のみを対象とし、ブラウザー全体の保存領域は消去しません。機能追加でキーが増えた場合は、この一覧と検証スクリプトを同時に更新します。
 
+- `kokoroCustomRoomPalettes`
 - `kokoroCustomRoomPalettesBeforePaletteImport`
 - `kokoroSavedRooms`
 - `kokoroSavedRoomsUndo`
@@ -60,10 +61,16 @@
 - `kokoroFamilyCalendarV1`
 - `kokoroFamilyMealsV1`
 - `kokoroFamilyRecipesV1`
+- `kokoroFamilyRecipeFavoritesV1`
+- `kokoroFamilyEventPrepV1`
 - `kokoroFamilyShoppingV1`
 - `kokoroFamilyTasksV1`
 
 この一覧は現時点で検出できたキーの基準であり、動的に組み立てるキーや別モジュールの保存先がないことを保証しません。削除機能の実装前にコード全体の再棚卸しを必須とします。
+
+### UID別の動的キー
+
+- `kokoro-sns-share-cleanup-v1:{uid}`：SNS共有解除後のローカル後処理待ちキュー。現在SNS機能は停止中だが、過去の利用状態が残っている可能性を考慮し、削除時はログイン中UIDに一致するキーを対象にする。プレフィックス一致だけで他アカウントのキューを消去しない。
 
 
 ### セッション内データ
