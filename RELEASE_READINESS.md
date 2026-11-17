@@ -450,3 +450,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - お部屋バックアップはアプリ識別子・バージョン・データ構造・ファイルサイズを検証し、読み込み前の退避と失敗時のロールバック処理を持つことをソース点検で確認。これはコード点検であり、実機ファイルを使った操作試験ではない。
 - 引き続き未完了：独立した人間による差分レビュー、iPhone Safari / Android Chrome実機試験、Firebase本番設定・Rules・Indexes・Functionsの管理者確認と反映、Googleログイン・クラウド同期の実地確認、AIの年齢・保護者同意フロー、SNS運営体制、包括的アカウント削除機能。
 - したがってAI・SNSの停止ゲートを維持し、PRはDraftのまま。マージ・本番デプロイ・一般公開は行わない。
+
+
+## 2026-11-17 今日の予定の動作テスト追加・CI成功
+
+- `tests/today-plan.test.mjs` を追加し、端末内の予定データについて、追加・完了更新・壊れた保存データの保護・保存失敗時の入力保持・インポート確認後の置換・古いファイル読込の無効化・実在しない日付の拒否・確認キャンセル時の既存データ保持・削除を動作テストする。
+- Source validation workflowに `node --test tests/today-plan.test.mjs` を追加。
+- コード変更コミット `fa450cedd44c00d0dc24da26375e038432a45eb2` のSource validation run `43986989379`（run #2526）は completed / success。Today Planの動作テスト、既存の毎日のルーティン動作テスト、Firestore Rules Emulatorを含む全ステップが成功。
+- PR #2はopen / draft / unmerged、headは上記コードコミット、変更58ファイル、GitHubのmergeable判定はtrue。レビュー0件・レビューコメント0件は前回確認時の状態であり、マージ前に再確認する。
+- このCI成功はモックされたブラウザー保存領域と自動検証の結果。iPhone Safari / Android Chrome実機操作、Firebase本番環境の設定・Rules・Functions反映、Googleログイン・実クラウド同期の受け入れ試験ではない。
+- AI相談・SNSの停止ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開は行わない。
