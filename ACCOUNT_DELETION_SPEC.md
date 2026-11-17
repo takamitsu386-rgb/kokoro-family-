@@ -23,6 +23,20 @@
 - `reports`：通報記録。通報者・対象者のどちらかが削除を要求しても、証拠保全や安全対応上の保持要否を運営責任者が判断する。通常の個人データ削除と同じ一括削除に含めない。
 - Functions内で参照する `reservations`、`timelineUsage`、`blocks` 等の利用枠・予約・補助記録も、現行コードとRulesの全パスを再点検して対象UIDを特定する。
 
+### Firestoreの具体的なドキュメント／サブコレクション
+
+- `users/{uid}/kokoro/data`、`users/{uid}/kokoro/shopping`：本人UID配下のプライベートデータ。
+- `profiles/{uid}`：公開プロフィール。ドキュメントIDが本人UID。
+- `posts/{postId}`：投稿本文。各ドキュメントの `authorUid` が本人か照合する。
+- `posts/{postId}/comments/{commentId}`：コメント。投稿者UIDと親投稿の所有者UIDを別々に照合する。
+- `posts/{postId}/likes/{likerUid}`：いいね。サブコレクションのドキュメントID（likerUid）が本人か照合する。
+- `friendRequests/{requestId}`：`fromUid` または `toUid` が本人の申請。
+- `sharedShopping/{shareId}`：`ownerUid`、`recipientUid`、`members` を照合する。本人が片側メンバーの場合、他方の利用者のデータを消去せず、本人の参加・アクセスだけを安全に解除する。
+- `sharedRooms/{shareId}`：所有者・受信者のUIDを照合し、本人側ミラー／受信者側インデックスも併せて処理する。
+- `reports/{reportId}`：`reporterUid` または `targetUid` が本人の通報。証拠保全・安全対応の保持判断を先に行い、通常削除から分離する。
+- `users/{uid}/aiUsage/{dayKey}` と `users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}`、`timelineUsage`、`reportUsage`、`profileSearchUsage`（同配下の `reservations` を含む）：本人UID配下の利用枠と一時予約。
+- `users/{uid}/blocks/{targetUid}`、`users/{uid}/following/{targetUid}`、`users/{uid}/hiddenSharedRooms/{shareId}`、`users/{uid}/receivedSharedRooms/{shareId}`、`users/{uid}/sharedRooms/{shareId}`：本人側の関係記録・共有インデックス。相手側の同種ドキュメントを本人所有と誤認しない。
+
 ### 端末内データ
 
 現行画面コードには、お部屋・保存したお部屋・履歴・復旧用退避・設定・同期UID等のlocalStorageキーがある。削除画面では、現在の端末からアプリ関連データとバックアップ／復旧用データを消去する範囲を明示する。ブラウザー内の他サイトデータや、利用者が別途保存したエクスポートファイルまでは消去できないことを説明する。別端末のローカルデータは、その端末でログアウト・アプリデータ消去が必要になる場合がある。
