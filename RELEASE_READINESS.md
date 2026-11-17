@@ -438,3 +438,15 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - GitHub APIで確認した時点では、レビュー決定はなく、レビュー依頼先も設定されていない。Firebase Rules・Cloud Functions・大規模なindex.html変更を含むため、マージ前に権限を持つ人による差分レビューが必要。
 - Source validation run `43893368746` は全49ステップ success。静的検証・Firestore Emulator成功と、独立した人間のコードレビュー・Firebase本番受け入れ試験は区別する。
 - この確認によるPRレビュー依頼、マージ、公開承認、Firebaseデプロイは行っていない。
+
+
+## 2026-11-17 最新PR・公開ゲート・追加安全点検
+
+- PR #2の最新headは `e8ee0e9e63c75f242c5065ef5af78d73308ae9c2`。baseは `development-kokoro-app`、状態はopen / draft / unmerged、GitHubのmergeable判定はtrue。変更57ファイル、130コミット。PR #1もopen / draft / unmergedのまま保持。
+- PR #2の最新Source validation run `43895726395` は completed / success。validate jobの49ステップすべて成功。Firestore Rules Emulator、Pages静的成果物、各機能の検証を含む。
+- PR #2のレビューは、確認時点でレビュー0件・インラインレビューコメント0件。mergeable=trueは独立した人間のコードレビューや本番受け入れ試験の代わりではない。
+- GitHub Pages workflowはpush時に成果物をbuildするが、deploy jobは `workflow_dispatch`、`development-kokoro-app` ブランチ、`KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の全条件がそろう場合だけ実行する。今回、承認変数変更・workflow dispatch・マージ・デプロイは行っていない。
+- Cloud FunctionsのSNS公開API（通報送信・公開タイムライン・公開プロフィール検索）は、各エンドポイントで `SNS_ENABLED == 'true'` を要求するfail-closedゲートを確認。Firestore RulesのSNS・友達・共有系パスも拒否状態。管理者用通報確認APIは別途admin claimを検証する。
+- お部屋バックアップはアプリ識別子・バージョン・データ構造・ファイルサイズを検証し、読み込み前の退避と失敗時のロールバック処理を持つことをソース点検で確認。これはコード点検であり、実機ファイルを使った操作試験ではない。
+- 引き続き未完了：独立した人間による差分レビュー、iPhone Safari / Android Chrome実機試験、Firebase本番設定・Rules・Indexes・Functionsの管理者確認と反映、Googleログイン・クラウド同期の実地確認、AIの年齢・保護者同意フロー、SNS運営体制、包括的アカウント削除機能。
+- したがってAI・SNSの停止ゲートを維持し、PRはDraftのまま。マージ・本番デプロイ・一般公開は行わない。
