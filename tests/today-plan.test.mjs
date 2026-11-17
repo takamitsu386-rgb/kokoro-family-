@@ -129,7 +129,7 @@ test("completion changes are persisted and rendered again", () => {
   checkbox.listeners.change();
   const task = h.state().days["2026-11-17"][0];
   assert.equal(task.isCompleted, true);
-  assert.equal(task.completedAt, Date.now());
+  assert.equal(task.completedAt, Date.parse("2026-11-17T12:00:00.000Z"));
   assert.match(h.elements.todayMiniList.children[0].textContent, /本を読む/);
 });
 
@@ -190,8 +190,9 @@ test("an older file read cannot replace the preview for a newer selection", () =
     days: { "2026-11-18": [validTask("new", "新しいファイル")] }
   });
   newerReader.onload();
-  assert.match(h.elements.importTodayTasksPreview.textContent, /2026-11-18/);
   assert.equal(h.elements.importTodayTasksButton.disabled, false);
+  h.elements.importTodayTasksButton.listeners.click();
+  assert.equal(h.state().days["2026-11-18"][0].title, "新しいファイル");
 });
 
 test("invalid calendar dates are rejected during import preview", () => {
@@ -216,4 +217,21 @@ test("deleting all local plan data requires confirmation and removes only its ow
   h.elements.deleteTodayTasks.listeners.click();
   assert.equal(h.stored, null);
   assert.match(h.elements.todayTaskStatus.textContent, /すべて削除しました/);
+});
+
+test("canceling the import confirmation leaves existing data untouched", () => {
+  const existing = { version: 1, days: { "2026-11-17": [validTask("keep", "残す予定")] } };
+  const h = createHarness({ raw: JSON.stringify(existing), confirmResult: false });
+  const fileInput = h.elements.importTodayTasksFile;
+  fileInput.files = [{ size: 10 }];
+  fileInput.listeners.change();
+  const reader = h.readers[0];
+  reader.result = JSON.stringify({
+    app: "kokoro-family-today-tasks", version: 1,
+    days: { "2026-11-18": [validTask()] }
+  });
+  reader.onload();
+  h.elements.importTodayTasksButton.listeners.click();
+  assert.equal(h.state().days["2026-11-17"][0].title, "残す予定");
+  assert.equal(h.state().days["2026-11-18"], undefined);
 });
