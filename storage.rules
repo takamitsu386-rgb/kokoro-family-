@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // No client upload/download feature is implemented yet.
+    // Keep the configured bucket closed until an explicit, tested access model exists.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
