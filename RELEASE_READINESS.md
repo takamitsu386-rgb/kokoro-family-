@@ -479,3 +479,11 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - Storageルールは新規クライアントアクセスを拒否する設定であり、既存バケット内データが空であることや、Cloud Logging・Analytics・バックアップ・外部エクスポートの削除を保証しない。バケット実データと外部保存先はプロジェクト管理者による別確認が必要。
 - 未完了の公開ブロッカー：包括的アカウント削除UI/API/再試行ジョブと保持ポリシー、AIの年齢・同意管理、SNS運営体制、Firebase本番プロジェクト・認証ドメイン・APIキー・Secrets・課金／利用枠・実データの管理者確認、Googleログインと同期の実機確認、iPhone Safari / Android Chrome受け入れ試験、独立した人間による差分レビュー。
 - PRマージ、Firebaseデプロイ、Pages公開、公開承認変数の変更は行っていない。AI・SNSの停止ゲートと公開承認ゲートを維持する。
+
+
+## 2026-11-18 最新headのCI完了・PR記録同期
+
+- 最新head `ffc20c360323c5ba37424b20c79ba9f0ce1c02a9` のSource validationは、push run [44282838544](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282838544) と pull_request run [44282844489](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282844489) の両方が completed / success。validate jobに失敗ステップなし。
+- PR #2はopen / draft / unmerged、headは上記SHA、GitHubのmergeable判定はtrue。PR本文の古いhead・CI実行中という記述をこの結果に同期した。
+- CI成功は自動ソース検証の結果であり、Firebase本番設定・実データ・Googleログイン・クラウド同期・スマートフォン実機試験・独立した人間のレビューを完了した意味ではない。
+- AI相談・SNS停止ゲート、公開承認ゲートを維持。PRマージ、Firebaseデプロイ、Pages公開、承認変数変更は行っていない。
