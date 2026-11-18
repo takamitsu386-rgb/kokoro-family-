@@ -77,6 +77,16 @@ assert.ok(html.includes('const SNS_SHARE_CLEANUP_QUEUE_PREFIX = "kokoro-sns-shar
 assert.ok(spec.includes("`kokoro-sns-share-cleanup-v1:{uid}`"),
   "Deletion specification must document the UID-scoped SNS cleanup queue.");
 assert.ok(spec.includes("`reservations`"), "Deletion specification must include AI quota reservation subcollections.");
+assert.ok(spec.includes("共有買い物は") && spec.includes("共有スナップショット"),
+  "Deletion specification must explain the shared-shopping snapshot and its revocation impact.");
+assert.ok(spec.includes("相手の端末内リスト") && spec.includes("元の部屋データ"),
+  "Deletion specification must distinguish shared snapshots from other users' independent data.");
+assert.ok(html.includes('deleteDoc(doc(snsDb, "sharedShopping", [user.uid, peerUid].sort().join("_")))'),
+  "Existing pairwise shared-shopping cleanup behavior must remain auditable.");
+assert.ok(html.includes('cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId))')
+  && html.includes('cleanupBatch.delete(doc(snsDb, "users", data.ownerUid, "sharedRooms", shareId))')
+  && html.includes('cleanupBatch.delete(doc(snsDb, "users", data.recipientUid, "receivedSharedRooms", shareId))'),
+  "Existing shared-room cleanup must continue removing the shared snapshot and both indexes together.");
 assert.match(spec, /この一覧は現時点で検出できたキーの基準/);
 assert.match(spec, /動的に組み立てるキーや別モジュールの保存先がないことを保証しません/);
 console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and " + 21 + " Firestore paths checked.");
