@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const spec = readFileSync(new URL("../ACCOUNT_DELETION_SPEC.md", import.meta.url), "utf8");
+const firebaseConfig = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 const localKeys = [
   "kokoroCustomRoomPalettes",
@@ -74,6 +75,9 @@ for (const path of ["users/{uid}/kokoro/data", "users/{uid}/kokoro/shopping", "p
 }
 assert.ok(html.includes('const SNS_SHARE_CLEANUP_QUEUE_PREFIX = "kokoro-sns-share-cleanup-v1:"'),
   "UID-scoped SNS cleanup queue prefix must remain visible in the source inventory.");
+const storageBucket = firebaseConfig.match(/storageBucket:\s*["\']([^"\']+)["\']/)?.[1];
+assert.ok(storageBucket, "Firebase client configuration must be reviewed for a configured Storage bucket.");
+assert.ok(spec.includes("`" + storageBucket + "`"), "Deletion specification must document the configured Firebase Storage bucket.");
 assert.ok(spec.includes("`kokoro-sns-share-cleanup-v1:{uid}`"),
   "Deletion specification must document the UID-scoped SNS cleanup queue.");
 assert.ok(spec.includes("`reservations`"), "Deletion specification must include AI quota reservation subcollections.");
