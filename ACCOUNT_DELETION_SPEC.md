@@ -39,6 +39,8 @@
 - 投稿に対する通報がある場合は、通報記録の保持判断と投稿本文の削除・匿名化判断を分離する。保持対象の通報本文を通常の投稿削除で巻き込まない。
 - 上記のSNS処理は現在のSNS停止状態を解除するものではない。SNSは引き続きfail-closedとし、削除設計の記述だけで機能を有効化しない。
 - `friendRequests/{requestId}`：`fromUid` または `toUid` が本人の申請。
+- `friendRequests/{uid}_{peerUid}` と `friendRequests/{peerUid}_{uid}`：現行Functionsが相互関係を確認する2方向の申請文書。本人UIDが送信者・受信者のどちらになるかを問わず照合する。
+- `users/{peerUid}/blocks/{uid}`：相手側のブロック一覧に保存された本人UID宛ての記録。本人配下の `users/{uid}/blocks/{peerUid}` と対にして照合し、本人側だけを削除する処理と相手側に残す／保持する関係記録の扱いを分けて決める。
 - `sharedShopping/{shareId}`：`ownerUid`、`recipientUid`、`members` を照合する。現行実装は2人分を1つの共有スナップショットに保存し、友達解除時にはペア文書全体を削除する。アカウント削除でも本人のアクセスを確実に失効させる必要があるため、共有文書は削除対象とする。ただし相手の端末内リストや本人所有の個人データには触れない。相手は共有スナップショットを再共有してもらう必要がある。
 - `sharedRooms/{shareId}`：所有者・受信者のUIDを照合し、共有スナップショット本体と所有者側ミラー／受信者側インデックス／本人側非表示インデックスを一貫して失効させる。現行の友達解除処理も共有スナップショットと両側インデックスを削除する。元の部屋データ（所有者の個人データ）は別保存先にあり、共有スナップショット削除で連鎖削除しない。
 - `reports/{reportId}`：`reporterUid` または `targetUid` が本人の通報。証拠保全・安全対応の保持判断を先に行い、通常削除から分離する。
@@ -114,6 +116,11 @@
 - `users/{uid}/following/{targetUid}`、`users/{uid}/hiddenSharedRooms/{shareId}`、`users/{uid}/receivedSharedRooms/{shareId}`、`users/{uid}/sharedRooms/{shareId}`：友達・共有ルーム関連の本人側インデックス。
 
 これらは利用枠や関係性の補助データであり、保持例外のある通報本文・他者所有の共有データと同じ扱いにしません。実装時には対象UIDが所有者・参加者・参照先のどの立場かを確認します。
+
+### Service Worker のオフラインキャッシュ
+
+- `sw.js` は `kokoro-family-` プレフィックスのCache Storageに `./`、`./index.html`、`./manifest.webmanifest`、`./icon.svg` と同一オリジンのGET応答を保存する。現行実装ではFirestore・FunctionsのAPI通信やユーザー個人データをキャッシュ対象にする設計ではない。
+- これはアプリ本体のオフライン表示用キャッシュであり、アカウント個人データの保存先とは区別する。削除機能を実装する際は、端末内の個人データ消去とService Workerのアプリキャッシュ消去を混同せず、必要ならキャッシュ削除・Service Worker解除の扱いを別途明示する。
 
 ### 外部保存先の確認限界
 
