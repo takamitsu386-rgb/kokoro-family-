@@ -101,5 +101,17 @@ assert.ok(spec.includes("posts/{postId}/likes/{対象UID}"));
 assert.match(spec, /親文書を削除すると配下のコメント／いいねがFirestore上に残る/);
 assert.match(spec, /運営責任者が決め/);
 assert.match(spec, /SNSは引き続きfail-closed/);
-const firestorePathCount = 24;
+const firestorePathCount = [
+  "users/{uid}/kokoro/data", "users/{uid}/kokoro/shopping", "profiles/{uid}",
+  "posts/{postId}", "posts/{postId}/comments/{commentId}", "posts/{postId}/likes/{likerUid}",
+  "friendRequests/{requestId}", "sharedShopping/{shareId}", "sharedRooms/{shareId}", "reports/{reportId}",
+  "users/{uid}/aiUsage/{dayKey}", "users/{uid}/timelineUsage/{dayKey}",
+  "users/{uid}/profileSearchUsage/{dayKey}", "users/{uid}/reportUsage/{dayKey}",
+  "users/{uid}/blocks/{targetUid}", "users/{uid}/following/{targetUid}",
+  "users/{uid}/hiddenSharedRooms/{shareId}", "users/{uid}/receivedSharedRooms/{shareId}",
+  "users/{uid}/sharedRooms/{shareId}",
+  "users/{uid}/aiUsage/{dayKey}/reservations/{reservationId}",
+  "users/{uid}/profileSearchUsage/{dayKey}/reservations/{reservationId}",
+  "users/{peerUid}/blocks/{uid}", "friendRequests/{uid}_{peerUid}", "friendRequests/{peerUid}_{uid}"
+].length;
 console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and " + firestorePathCount + " Firestore paths checked.");
