@@ -37,6 +37,9 @@ const localKeys = [
   "kokoroFamilyRecipeFavoritesV1",
   "kokoroFamilyEventPrepV1",
   "kokoroFamilyShoppingV1",
+  "kokoroFamilyShoppingHistoryV1",
+  "kokoroFamilyShoppingBudgetsV1",
+  "kokoroFamilyShoppingAssigneeBudgetsV1",
   "kokoroFamilyTasksV1"
 ];
 
