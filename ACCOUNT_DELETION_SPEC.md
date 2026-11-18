@@ -114,8 +114,8 @@
 
 ### 外部保存先の確認限界
 
-- 現在のリポジトリでは、firebase.json にFirebase Storageのルール設定はなく、functions/index.js にStorage SDK・バケット操作の参照も検出されていない。
-- これはFirebaseプロジェクト側にStorageファイルが存在しない証明ではない。Console上のStorageバケット、Cloud Logging、Analytics、バックアップ、外部サービス、エクスポート済みファイルは、プロジェクト管理者が別途確認する。
+- `index.html` のFirebaseクライアント設定にはStorageバケット `kokoro-family.firebasestorage.app` が宣言されている。一方、現行の画面コード・`functions/index.js` ではStorage SDKによるアップロード／削除処理を確認できず、`firebase.json` にStorageルールのデプロイ設定もない。
+- バケット設定が存在するため、Storage内が空とは判断しない。Console上のバケット内オブジェクト、Cloud Logging、Analytics、バックアップ、外部サービス、エクスポート済みファイルは、プロジェクト管理者が別途確認する。
 - 対象保存先の存在・所有権・削除API・保持要件が確定するまでは、削除完了と表示しない。
 ### 共有データの現行コードとの照合
 
