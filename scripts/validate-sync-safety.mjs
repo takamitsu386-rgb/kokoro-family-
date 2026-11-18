@@ -195,7 +195,7 @@ assert.match(sns, /finally \{ snsReleaseBusyFor\(activeUser, operationGeneration
   'Unblocking must release its busy state only for the exact operation that started it.');
 assert.match(sns, /finally \{\s*snsReleaseBusyFor\(user, operationGeneration\);\s*\}/,
   'Post edits and deletions must release their busy state only for the exact operation that started them.');
-assert.match(sns, /const response = await fetch\(path,[\s\S]*?if \(!snsUser \|\| snsUser\.uid !== user\.uid\) throw new Error\("アカウントが切り替わりました。"\);[\s\S]*?const data = await response\.json\(\)/,
+assert.match(sns, /async function snsAdminRequest\(path, body, user, authGeneration = snsAuthGeneration\) \{[\s\S]*?const isCurrentSession = \(\) => !!snsUser && snsUser\.uid === user\.uid && snsAuthGeneration === authGeneration;[\s\S]*?const response = await fetch\(path,[\s\S]*?if \(!isCurrentSession\(\)\) throw new Error\("アカウントが切り替わりました。"\);[\s\S]*?const data = await response\.json\(\)[\s\S]*?if \(!isCurrentSession\(\)\) throw new Error\("アカウントが切り替わりました。"\);/,
   'Admin API responses must be discarded if the signed-in account changes while the request is in flight.');
 assert.match(sns, /const user = snsUser;\s*const authGeneration = snsAuthGeneration;\s*if \(!user \|\| snsAdminPanel\.hidden\) return;\s*try \{\s*await snsLoadAdminReports\(user, snsAdminFilter\.value \|\| "pending", authGeneration\);\s*\} catch \(error\) \{\s*if \(!snsUser \|\| snsUser\.uid !== user\.uid \|\| snsAuthGeneration !== authGeneration\) return;/,
   'Admin report refresh failures must be scoped to the account that started the request.');
