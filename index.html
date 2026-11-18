@@ -7233,11 +7233,13 @@ snsSubmitReport.addEventListener("click", async () => {
     return;
   }
   const user = snsUser;
+  const authGeneration = snsAuthGeneration;
+  const isCurrentSession = () => !!snsUser && snsUser.uid === user.uid && snsAuthGeneration === authGeneration;
   const operationGeneration = snsSetBusy(true);
   snsReportNotice.textContent = "通報を送信しています…";
   try {
     const token = await user.getIdToken();
-    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
+    if (!isCurrentSession()) return;
     const response = await fetch("/api/submit-report", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
@@ -7246,10 +7248,10 @@ snsSubmitReport.addEventListener("click", async () => {
         ...(reportContext ? { reportType: "comment", targetPostId: reportContext.targetPostId, targetCommentId: reportContext.targetCommentId } : { reportType: "user" })
       })
     });
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentSession()) return;
     const data = await response.json().catch(() => ({}));
+    if (!isCurrentSession()) return;
     if (!response.ok) throw new Error(data.error || "通報を送信できませんでした。");
-    if (!snsUser || snsUser.uid !== user.uid) throw new Error("アカウントが切り替わりました。");
     snsReportUid.value = "";
     snsReportCategory.value = "";
     snsReportContext = null;
@@ -7257,7 +7259,7 @@ snsSubmitReport.addEventListener("click", async () => {
       ? "コメントに関する通報を受け付けました。コメント本文は送信していません。"
       : "通報を受け付けました。内容は非公開で保存されます。";
   } catch (error) {
-    if (!snsUser || snsUser.uid !== user.uid) return;
+    if (!isCurrentSession()) return;
     snsReportNotice.textContent = error.message || "通報を送信できませんでした。";
   } finally { snsReleaseBusyFor(user, operationGeneration); }
 });
