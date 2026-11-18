@@ -82,7 +82,7 @@ console.log("Account-deletion safety design: required safeguards, deletion order
 const functionsSource = readFileSync(new URL("../functions/index.js", import.meta.url), "utf8");
 const firebaseConfig = JSON.parse(readFileSync(new URL("../firebase.json", import.meta.url), "utf8"));
 const hostingRewrites = firebaseConfig.hosting?.rewrites ?? [];
-const exportedFunctions = [...functionsSource.matchAll(/exports\\.([A-Za-z0-9_$]+)\\s*=/g)].map(match => match[1]);
+const exportedFunctions = [...functionsSource.matchAll(/exports\.([A-Za-z0-9_$]+)\s*=/g)].map(match => match[1]);
 assert.ok(!exportedFunctions.some(name => /(?:account.*delet|delet.*account|user.*delet|delet.*user)/i.test(name)),
   "Account/user-deletion endpoints must remain absent until the full reviewed workflow is implemented.");
 assert.ok(!hostingRewrites.some(rewrite => /(?:account.*delet|delet.*account|user.*delet|delet.*user)/i.test(String(rewrite.source ?? "") + " " + String(rewrite.function?.functionId ?? ""))),
