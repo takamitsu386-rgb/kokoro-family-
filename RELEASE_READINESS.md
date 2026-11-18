@@ -467,3 +467,15 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - push検証 run `44280587437` と PR検証 run `44280598946` はどちらも completed / success。PR検証ではFirestore Emulatorを含む47ステップが成功。
 - PR #2は引き続き open / draft / unmerged。独立した人間による差分レビュー、Firebase本番設定・Rules・Indexes・Functionsの管理者確認と反映、Googleログイン・同期の実機確認、AIの年齢・保護者同意フロー、包括的アカウント削除、SNS運営体制、iPhone Safari / Android Chromeの受け入れ試験は未完了。
 - したがって、CI成功はソース検証の完了を示すものであり、MVP完成・公開可能を意味しない。AI・SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開は行わない。
+
+
+## 2026-11-18 Firebase Storage閉鎖設定・Firestoreテスト修正・CI成功
+
+- Firebaseクライアント設定にStorageバケットが存在する一方、アプリにStorageアップロード／ダウンロード機能がないため、`storage.rules` を追加し、クライアントからの全read/writeを拒否するfail-closed設定にした。`firebase.json` から同ルールを参照するよう登録。
+- `scripts/validate-storage-rules.mjs` を追加し、StorageルールがFirebase設定に登録され、全パスの読み書きを拒否することをSource validationで確認する。
+- Firestore Emulatorテストで別ユーザーの買い物データアクセス拒否を確認する際、所有者データの準備と `ownerDb` の定義が欠けていたため修正。所有者文書を先に作成し、別ユーザーによるread/write/delete拒否と、所有者データが維持されることを検証する。
+- 最新head `6b297ef4d9f3b9e55e6c981c63188d61f2feb191` のSource validationはpush run [44282600686](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282600686) と pull_request run [44282607435](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282607435) の両方が completed / success。Firestore Rules Emulator、Pages静的成果物、Storageルール検証を含む全工程が成功。
+- PR #2はopen / draft / unmerged。mergeable=trueは独立したコードレビュー・実機受け入れ試験の代わりではない。
+- Storageルールは新規クライアントアクセスを拒否する設定であり、既存バケット内データが空であることや、Cloud Logging・Analytics・バックアップ・外部エクスポートの削除を保証しない。バケット実データと外部保存先はプロジェクト管理者による別確認が必要。
+- 未完了の公開ブロッカー：包括的アカウント削除UI/API/再試行ジョブと保持ポリシー、AIの年齢・同意管理、SNS運営体制、Firebase本番プロジェクト・認証ドメイン・APIキー・Secrets・課金／利用枠・実データの管理者確認、Googleログインと同期の実機確認、iPhone Safari / Android Chrome受け入れ試験、独立した人間による差分レビュー。
+- PRマージ、Firebaseデプロイ、Pages公開、公開承認変数の変更は行っていない。AI・SNSの停止ゲートと公開承認ゲートを維持する。
