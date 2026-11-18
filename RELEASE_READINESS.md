@@ -460,3 +460,10 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - PR #2はopen / draft / unmerged、headは上記コードコミット、変更58ファイル、GitHubのmergeable判定はtrue。レビュー0件・レビューコメント0件は前回確認時の状態であり、マージ前に再確認する。
 - このCI成功はモックされたブラウザー保存領域と自動検証の結果。iPhone Safari / Android Chrome実機操作、Firebase本番環境の設定・Rules・Functions反映、Googleログイン・実クラウド同期の受け入れ試験ではない。
 - AI相談・SNSの停止ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開は行わない。
+
+
+## 2026-11-18 Firestore削除テスト修正・PR CI再確認
+- Firestore Emulatorテストで、削除済みドキュメントの `getDoc` は例外ではなく `exists() === false` を返す仕様に合わせて期待値を修正（コミット `f31f7ba7d04f310ca09432aef70eb389929dc44b`）。所有者の削除成功・削除後の不存在・他ユーザーによる削除拒否を確認する。
+- push検証 run `44280587437` と PR検証 run `44280598946` はどちらも completed / success。PR検証ではFirestore Emulatorを含む47ステップが成功。
+- PR #2は引き続き open / draft / unmerged。独立した人間による差分レビュー、Firebase本番設定・Rules・Indexes・Functionsの管理者確認と反映、Googleログイン・同期の実機確認、AIの年齢・保護者同意フロー、包括的アカウント削除、SNS運営体制、iPhone Safari / Android Chromeの受け入れ試験は未完了。
+- したがって、CI成功はソース検証の完了を示すものであり、MVP完成・公開可能を意味しない。AI・SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開は行わない。
