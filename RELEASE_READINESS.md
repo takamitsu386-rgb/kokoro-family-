@@ -526,3 +526,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 最新head `c4337bcb6d299124fccd9ae25a545549d9ed51bd` のSource validationはpush run [44292462460](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44292462460) と pull_request run [44292471126](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44292471126) が両方 completed / success。
 - PR #2の本文を最新head・CI結果・Cloud Functions監査内容に同期。PRはopen / draft / unmergedのまま。
 - CI成功はソース検証の結果であり、Firebase本番環境・実機・独立した人間のレビューの完了を意味しない。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・公開は行っていない。
+
+
+## 2026-11-18 アカウント削除インベントリの双方向関係・CI再確認
+
+- Firestore削除候補の棚卸しに、送信者／受信者の両方向の友達申請文書（`friendRequests/{uid}_{peerUid}` と逆方向）および相手側ブロック記録（`users/{peerUid}/blocks/{uid}`）を明示。アカウント本人の配下だけを走査しても見つからない関係記録を区別する。
+- アカウント削除インベントリ検証スクリプトの完了表示が古い件数を固定表示していたため、検証対象のFirestoreパス配列から件数を算出する形に統一。検証対象と報告件数が別々にずれることを防止。
+- 最新head `74f9ab225b99053e662f937ff01a24c3a5365324` のSource validation push run [44294698463](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44294698463) と pull_request run [44294706689](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44294706689) は両方 completed / success。
+- PR #2の本文もhead・CI結果・24 Firestoreパスに同期。PRはopen / draft / unmerged。アカウント削除UI/API/Cloud Function/ジョブは未実装であり、運用保持方針・Storage実データ・バックアップ等の確認は未完了。
+- CI成功は静的検証とFirestore Emulatorの結果であり、Firebase本番設定・実機試験・独立した人間のレビューを代替しない。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・一般公開は行っていない。
