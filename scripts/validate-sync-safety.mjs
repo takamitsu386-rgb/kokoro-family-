@@ -409,7 +409,7 @@ for (const [name, nextName] of [
   const operation = sync.slice(start, end);
   assert.match(operation, /const generation=authStateGeneration,isCurrentSession=\(\)=>!!currentUser&&currentUser\.uid===user\.uid&&authStateGeneration===generation;/,
     'Shared shopping operations must capture the exact account generation: ' + name);
-  assert.match(operation, /if\(!isCurrentSession\(\)\)/,
+  assert.match(operation, /if\(!isCurrentSession\(\)(?:\|\|[^)]*)?\)/,
     'Shared shopping operations must reject stale account results: ' + name);
 }
 
