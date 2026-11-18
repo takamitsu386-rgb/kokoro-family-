@@ -83,6 +83,8 @@ const functionsSource = readFileSync(new URL("../functions/index.js", import.met
 const firebaseConfig = JSON.parse(readFileSync(new URL("../firebase.json", import.meta.url), "utf8"));
 const hostingRewrites = firebaseConfig.hosting?.rewrites ?? [];
 const exportedFunctions = [...functionsSource.matchAll(/exports\.([A-Za-z0-9_$]+)\s*=/g)].map(match => match[1]);
+assert.ok(exportedFunctions.length > 0,
+  "Cloud Functions exports must be detected so the deletion-endpoint guard cannot silently pass.");
 assert.ok(!exportedFunctions.some(name => /(?:account.*delet|delet.*account|user.*delet|delet.*user)/i.test(name)),
   "Account/user-deletion endpoints must remain absent until the full reviewed workflow is implemented.");
 assert.ok(!hostingRewrites.some(rewrite => /(?:account.*delet|delet.*account|user.*delet|delet.*user)/i.test(String(rewrite.source ?? "") + " " + String(rewrite.function?.functionId ?? ""))),
