@@ -74,6 +74,16 @@ describe('existing private room data', () => {
     assert.equal(snapshot.exists(), false);
   });
 
+  it('denies broad collection listing so owners cannot enumerate unapproved private documents', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/alice/kokoro/data'), { value: 'room-data' }));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/kokoro/shopping'), { value: 'shopping-data' }));
+
+    // Rules authorize only the explicitly named data/shopping documents.
+    // An unfiltered collection query cannot prove that every result is allowed.
+    await assertFails(getDocs(collection(db, 'users/alice/kokoro')));
+  });
+
   it('denies another signed-in user from deleting the owner private room data', async () => {
     const ownerDb = testEnv.authenticatedContext('alice').firestore();
     const otherDb = testEnv.authenticatedContext('bob').firestore();
