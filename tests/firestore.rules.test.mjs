@@ -118,4 +118,35 @@ describe('SNS features not yet implemented remain denied', () => {
   }
 });
 
+describe('private shopping cloud sync path', () => {
+  it('allows the signed-in owner to read and write their own shopping data', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    const shoppingData = doc(db, 'users/alice/kokoro/shopping');
+    await assertSucceeds(setDoc(shoppingData, { items: ['milk'] }));
+    const snapshot = await assertSucceeds(getDoc(shoppingData));
+    assert.deepEqual(snapshot.data().items, ['milk']);
+  });
 
+  it('denies another signed-in user access to the owner shopping data', async () => {
+    const db = testEnv.authenticatedContext('bob').firestore();
+    const shoppingData = doc(db, 'users/alice/kokoro/shopping');
+    await assertFails(getDoc(shoppingData));
+    await assertFails(setDoc(shoppingData, { items: ['spoofed'] }));
+  });
+
+  it('denies unauthenticated access to shopping data', async () => {
+    const db = testEnv.unauthenticatedContext().firestore();
+    const shoppingData = doc(db, 'users/alice/kokoro/shopping');
+    await assertFails(getDoc(shoppingData));
+    await assertFails(setDoc(shoppingData, { items: ['anonymous'] }));
+  });
+
+  it('denies the owner from creating unapproved private room documents', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    for (const documentId of ['privateNotes', 'admin', 'profile']) {
+      const unexpected = doc(db, `users/alice/kokoro/${documentId}`);
+      await assertFails(getDoc(unexpected));
+      await assertFails(setDoc(unexpected, { shouldNotExist: true }));
+    }
+  });
+});
