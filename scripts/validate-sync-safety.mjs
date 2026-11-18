@@ -370,4 +370,47 @@ assert.match(html, /id="snsNickname" maxlength="24"/,
 assert.match(html, /id="snsPostText" maxlength="500"/,
   'The post editor must expose the same 500-character limit to users.');
 
-console.log('Cloud sync sequencing, account isolation, local-data protection, login flow, and AI and SNS account-switch checks passed.');
+
+const shoppingUploadStart = sync.indexOf('async function uploadShoppingCloud()');
+const shoppingUploadEnd = sync.indexOf('async function downloadShoppingCloud()', shoppingUploadStart);
+assert.ok(shoppingUploadStart >= 0 && shoppingUploadEnd > shoppingUploadStart,
+  'Dedicated shopping cloud upload function must exist.');
+const shoppingUpload = sync.slice(shoppingUploadStart, shoppingUploadEnd);
+assert.match(shoppingUpload, /const uid=currentUser\.uid,generation=authStateGeneration[\s\S]*?const isCurrentSession=\(\)=>!!currentUser&&currentUser\.uid===uid&&authStateGeneration===generation;/,
+  'Shopping cloud uploads must bind to the exact authentication generation before the first asynchronous read.');
+assert.match(shoppingUpload, /await getDoc\(ref\);\s*if\(!isCurrentSession\(\)\)/,
+  'Shopping cloud uploads must reject a stale account immediately after reading the existing cloud document.');
+assert.match(shoppingUpload, /await runTransaction\(db,async transaction=>\{\s*const latest=await transaction\.get\(ref\);\s*if\(!isCurrentSession\(\)\)/,
+  'Shopping cloud transactions must recheck the exact account generation inside the transaction before writing.');
+assert.match(shoppingUpload, /\}\);\s*if\(!isCurrentSession\(\)\)/,
+  'Shopping cloud upload completion must not update the current UI after an account switch.');
+
+const shoppingDownloadStart = sync.indexOf('async function downloadShoppingCloud()');
+const shoppingDownloadEnd = sync.indexOf('function authErrorDetail(', shoppingDownloadStart);
+assert.ok(shoppingDownloadStart >= 0 && shoppingDownloadEnd > shoppingDownloadStart,
+  'Dedicated shopping cloud download function must exist.');
+const shoppingDownload = sync.slice(shoppingDownloadStart, shoppingDownloadEnd);
+assert.match(shoppingDownload, /const uid=currentUser\.uid,generation=authStateGeneration[\s\S]*?const isCurrentSession=\(\)=>!!currentUser&&currentUser\.uid===uid&&authStateGeneration===generation;/,
+  'Shopping cloud downloads must bind to the exact authentication generation before reading.');
+assert.match(shoppingDownload, /await getDoc\(ref\);\s*if\(!isCurrentSession\(\)\)/,
+  'Shopping cloud downloads must reject stale accounts after the initial cloud read.');
+assert.match(shoppingDownload, /await getDoc\(ref\);\s*if\(!isCurrentSession\(\)\|\|!navigator\.onLine\)/,
+  'Shopping cloud downloads must recheck the account and connectivity after the confirmation-time cloud read.');
+assert.match(shoppingDownload, /if\(!shoppingLocalSnapshotMatches\(localSnapshot\)\)[\s\S]*?localStorage\.setItem\(key,JSON\.stringify\(values\[index\]\)\)/,
+  'Shopping cloud downloads must verify the local snapshot before replacing any device data.');
+
+for (const [name, nextName] of [
+  ['async function uploadShoppingToFriend()', 'async function downloadShoppingFromFriend()'],
+  ['async function downloadShoppingFromFriend()', 'function captureShoppingLocalSnapshot()']
+]) {
+  const start = sync.indexOf(name);
+  const end = sync.indexOf(nextName, start + name.length);
+  assert.ok(start >= 0 && end > start, 'Shared shopping operation must exist: ' + name);
+  const operation = sync.slice(start, end);
+  assert.match(operation, /const generation=authStateGeneration,isCurrentSession=\(\)=>!!currentUser&&currentUser\.uid===user\.uid&&authStateGeneration===generation;/,
+    'Shared shopping operations must capture the exact account generation: ' + name);
+  assert.match(operation, /if\(!isCurrentSession\(\)\)/,
+    'Shared shopping operations must reject stale account results: ' + name);
+}
+
+console.log('Cloud sync sequencing, account isolation, shopping cloud generation guards, local-data protection, login flow, and AI and SNS account-switch checks passed.');
