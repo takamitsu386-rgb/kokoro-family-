@@ -487,3 +487,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - PR #2はopen / draft / unmerged、headは上記SHA、GitHubのmergeable判定はtrue。PR本文の古いhead・CI実行中という記述をこの結果に同期した。
 - CI成功は自動ソース検証の結果であり、Firebase本番設定・実データ・Googleログイン・クラウド同期・スマートフォン実機試験・独立した人間のレビューを完了した意味ではない。
 - AI相談・SNS停止ゲート、公開承認ゲートを維持。PRマージ、Firebaseデプロイ、Pages公開、承認変数変更は行っていない。
+
+## 2026-11-18 Firebase Authentication本番確認チェックリスト
+
+- リポジトリ内のFirebase Web設定・Functions CORS許可元・Hosting rewriteは、既存のSource validationで静的整合性を確認する。ただしWeb APIキーはブラウザーへ配布されるFirebaseクライアント設定値であり、秘密鍵として扱うものではない。安全性はAPI制限・HTTPリファラー制限・Firebase側の認証設定と組み合わせて確認する。
+- プロジェクト管理者はFirebase Consoleで、対象プロジェクトが意図した本番プロジェクトであること、AuthenticationのGoogleプロバイダが意図どおり有効であること、承認済みドメインに実際に使うHostingドメインだけが登録されていることを確認する。不要なテスト・旧ドメインは整理する。
+- Google Cloud ConsoleのAPIキー設定では、対象Web APIキーを特定し、HTTPリファラー制限に本番で使う正確なHTTPSホスト名を登録する。API制限はFirebase Authenticationの実際の通信に必要なAPIを阻害しないよう、Consoleの利用状況とFirebase公式手順に照らして設定する。設定変更後はログイン・トークン更新・ログアウト・再ログインを実機で確認する。
+- APIキーやOAuthクライアントの値をGitHub Issue、チャット、スクリーンショット、公開ログへ貼り付けない。Web APIキーがHTMLに含まれること自体を秘密漏えいと誤認してローテーションするのではなく、制限設定と不正利用監視を確認する。秘密鍵・サービスアカウント鍵・OpenAI APIキーは別物として扱い、クライアントへ置かない。
+- iPhone SafariとAndroid Chromeで、初回Googleログイン、既存セッション復帰、ログアウト後の再ログイン、ネットワーク切断後の復帰を試験する。auth/api-key-not-valid、auth/unauthorized-domain、auth/operation-not-allowed が出た場合は、画面表示だけで解決済みとせずConsole側の原因を修正して再試験する。
+- このチェックリストの追加は運用手順の明文化のみ。Firebase Console・Google Cloud Console・APIキー・OAuth設定の変更、実機ログイン試験、デプロイ、PRマージは行っていない。完了判定には管理者の確認記録と実機試験結果が必要。
