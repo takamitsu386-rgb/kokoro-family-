@@ -496,3 +496,10 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - APIキーやOAuthクライアントの値をGitHub Issue、チャット、スクリーンショット、公開ログへ貼り付けない。Web APIキーがHTMLに含まれること自体を秘密漏えいと誤認してローテーションするのではなく、制限設定と不正利用監視を確認する。秘密鍵・サービスアカウント鍵・OpenAI APIキーは別物として扱い、クライアントへ置かない。
 - iPhone SafariとAndroid Chromeで、初回Googleログイン、既存セッション復帰、ログアウト後の再ログイン、ネットワーク切断後の復帰を試験する。auth/api-key-not-valid、auth/unauthorized-domain、auth/operation-not-allowed が出た場合は、画面表示だけで解決済みとせずConsole側の原因を修正して再試験する。
 - このチェックリストの追加は運用手順の明文化のみ。Firebase Console・Google Cloud Console・APIキー・OAuth設定の変更、実機ログイン試験、デプロイ、PRマージは行っていない。完了判定には管理者の確認記録と実機試験結果が必要。
+
+## 2026-11-18 DOM HTML挿入箇所の再点検
+
+- `index.html` の `innerHTML` 代入は2か所のみ。家具アイテムの固定テンプレートと保存済み部屋セレクトの固定optionで、いずれも開発者が記述した定数文字列を使用している。
+- 動的なユーザー入力をHTML文字列として挿入する用途は確認されなかった。ユーザー由来の表示値は `textContent` / `createElement` を使う実装を維持する。
+- `scripts/validate-dom-safety.mjs` はinnerHTML代入数を2件に固定し、両テンプレートの完全一致と `insertAdjacentHTML` / `outerHTML` / `document.write` / `eval` の追加を禁止する。
+- この再点検はソース静的確認であり、ブラウザー全画面の動的セキュリティ試験や第三者レビューの代替ではない。CIはこの記録追加後に再実行する。
