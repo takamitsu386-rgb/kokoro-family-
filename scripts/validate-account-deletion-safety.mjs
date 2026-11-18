@@ -49,8 +49,8 @@ assert.ok(stateLine.includes("`retry_required`"), "Deletion state must include r
 const ownershipSection = spec.slice(spec.indexOf("## データ所有関係ごとの処理基準"), spec.indexOf("## 必須の削除フロー"));
 const requiredOwnershipRules = [
   "本人だけが所有する個人データ",
-  "本人が参加者である共有データ",
-  "本人が所有者で他者が参加する共有データ",
+  "共有買い物（2人共通スナップショット）",
+  "共有ルーム（共有スナップショット）",
   "他者が所有し本人が投稿・反応した記録",
   "通報・安全対応・監査記録",
   "Storage・ログ・Analytics・バックアップ等",
