@@ -70,7 +70,8 @@ describe('existing private room data', () => {
     const roomData = doc(db, 'users/alice/kokoro/data');
     await assertSucceeds(setDoc(roomData, { value: 'temporary-owner-data' }));
     await assertSucceeds(deleteDoc(roomData));
-    await assertFails(getDoc(roomData));
+    const snapshot = await assertSucceeds(getDoc(roomData));
+    assert.equal(snapshot.exists(), false);
   });
 
   it('denies another signed-in user from deleting the owner private room data', async () => {
