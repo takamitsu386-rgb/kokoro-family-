@@ -105,9 +105,9 @@ assert.ok(reportHandler.includes('const authGeneration = snsAuthGeneration;') &&
 const reportCatchIndex = reportHandler.indexOf('catch (error) {');
 const reportCatch = reportHandler.slice(reportCatchIndex);
 assert.ok(reportCatchIndex >= 0 &&
-  reportCatch.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
+  reportCatch.includes('if (!isCurrentSession()) return;') &&
   reportCatch.includes('snsReportNotice.textContent = error.message'),
-  'Report errors must not overwrite the notice belonging to a newly signed-in account.');
+  'Report errors must not overwrite the notice belonging to a newly signed-in account or auth generation.');
 
 // User-controlled SNS content and identifiers must be rendered as text, never parsed as HTML.
 const postRendererStart = html.indexOf('function snsRenderPosts(items)');
