@@ -156,6 +156,18 @@ describe('private shopping cloud sync path', () => {
     assert.deepEqual(snapshot.data().items, ['milk']);
   });
 
+  it('allows the owner to update and delete their own shopping data', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    const shoppingData = doc(db, 'users/alice/kokoro/shopping');
+    await assertSucceeds(setDoc(shoppingData, { items: ['milk'] }));
+    await assertSucceeds(updateDoc(shoppingData, { items: ['milk', 'bread'] }));
+    const updated = await assertSucceeds(getDoc(shoppingData));
+    assert.deepEqual(updated.data().items, ['milk', 'bread']);
+    await assertSucceeds(deleteDoc(shoppingData));
+    const deleted = await assertSucceeds(getDoc(shoppingData));
+    assert.equal(deleted.exists(), false);
+  });
+
   it('denies another signed-in user access to the owner shopping data', async () => {
     const db = testEnv.authenticatedContext('bob').firestore();
     const shoppingData = doc(db, 'users/alice/kokoro/shopping');
