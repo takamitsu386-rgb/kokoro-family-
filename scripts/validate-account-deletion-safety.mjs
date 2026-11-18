@@ -76,3 +76,13 @@ for (const testCase of requiredTestCases) {
 
 assert.match(spec, /削除UI\/API\/Cloud Function、削除ジョブ、実行テストは未実装/);
 console.log("Account-deletion safety design: required safeguards, deletion order, retry states, and test plan checked.");
+
+// Until the owner has resolved the operational decisions below, CI must prevent
+// an incomplete account-deletion endpoint from becoming publicly reachable.
+const functionsSource = readFileSync(new URL("../functions/index.js", import.meta.url), "utf8");
+const firebaseConfig = JSON.parse(readFileSync(new URL("../firebase.json", import.meta.url), "utf8"));
+const hostingRewrites = firebaseConfig.hosting?.rewrites ?? [];
+assert.doesNotMatch(functionsSource, /exports\\.(?:deleteAccount|requestAccountDeletion|runAccountDeletion)\\s*=/,
+  "Account-deletion endpoints must remain absent until the full reviewed workflow is implemented.");
+assert.ok(!hostingRewrites.some(rewrite => /account.?deletion/i.test(String(rewrite.source ?? "") + " " + String(rewrite.function?.functionId ?? ""))),
+  "No account-deletion Hosting route may be exposed before the implementation gate is cleared.");
