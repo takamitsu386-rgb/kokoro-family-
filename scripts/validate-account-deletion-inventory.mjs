@@ -90,7 +90,7 @@ assert.ok(html.includes('cleanupBatch.delete(doc(snsDb, "sharedRooms", shareId))
 assert.match(spec, /この一覧は現時点で検出できたキーの基準/);
 assert.match(spec, /動的に組み立てるキーや別モジュールの保存先がないことを保証しません/);
 assert.match(spec, /本人が他者の投稿に付けたコメントは/);
-assert.match(spec, /posts\\/\\{postId\\}\\/likes\\/\\{対象UID\\}/);
+assert.ok(spec.includes("posts/{postId}/likes/{対象UID}"));
 assert.match(spec, /親文書を削除すると配下のコメント／いいねがFirestore上に残る/);
 assert.match(spec, /運営責任者が決め/);
 assert.match(spec, /SNSは引き続きfail-closed/);
