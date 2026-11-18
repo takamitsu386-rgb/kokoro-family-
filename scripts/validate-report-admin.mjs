@@ -97,9 +97,11 @@ const reportHandlerEnd = html.indexOf('snsSaveProfile.addEventListener("click"',
 assert.ok(reportHandlerStart >= 0 && reportHandlerEnd > reportHandlerStart,
   'The SNS report submission handler must exist.');
 const reportHandler = html.slice(reportHandlerStart, reportHandlerEnd);
-assert.ok(reportHandler.includes('if (!snsUser || snsUser.uid !== user.uid) return;') &&
-  reportHandler.indexOf('await fetch("/api/submit-report"') < reportHandler.indexOf('const data = await response.json()'),
-  'Report responses must be discarded before parsing when the signed-in account changes.');
+assert.ok(reportHandler.includes('const authGeneration = snsAuthGeneration;') &&
+  reportHandler.includes('const isCurrentSession = () => !!snsUser && snsUser.uid === user.uid && snsAuthGeneration === authGeneration;') &&
+  reportHandler.indexOf('await fetch("/api/submit-report"') < reportHandler.indexOf('if (!isCurrentSession()) return;', reportHandler.indexOf('await fetch("/api/submit-report"')) &&
+  reportHandler.indexOf('if (!isCurrentSession()) return;', reportHandler.indexOf('await fetch("/api/submit-report"')) < reportHandler.indexOf('const data = await response.json()'),
+  'Report responses must be discarded before parsing when the signed-in account or auth generation changes.');
 const reportCatchIndex = reportHandler.indexOf('catch (error) {');
 const reportCatch = reportHandler.slice(reportCatchIndex);
 assert.ok(reportCatchIndex >= 0 &&
