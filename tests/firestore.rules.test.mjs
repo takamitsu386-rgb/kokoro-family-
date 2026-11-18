@@ -64,6 +64,24 @@ describe('existing private room data', () => {
     await assertFails(getDoc(roomData));
     await assertFails(setDoc(roomData, { value: 'spoofed-write' }));
   });
+
+  it('allows the owner to delete their own private room data', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    const roomData = doc(db, 'users/alice/kokoro/data');
+    await assertSucceeds(setDoc(roomData, { value: 'temporary-owner-data' }));
+    await assertSucceeds(deleteDoc(roomData));
+    await assertFails(getDoc(roomData));
+  });
+
+  it('denies another signed-in user from deleting the owner private room data', async () => {
+    const ownerDb = testEnv.authenticatedContext('alice').firestore();
+    const otherDb = testEnv.authenticatedContext('bob').firestore();
+    const roomData = doc(ownerDb, 'users/alice/kokoro/data');
+    await assertSucceeds(setDoc(roomData, { value: 'keep-owner-data' }));
+    await assertFails(deleteDoc(doc(otherDb, 'users/alice/kokoro/data')));
+    const snapshot = await assertSucceeds(getDoc(roomData));
+    assert.equal(snapshot.data().value, 'keep-owner-data');
+  });
 });
 
 describe('SNS and friend-sharing data are disabled for the MVP', () => {
