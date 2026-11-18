@@ -392,9 +392,9 @@ assert.ok(shoppingDownloadStart >= 0 && shoppingDownloadEnd > shoppingDownloadSt
 const shoppingDownload = sync.slice(shoppingDownloadStart, shoppingDownloadEnd);
 assert.match(shoppingDownload, /const uid=currentUser\.uid,generation=authStateGeneration[\s\S]*?const isCurrentSession=\(\)=>!!currentUser&&currentUser\.uid===uid&&authStateGeneration===generation;/,
   'Shopping cloud downloads must bind to the exact authentication generation before reading.');
-assert.match(shoppingDownload, /await getDoc\(ref\);\s*if\(!isCurrentSession\(\)\)/,
+assert.match(shoppingDownload, /snapshot=await getDoc\(ref\);\s*const isCurrentSession=\(\)=>!!currentUser&&currentUser\.uid===uid&&authStateGeneration===generation;\s*if\(!isCurrentSession\(\)\)/,
   'Shopping cloud downloads must reject stale accounts after the initial cloud read.');
-assert.match(shoppingDownload, /await getDoc\(ref\);\s*if\(!isCurrentSession\(\)\|\|!navigator\.onLine\)/,
+assert.match(shoppingDownload, /const latestSnapshot=await getDoc\(ref\);\s*if\(!isCurrentSession\(\)\|\|!navigator\.onLine\)/,
   'Shopping cloud downloads must recheck the account and connectivity after the confirmation-time cloud read.');
 assert.match(shoppingDownload, /if\(!shoppingLocalSnapshotMatches\(localSnapshot\)\)[\s\S]*?localStorage\.setItem\(key,JSON\.stringify\(values\[index\]\)\)/,
   'Shopping cloud downloads must verify the local snapshot before replacing any device data.');
