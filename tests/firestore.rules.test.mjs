@@ -173,6 +173,9 @@ describe('private shopping cloud sync path', () => {
     const shoppingData = doc(db, 'users/alice/kokoro/shopping');
     await assertFails(getDoc(shoppingData));
     await assertFails(setDoc(shoppingData, { items: ['spoofed'] }));
+    await assertFails(deleteDoc(shoppingData));
+    const ownerSnapshot = await assertSucceeds(getDoc(doc(ownerDb, 'users/alice/kokoro/shopping')));
+    assert.deepEqual(ownerSnapshot.data().items, ['milk']);
   });
 
   it('denies unauthenticated access to shopping data', async () => {
