@@ -101,4 +101,5 @@ assert.ok(spec.includes("posts/{postId}/likes/{対象UID}"));
 assert.match(spec, /親文書を削除すると配下のコメント／いいねがFirestore上に残る/);
 assert.match(spec, /運営責任者が決め/);
 assert.match(spec, /SNSは引き続きfail-closed/);
-console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and " + 21 + " Firestore paths checked.");
+const firestorePathCount = 24;
+console.log("Account-deletion inventory: " + localKeys.length + " local keys, one UID-scoped key prefix, and " + firestorePathCount + " Firestore paths checked.");
