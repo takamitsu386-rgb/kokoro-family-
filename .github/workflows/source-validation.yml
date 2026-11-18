@@ -35,6 +35,8 @@ jobs:
         run: node scripts/validate-service-worker.mjs
       - name: Validate Firebase Hosting security headers
         run: node scripts/validate-hosting-security.mjs
+      - name: Validate Firebase Storage access rules
+        run: node scripts/validate-storage-rules.mjs
       - name: Check inline application JavaScript syntax
         run: |
           node --input-type=module <<'NODE'
