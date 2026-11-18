@@ -169,12 +169,15 @@ describe('private shopping cloud sync path', () => {
   });
 
   it('denies another signed-in user access to the owner shopping data', async () => {
-    const db = testEnv.authenticatedContext('bob').firestore();
-    const shoppingData = doc(db, 'users/alice/kokoro/shopping');
-    await assertFails(getDoc(shoppingData));
-    await assertFails(setDoc(shoppingData, { items: ['spoofed'] }));
-    await assertFails(deleteDoc(shoppingData));
-    const ownerSnapshot = await assertSucceeds(getDoc(doc(ownerDb, 'users/alice/kokoro/shopping')));
+    const ownerDb = testEnv.authenticatedContext('alice').firestore();
+    const otherDb = testEnv.authenticatedContext('bob').firestore();
+    const ownerShoppingData = doc(ownerDb, 'users/alice/kokoro/shopping');
+    const otherShoppingData = doc(otherDb, 'users/alice/kokoro/shopping');
+    await assertSucceeds(setDoc(ownerShoppingData, { items: ['milk'] }));
+    await assertFails(getDoc(otherShoppingData));
+    await assertFails(setDoc(otherShoppingData, { items: ['spoofed'] }));
+    await assertFails(deleteDoc(otherShoppingData));
+    const ownerSnapshot = await assertSucceeds(getDoc(ownerShoppingData));
     assert.deepEqual(ownerSnapshot.data().items, ['milk']);
   });
 
