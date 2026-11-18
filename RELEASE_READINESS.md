@@ -518,3 +518,11 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - CORSの許可Origin検査はブラウザー向けの接続制御であり、非ブラウザーのHTTPクライアントを認証する仕組みではない。認証はFirebase IDトークン検証で行う。App Checkによるリクエスト真正性検証は現状のFunctionsには実装されていない。
 - AI相談とSNSは停止ゲートが有効なため、現在これらのAPIは通常利用できない。停止状態を解除する前に、App Checkまたは同等の不正利用対策、UID/IP別の監視・レート制限、費用上限アラート、異常時の即時停止手順、プライバシー・年齢・同意審査を実装・検証する。
 - これはソース確認と公開前要件の記録であり、Functionsの設定変更、App Check有効化、Firebaseデプロイ、AI/SNSゲート解除は行っていない。
+
+
+## 2026-11-18 最新Cloud Functions監査記録・CI再確認
+
+- Cloud FunctionsのIDトークン検証、AIの年齢帯・同意・利用許可クレーム、UID日次上限、Secret Manager利用、Responses APIの`store: false`を確認し、不足点としてApp Check未実装、IP単位の防御・監視不足、費用アラートと緊急停止手順の要整備を記録。
+- 最新head `c4337bcb6d299124fccd9ae25a545549d9ed51bd` のSource validationはpush run [44292462460](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44292462460) と pull_request run [44292471126](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44292471126) が両方 completed / success。
+- PR #2の本文を最新head・CI結果・Cloud Functions監査内容に同期。PRはopen / draft / unmergedのまま。
+- CI成功はソース検証の結果であり、Firebase本番環境・実機・独立した人間のレビューの完了を意味しない。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・公開は行っていない。
