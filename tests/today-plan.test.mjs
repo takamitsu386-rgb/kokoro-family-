@@ -235,3 +235,19 @@ test("canceling the import confirmation leaves existing data untouched", () => {
   assert.equal(h.state().days["2026-11-17"][0].title, "残す予定");
   assert.equal(h.state().days["2026-11-18"], undefined);
 });
+
+
+test("canceling deletion keeps all saved plan data unchanged", () => {
+  const seed = JSON.stringify({
+    version: 1,
+    days: {
+      "2026-11-17": [validTask("keep-today", "今日の予定")],
+      "2026-11-16": [validTask("keep-past", "過去の予定")]
+    }
+  });
+  const h = createHarness({ raw: seed, confirmResult: false });
+  h.elements.deleteTodayTasks.listeners.click();
+  assert.equal(h.stored, seed);
+  assert.equal(h.state().days["2026-11-17"][0].title, "今日の予定");
+  assert.equal(h.state().days["2026-11-16"][0].title, "過去の予定");
+});
