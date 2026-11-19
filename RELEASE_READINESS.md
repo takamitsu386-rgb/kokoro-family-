@@ -572,3 +572,12 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 通報APIが未指定・不正な `reportType` を暗黙にユーザー通報へ変換していたため、`user` または `comment` の明示値だけを受理し、それ以外はHTTP 400で拒否するよう変更。
 - クライアントが送信する2種類の値、対象UID・コメント対象IDの形式、通報カテゴリ許可リスト、日次上限をCIで固定する `scripts/validate-report-request-schema.mjs` を追加。
 - SNS機能自体は引き続き停止ゲート配下であり、この修正は公開・有効化を意味しない。CI実行結果を確認するまで完了扱いにしない。
+
+## 2026-11-19 最新PR検証結果と削除機能の次工程
+
+- PR #2のhead `6fb71425f604228dbb99781bf6d0595d86ed6f71` に対するGitHub Actions Source validation run `44517033081` は completed / success。
+- validate jobは、Cloud Functions構文・リソース上限、通報APIの厳格な入力形式、AI/SNS停止ゲート、同期・アカウント分離、Firestore Rules Emulator、Pages成果物などの検証工程がすべて成功。
+- 通報APIは `reportType` に `user` または `comment` の明示値だけを許可し、未指定・不正値はHTTP 400で拒否する。クライアント送信形式との一致もCIで検証。
+- アカウント削除は引き続き設計・棚卸し段階。本人確認、通報記録の保持根拠・期間、共有データの所有権、外部保存先、削除運営責任者が確定していないため、削除UI/API/Cloud Functionは追加しない。未レビューの一括削除を実装して他者データを失う危険を避ける。
+- 次工程は、削除前に責任者が決める事項を明確化し、テスト専用Firebase環境で保存先の実在・所有関係を確認できる受け入れ計画を整えること。決定前に本番データを削除する試験は行わない。
+- PR #2はopen / draft / unmerged。AI相談・SNSは停止状態を維持し、マージ・Firebaseデプロイ・Pages公開承認は行っていない。
