@@ -581,3 +581,11 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - アカウント削除は引き続き設計・棚卸し段階。本人確認、通報記録の保持根拠・期間、共有データの所有権、外部保存先、削除運営責任者が確定していないため、削除UI/API/Cloud Functionは追加しない。未レビューの一括削除を実装して他者データを失う危険を避ける。
 - 次工程は、削除前に責任者が決める事項を明確化し、テスト専用Firebase環境で保存先の実在・所有関係を確認できる受け入れ計画を整えること。決定前に本番データを削除する試験は行わない。
 - PR #2はopen / draft / unmerged。AI相談・SNSは停止状態を維持し、マージ・Firebaseデプロイ・Pages公開承認は行っていない。
+
+
+## 2026-11-19 アカウント削除受け入れ計画のCI成功
+
+- 受け入れ計画の必須章、18項目のテストマトリクス、テスト環境分離、他者データ保護、Auth削除順序、未承認状態を検証する `scripts/validate-account-deletion-acceptance.mjs` を追加し、Source validation workflowに組み込んだ。
+- 最新head `fa2cb8b09566c9c4ccd8846a08b5c67210905619` のSource validation run [44518911103](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44518911103) は completed / success。validate jobの51ステップ（後処理を含め全ステップ）に失敗なし。新しい受け入れ計画検証ステップもsuccess。
+- この成功は文書・静的検証と既存CIの成功を示すもので、削除機能の実装、実Firebaseデータ検証、Storage・ログ・バックアップの実査、実機試験、独立レビューを意味しない。
+- アカウント削除は未着手／未承認のまま。PR #2はopen / draft / unmerged。AI/SNS停止ゲートとPages公開承認ゲートを維持し、マージ・Firebaseデプロイ・Pages公開・承認変数変更は行っていない。
