@@ -6,6 +6,12 @@ const html = readFileSync('index.html', 'utf8');
 const manifest = JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));
 const serviceWorker = readFileSync('sw.js', 'utf8');
 
+assert.ok(!/^permissions:\s*\n(?:  .*\n)+/m.test(workflow),
+  'Pages write and OIDC permissions must not be granted at workflow scope.');
+assert.ok(/  build:\s*\n    # The build only reads source and the existing Pages configuration\.\s*\n    permissions:\s*\n      contents: read\s*\n      pages: read/m.test(workflow),
+  'Pages build must have only source-read and Pages-read permissions.');
+assert.ok(/  deploy:\s*\n    # Only the gated deployment job receives Pages deployment and OIDC permissions\.\s*\n    permissions:\s*\n      pages: write\s*\n      id-token: write/m.test(workflow),
+  'Only the gated deploy job may receive Pages-write and OIDC permissions.');
 assert.ok(workflow.includes('mkdir -p _site') &&
   workflow.includes('cp index.html manifest.webmanifest icon.svg sw.js _site/'),
   'Pages build must stage only the four required static app files.');
