@@ -543,3 +543,11 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - このheadの変更は、アカウント削除インベントリの双方向関係・24 Firestoreパス検証件数の整合性に関するリリース準備記録の更新。
 - CI成功は自動検証の結果であり、Firebase本番設定・実データ・実機ログイン・スマートフォン受け入れ試験・独立した人間のレビューの完了を意味しない。
 - PR #2はopen / draft / unmergedのまま。AI/SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開・公開承認変数の変更は行っていない。
+
+
+## 2026-11-19 CIワークフロー権限最小化・検証結果
+
+- Source validation workflowに明示的な `permissions: contents: read` を設定し、ソース取得と検証に不要な書き込み権限を付与しない構成にした。
+- 最新head `e9073c7a629412d8373002e633497831c1dafeae` のpush run [44296288418](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44296288418) と pull_request run [44296297961](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44296297961) は両方 completed / success。validate jobに失敗ステップなし。
+- CI成功は自動ソース検証の結果であり、本番Firebase設定・実機試験・独立した人間のレビューを完了した意味ではない。
+- PR #2はopen / draft / unmerged。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・公開は行っていない。
