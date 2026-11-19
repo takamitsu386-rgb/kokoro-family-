@@ -561,3 +561,9 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 最新head `1389423d8c28c0f8c75fca08e81c7c18d554c332` のpush run [44497281918](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44497281918) と pull_request run [44497288744](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44497288744) は両方 completed / success。validate jobに失敗ステップなし。
 - CI成功はGitHub Actions上の静的検証とFirestore Emulatorの結果であり、Pages公開・Firebase本番環境の確認・実機試験・独立した人間のレビューを意味しない。
 - PR #2はopen / draft / unmerged。AI/SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開・承認変数変更は行っていない。
+## 2026-11-19 Cloud Functions resource limit regression check
+
+- 6つのHTTP Functions（AI相談、通報、公開タイムライン、プロフィール検索、管理者通報一覧、管理者通報更新）のリージョン・最大インスタンス数・タイムアウト・メモリ設定を静的検証する `scripts/validate-functions-resource-limits.mjs` を追加。
+- すべてのendpointに `asia-northeast1`、`maxInstances` 1〜3、`timeoutSeconds` 1〜60、`256MiB` の上限を要求し、endpointの追加・削除や設定緩和がCIで見逃されないようにした。
+- Source validation workflowにこの検証を追加。これは設定値の回帰防止であり、IP単位の濫用対策、App Check、費用アラート、本番監視を実装したものではない。
+- AI/SNSの停止ゲート、GitHub Pagesの公開承認ゲートは変更していない。Firebaseデプロイ・PRマージ・公開も行っていない。
