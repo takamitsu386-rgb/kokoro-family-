@@ -237,6 +237,8 @@ jobs:
         run: node scripts/validate-account-deletion-inventory.mjs
       - name: Validate account deletion safety design
         run: node scripts/validate-account-deletion-safety.mjs
+      - name: Validate account deletion acceptance plan
+        run: node scripts/validate-account-deletion-acceptance.mjs
       - name: Validate saved room bulk management and furniture search
         run: node scripts/validate-saved-room-bulk.mjs
       - name: Validate room persistence, rollback, and startup recovery
