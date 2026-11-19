@@ -6,17 +6,16 @@ on:
       - development-kokoro-app
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
   build:
+    # The build only reads source and the existing Pages configuration.
+    permissions:
+      contents: read
+      pages: read
     runs-on: ubuntu-latest
     steps:
       - name: Check out development branch
@@ -37,6 +36,10 @@ jobs:
           path: _site
 
   deploy:
+    # Only the gated deployment job receives Pages deployment and OIDC permissions.
+    permissions:
+      pages: write
+      id-token: write
     # Require an explicit manual dispatch from the release branch and release approval.
     if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development-kokoro-app' && vars.KOKORO_PUBLIC_RELEASE_APPROVED == 'true' }}
     environment:
