@@ -1,10 +1,259 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function blockedBetween(viewerUid, ownerUid) {
+      return viewerUid != ownerUid
+        && (
+          exists(/databases/$(database)/documents/users/$(viewerUid)/blocks/$(ownerUid))
+          || exists(/databases/$(database)/documents/users/$(ownerUid)/blocks/$(viewerUid))
+        );
+    }
+
+    function validProfile(data) {
+      return data.keys().hasAll([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'nickname', 'avatarId', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.nickname is string
+        && data.nickname.size() >= 1
+        && data.nickname.size() <= 24
+        && data.nickname.matches('.*\\S.*')
+        && data.avatarId in ['avatar-01', 'avatar-02', 'avatar-03', 'avatar-04', 'avatar-05']
+        && data.visibility in ['private', 'public', 'friends']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function acceptedFriend(uidA, uidB) {
+      return (
+        exists(/databases/$(database)/documents/friendRequests/$(uidA + '_' + uidB))
+        && get(/databases/$(database)/documents/friendRequests/$(uidA + '_' + uidB)).data.status == 'accepted'
+      ) || (
+        exists(/databases/$(database)/documents/friendRequests/$(uidB + '_' + uidA))
+        && get(/databases/$(database)/documents/friendRequests/$(uidB + '_' + uidA)).data.status == 'accepted'
+      );
+    }
+
+    function canInteractWithPost(postId) {
+      let post = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return signedIn()
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && post.status == 'active'
+        && !blockedBetween(request.auth.uid, post.authorUid)
+        && (
+          post.authorUid == request.auth.uid
+          || (
+            post.visibility == 'public'
+            && get(/databases/$(database)/documents/profiles/$(post.authorUid)).data.visibility == 'public'
+          )
+          || (
+            post.visibility == 'friends'
+            && acceptedFriend(request.auth.uid, post.authorUid)
+          )
+        );
+    }
+
+    function validComment(data) {
+      return data.keys().hasAll(['authorUid', 'text', 'status', 'createdAt'])
+        && data.keys().hasOnly(['authorUid', 'text', 'status', 'createdAt'])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 300
+        && data.text.matches('.*\\S.*')
+        && data.status == 'active'
+        && data.createdAt is timestamp;
+    }
+
+    function validPost(data) {
+      return data.keys().hasAll([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'authorUid', 'text', 'visibility', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.authorUid is string
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 500
+        && data.text.matches('.*\\S.*')
+        && data.visibility in ['private', 'public', 'friends']
+        && data.status in ['active', 'deleted']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Existing private room data: keep this path owner-only and unchanged.
     match /users/{userId}/kokoro/{documentId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId
-                         && documentId == "data";
+      allow read, write: if owns(userId) && documentId in ["data", "shopping"];
+    }
+
+
+    // Shared shopping data is accessible only to two mutually accepted friends.
+    match /sharedShopping/{shareId} {
+      function validSharedShopping(data) {
+        return data.keys().hasAll(['version', 'ownerUid', 'recipientUid', 'members', 'items', 'history', 'budgets', 'assigneeBudgets', 'updatedBy', 'updatedAt'])
+          && data.keys().hasOnly(['version', 'ownerUid', 'recipientUid', 'members', 'items', 'history', 'budgets', 'assigneeBudgets', 'updatedBy', 'updatedAt'])
+          && data.version == 1
+          && data.ownerUid is string
+          && data.recipientUid is string
+          && data.ownerUid != data.recipientUid
+          && data.members is list
+          && data.members.size() == 2
+          && data.members.hasAll([data.ownerUid, data.recipientUid])
+          && data.items is list && data.items.size() <= 100
+          && data.history is list && data.history.size() <= 500
+          && data.budgets is map && data.assigneeBudgets is map
+          && data.updatedBy is string
+          && data.updatedAt is timestamp
+          && data.updatedBy in data.members
+          && request.resource.size() <= 750000;
+      }
+      function areMembersFriends(data) {
+        return acceptedFriend(data.ownerUid, data.recipientUid)
+          && !blockedBetween(data.ownerUid, data.recipientUid);
+      }
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      function otherMemberFromShareId() {
+        return shareId.split('_')[0] == request.auth.uid
+          ? shareId.split('_')[1]
+          : shareId.split('_')[0];
+      }
+      allow read, write: if false;
+    }
+
+    // A user may create or remove only their own block records.
+    // Block records contain no profile or private user information.
+    match /users/{userId}/blocks/{targetUid} {
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+    }
+
+    // Public-facing profile contains only an explicit allowlist of fields.
+    match /profiles/{uid} {
+      allow read, write: if false;
+
+      allow read, write: if false;
+
+      allow read, write: if false;
+
+      allow read, write: if false;
+    }
+
+    // Posts are private by default; only explicit public + active posts are readable by others.
+    match /posts/{postId} {
+      // Public posts are visible to everyone; friends-only posts require an accepted request.
+      allow read, write: if false;
+
+      // Collection queries are owner-only until a block-aware feed endpoint is implemented.
+      allow read, write: if false;
+
+      allow read, write: if false;
+
+      allow read, write: if false;
+
+      // Use status='deleted' so deleted posts disappear from all read paths.
+      allow read, write: if false;
+
+      // Interactions require an active public post or an accepted-friend post; blocks override both.
+      match /comments/{commentId} {
+        allow read, write: if false;
+        allow read, write: if false;
+        allow read, write: if false;
+        allow read, write: if false;
+      }
+      match /likes/{likerUid} {
+        allow read, write: if false;
+        allow read, write: if false;
+        allow read, write: if false;
+        allow read, write: if false;
+      }
+    }
+
+    // AI consultation quota counters are written only by the authenticated server function.
+    match /users/{userId}/aiUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Public timeline read quotas are written only by the authenticated server function.
+    match /users/{userId}/timelineUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // Report documents and daily usage counters are server-only.
+    // Callable Cloud Functions use the Admin SDK; clients must never access these paths.
+    match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/reportUsage/{dayKey} {
+      allow read, write: if false;
+    }
+
+    // A request is addressed to one user; only its two participants can read it.
+    // The recipient alone may accept or decline. Blocking either direction closes access.
+    match /friendRequests/{requestId} {
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+    }
+
+
+    // Recipient snapshots are listed only through recipientUid-filtered queries.
+    // Owners use a private per-user mirror so Firestore query rules never need unbounded OR checks.
+    // Recipients may hide incoming shares from their own list without deleting the owner's share.
+    match /users/{userId}/hiddenSharedRooms/{shareId} {
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+    }
+
+    match /sharedRooms/{shareId} {
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      // A repeated delete after another tab already removed this share is a safe no-op.
+      allow read, write: if false;
+    }
+
+    // Recipient-visible index contains identifiers only, never shared room contents.
+    // It remains readable after blocking so stale shares can be revoked safely.
+    match /users/{userId}/receivedSharedRooms/{shareId} {
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/sharedRooms/{shareId} {
+      allow read, write: if false;
+      allow read, write: if false;
+      allow read, write: if false;
+      // Repeated deletion of an already-removed mirror is also a safe no-op.
+      allow read, write: if false;
+    }
+
+    // Friend lists are derived from accepted requests; no client-managed duplicate graph.
+    match /users/{userId}/following/{targetUid} {
+      allow read, write: if false;
     }
   }
 }

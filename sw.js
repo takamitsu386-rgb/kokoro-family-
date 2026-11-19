@@ -1,5 +1,5 @@
 // Keep this app's offline cache isolated from other apps on the same origin.
-const CACHE_NAME="kokoro-family-v107";
+const CACHE_NAME="kokoro-family-v372";
 const CACHE_PREFIX="kokoro-family-";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
@@ -14,7 +14,23 @@ self.addEventListener("activate",event=>{
   );
 });
 self.addEventListener("fetch",event=>{
-  if(event.request.method!=="GET"||new URL(event.request.url).origin!==self.location.origin)return;
+  const requestURL=new URL(event.request.url);
+  if(event.request.method!=="GET"||requestURL.origin!==self.location.origin||requestURL.pathname.startsWith("/api/"))return;
+  const isAppNavigation=event.request.mode==="navigate"||new URL(event.request.url).pathname.endsWith("/index.html");
+  if(isAppNavigation){
+    event.respondWith(
+      fetch(event.request).then(response=>{
+        if(response.ok){
+          const copy=response.clone();
+          caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy)).catch(()=>{});
+        }
+        return response;
+      }).catch(()=>caches.open(CACHE_NAME).then(cache=>
+        cache.match(event.request).then(cached=>cached||cache.match("./index.html"))
+      ).then(fallback=>fallback||Response.error()))
+    );
+    return;
+  }
   event.respondWith(
     caches.open(CACHE_NAME).then(cache=>cache.match(event.request)).then(cached=>
       cached||fetch(event.request).then(response=>{
@@ -23,9 +39,7 @@ self.addEventListener("fetch",event=>{
           caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy)).catch(()=>{});
         }
         return response;
-      }).catch(()=>event.request.mode==="navigate"
-        ?caches.open(CACHE_NAME).then(cache=>cache.match("./index.html")).then(fallback=>fallback||Response.error())
-        :Response.error())
+      }).catch(()=>Response.error())
     )
   );
 });

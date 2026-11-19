@@ -1,0 +1,591 @@
+# こころファミリー 開発・公開準備状況
+
+この文書は開発ブランチの作業状況と、本番公開前に残っている確認を分けて記録します。
+
+## 開発ブランチで実装・検証済み
+
+- Googleログインのモバイル向けリダイレクト、PC向けポップアップ、ログイン結果の復帰処理。
+- Firebase認証エラーの原因別メッセージ。
+- お部屋データのローカル保存、バックアップ検証、クラウド同期の順序制御、失敗時の復元。
+- アカウント切替時の同期・SNS・AI相談データの分離。
+- SNSプロフィール、本人投稿、投稿編集、論理削除、ブロック、通報の基礎機能。
+- 通報のサーバー側認証、理由検証、日次上限、管理者限定の確認API。
+- AI相談のサーバー経由接続、認証、日次上限、入力・出力制限、会話の一時保持、画面上の注意表示。
+- AI相談・通報・管理APIの応答にキャッシュ禁止ヘッダーを設定し、アカウント切替時にはAI相談の送信前下書きも消去。 AI相談の通信中にアカウントが切り替わった場合は、進行中のブラウザー通信も中断し、古いアカウントの返答を表示しません。
+- AI相談の日次利用カウンターをFirestore Rulesでクライアントから読み書きできないことをエミュレーターで検証。
+- SNSの公開投稿は、投稿者または閲覧者のどちらかが相手をブロックしている場合に読み取れないことをエミュレーターで検証。
+- Firestore Rulesのアクセス制御とエミュレーターによるテスト。
+- GitHub ActionsによるJavaScript構文、Firebase設定、同期・AI・管理者機能の静的検証。
+
+## 直近の自動検証
+
+2026-11-07時点で、開発ブランチ上の以下のGitHub Actionsによる自動検証は成功しています。
+
+- Googleログイン・スマホPC同期・AI相談の総合検証（run `42372099621`）
+- SNS管理APIのアカウント切替時レスポンス保護の検証（run `42372095904`）
+- 通報送信・SNS操作の通信中にアカウントが切り替わった場合、古いレスポンスやエラー表示が新しいアカウントの画面へ反映されないことを追加検証（run `42373315176`、`42373312120`）。
+- 直前の変更であるSNS管理レスポンス保護のソース検証（run `42372076315`）も成功。
+
+SNSではプロフィール保存、投稿編集・削除、ブロック解除、通報送信、投稿一覧再読み込みの完了処理を、処理開始時のユーザーUIDと照合してから画面状態へ反映するようにしました。管理APIも通信後に現在のUIDを再確認し、アカウント切替後の古いレスポンスを破棄します。管理者更新・一覧再読み込み・フィルター処理に加え、通報送信、ブロック、プロフィール保存、投稿の作成・編集・削除・再読み込みのエラー表示も、開始元アカウントが現在も有効な場合だけ反映します。通報送信ではレスポンス本文の解析前にもUIDを再確認します。これらのガードを検証スクリプトで確認しています。
+
+
+- SNS操作に続き、手動クラウド同期とクラウド読み込みの失敗通知も開始元UIDで保護する変更（コミット `dd7ddb72f7db`）と、その静的検証追加（コミット `c2e87614fb7d`）のGitHub Actionsは成功（run `42373592781`、`42373595389`、`42373597910`）。
+
+手動同期が失敗した際、別アカウントへ切り替わっていれば古いエラーを表示しません。クラウド読み込みのエラー表示も、処理開始時と現在のUIDが一致する場合だけ更新します。自動検証で両方の条件を確認しています。
+
+- クラウド読み込み確認中のアカウント切替で古いデータを反映しないこと、および自動同期の待機・再試行が開始元UIDに限定されることの検証を追加（コミット `584f1f9cb447`、`c538b02708d4`）。総合検証 run `42374071213`、同期アカウント保護テスト run `42374065679`、追加テスト run `42374134566`、総合検証 run `42374138369` は成功。
+
+自動同期はタイマー待機中・再試行中にも開始元UIDを確認し、別アカウントへ切り替わっていれば処理を中止します。クラウド読み込みでは確認ダイアログ後にもUIDを確認してから端末データへ反映します。
+
+- クラウド保存キューの開始前・書き込み直前・書き込み完了後に開始元UIDを確認する検証を追加（コミット `8eceea8dc4e3`）。総合検証 run `42374435330`、アップロードUIDガードテスト run `42374431631` は成功。
+- クラウドのお部屋設定（お気に入り・並び順・カテゴリ・メモ）に、`__proto__`・`constructor`・`prototype` のような危険なプロパティ名を拒否する入力検証を追加（コミット `98008ebcc008`）。回帰テストを追加したコミット `e87d7f11585f` と総合検証 run `42375175846`、`42375170516`、`42375184133`、`42375188728` はすべて成功。
+
+- お部屋設定の危険なキー拒否について、検証対象を設定項目の範囲に限定するようテストを修正。修正版コミット `39c2b192f6d3` の総合検証 run `42376053071` と個別テスト run `42376049578` は成功。
+- バックアップ取り込みのサイズ制限・非同期プレビュー競合防止・入力データ検証・復元用退避・失敗時ロールバック・保存部屋キー検証をテスト。コミット `6efefd26b6ba` の総合検証 run `42376278627` と個別テスト run `42376274410` は成功。
+- さらに、バックアップ全体の取り込みをキャンセルした場合にローカル書き込み前で終了すること、ファイル入力を処理後にクリアすること、単一部屋の取り込みがUndo付き保存と100部屋上限を使うことを検証。コミット `07e934b83523` の総合検証 run `42376688010` と個別テスト run `42376683399` は成功。
+- ログアウト開始後は自動同期を新規登録しないこと、アカウント切替時に自動同期タイマー・再試行・保留同期・初回同期状態を消去することを検証。コミット `a38781375259` の総合検証 run `42376849442` と個別テスト run `42376845580` は成功。
+- Service Workerのキャッシュ分離、アプリシェルのインストール、GETかつ同一オリジンのリクエスト限定、画面遷移時のネットワーク優先＋オフライン代替、静的ファイルのキャッシュ優先を検証。検証スクリプト追加コミット `f3eecb88f263` の総合検証 run `42377018246` と個別テスト run `42377014205`、CI組み込みコミット `c70d90427eaf` の総合検証 run `42377035881` と個別テスト run `42377032546` はすべて成功。
+- Firebase Hosting全体に `nosniff`、`strict-origin-when-cross-origin`、カメラ・マイク・位置情報の無効化、HSTS（1年）を設定し、検証スクリプトをCIへ追加。設定コミット `96c26845bcab`、検証追加 `44cf3ea7dcf0`、CI組み込み `0db900b51161` の総合検証 run `42377197975` と個別テスト run `42377193914` は成功。
+- Firebase Authenticationの補助iframeを妨げる可能性があるため、`X-Frame-Options: DENY` は全体設定しない方針もテストで固定。互換性を保った最終コミット `3ef8b95bd9ae` の総合検証 run `42377553868` と個別テスト run `42377548473` は成功。
+自動検証の成功は、Firebase本番環境でのログイン・同期・AI応答が実際に成功したことを意味しません。
+
+- SNSのブロック・解除を実行時に切り替えた際、公開プロフィールと公開投稿の両方が即時に読み取り拒否／再許可されることをFirestore Rulesエミュレーターで検証（コミット `4b79a3186ce0`、GitHub Actions run `42383499325` は成功）。
+- プロフィールのニックネーム・アバターIDの長さ制限と作成日時の不変性を追加検証（コミット `3db9451be2c1`、GitHub Actions run `42383647904` は成功）。
+- SNS投稿の不正な編集（空文・上限超過・不正な公開範囲・不正な状態・未許可フィールド）を拒否し、元の投稿が維持されることをFirestore Rulesエミュレーターで検証（コミット `4de11625f353`、GitHub Actions run `42383847906` は成功）。
+- プロフィールのアバターIDをアプリ内の5種類に限定し、未定義IDを拒否するとともに、5種類すべてが保存できることをFirestore Rulesエミュレーターで検証（コミット `977e6d20c47c`、GitHub Actions run `42384007715` は成功）。
+- 未ログイン状態での公開プロフィール読み取り・プロフィール作成を拒否し、本人によるプロフィール物理削除も拒否されることをFirestore Rulesエミュレーターで追加検証（コミット `afc093714c2d`、GitHub Actions run `42384241280` は成功）。
+- SNS投稿の新規作成時に空本文・不正な公開範囲・不正な状態・偽造した作成日時を拒否するテストを追加（コミット `90e98f409d`、GitHub Actions run `42384372318` は成功）。
+- プロフィール名とSNS投稿本文について、空文字だけでなく空白文字のみの値もFirestore Rulesで拒否するよう強化し、エミュレーターで追加検証（コミット `f193b5b3f911`、GitHub Actions run `42384547363` は成功）。
+- GoogleログインのAPIキーエラー案内を改善し、Identity Toolkit APIの許可とHTTPリファラー制限の確認先を明記。CIのFirebase配線・ログインフローチェックも成功（コミット `826d0c4e5f33`、GitHub Actions run `42384762311`）。
+- SNSプロフィールのニックネームを1〜24文字、投稿本文を1〜500文字に制限し、保存前の前後空白除去と画面側maxlength属性の一致を静的検証へ追加。テスト側の照合方法も修正し、最終コミット `03784adb7c66` の総合CI run `42385209885` は成功。
+- SNS認証監視で、管理者権限の非同期確認後にも現在のUIDを再確認し、切替前アカウントの古いコールバックが新しい画面の状態を上書きしないよう修正（コミット `d2e80d207e92`）。同期・アカウント分離の総合検証は成功（run `42386031916`）。
+- SNSプロフィール・投稿・ブロック一覧の各読み込みについて、非同期読み込み後のUID確認が画面更新より先に実行されることを静的検証へ追加（コミット `3bb8e623b53b`）。総合CI run `42386262227` と `42386266581` は成功。
+- ログアウト処理で開始時のUIDを保持し、同期キュー待機後に同一アカウントが有効な場合だけsignOutを実行するよう強化。古いアカウントのログアウト失敗通知も新しい画面へ反映しない。検証コミット `cf8c76315907` の総合CI run `42386509207` と `42386514074` は成功。
+- アカウント変更時の同期タイマー・再試行予約・保留要求の解除、オフライン時の再試行解除、オンライン復帰時のUID付き同期再開、アプリ復帰時のUID確認を静的検証へ追加（コミット `03d50ae8adc9`）。総合CI run `42386853762` は成功。
+- ログアウト待機中にA→B→Aと素早く切り替わるケースも保護するため、認証UIDが変わるたびに世代番号を更新し、開始時の世代と一致する場合だけログアウトを続行するよう強化。回帰テストを追加し、総合CI run `42387057309` は成功。
+- Googleログインのポップアップ／リダイレクト失敗時に、開始時の認証世代と現在の世代が異なれば古いエラーを画面へ反映しないよう修正（コミット `aac5b58d9568`）。回帰テストを追加（コミット `3b7fb14152d0`）。総合CI run `42387340271` と `42387345633` は成功。
+- クラウドアップロード、クラウド読み込み、手動同期、自動同期の待機タイマー・再試行にも認証世代ガードを追加。同じUIDへ戻るA→B→Aの切替でも、古い同期処理が端末データを読み込んだり、成功・失敗状態を更新したりしないように強化。回帰テスト追加後の総合CI run `42387634502` と `42387638577` は成功。クラウド読み込みボタンのエラー通知にも同じ世代確認を追加し、追加CI run `42387682704` と `42387677855` は成功。進捗記録更新後の総合CI run `42387720894` と `42387725673` も成功。
+
+- Googleログインボタンの連続操作で複数のポップアップ／リダイレクト処理が競合しないよう、認証開始中フラグとボタン無効化を追加。処理終了時は現在のログイン状態・通信状態を見てボタンを復元し、認証状態監視とオンライン復帰時のボタン制御にも開始中状態を反映。静的回帰検証を追加（実装コミット `ff2b2dab66fd`、検証コミット `02d0ec0711a6`、`b51f811f7490`）。総合CI run `42388708122` は成功。
+- AI相談の通信終了処理は、古いリクエストが新しいアカウントの入力欄を解除しないよう、現在のAbortControllerと認証世代を照合する実装に合わせて静的検証を更新（コミット `a8ef0be7a4e0`）。同じ総合CI run `42388708122` で成功。
+
+- Googleログインのリダイレクト開始に失敗した場合、AI相談画面へ戻るための一時セッションマーカーを必ず消去してからエラーを返すよう修正。次回以降のログインで古い画面復帰指示が残らないことを静的検証へ追加（実装コミット `c6cbed517903`、検証コミット `a74c1308d924`）。総合CI run `42388804657` と `42388817023` は成功。
+
+- クラウド読み込みだけでなく通常の手動同期でも、先行する端末データのアップロード失敗を握りつぶしてクラウド読み込みへ進まないよう修正。両処理ともアップロードキューの失敗時は安全側に中止し、端末内データを保持する。回帰テストで通常同期・クラウド読み込みの両方に対して確認（実装コミット `68b9e70b5393`、`690fd99f554f`、検証コミット `15d78cad39e6`、`9e81958a6c77`、`b2c4408db3e6`）。総合CI run `42389321460` 成功。
+- 自動同期の再試行を3回使い切った後でも、ネットワーク復帰イベントで再試行タイマーと回数をリセットし、新しい同期サイクルを開始できるよう修正。オンライン復帰ハンドラーが同期キュー投入より先にリセットすることを回帰テストで確認（実装コミット `58a8d7fdea7b`、検証コミット `79c93c147522`）。総合CI run `42389467860`、テストCI run `42389470496`・`42389473253` は成功。
+- 自動同期の失敗がオフライン移行後に返ってきた場合、不要な再試行タイマーを作らず、再試行回数も消費しないよう修正。ログアウト処理中も新たな再試行を予約しない。オフライン失敗・オンライン失敗の分岐を回帰テストで確認（実装コミット `425feecb2eb6`、テストコミット `c0b48bd12439`）。ログアウト中の同期失敗でログアウト表示を上書きしないことも追加検証（実装コミット `6a49d7741577`、テストコミット `9dd689e8a508`）。
+- オフライン移行とアップロード失敗のタイミングが競合した場合も、オフライン中は再試行回数を消費せず、ログアウト中は再試行予約・状態表示の上書きを行わないことを確認。古いテスト期待値を修正した検証コミット `3d892cdd91a8` のGitHub Actions run `42433132436` と `42433136832` は両方成功。
+- 手動同期またはクラウド読み込みが成功した際、以前の自動再試行タイマーを解除し、再試行回数を初期化するよう修正。成功後の古い再試行が不要な同期を起こさないことを静的回帰テストで確認（実装コミット `bb5212f37a3a`、テストコミット `10efbe9bb6f5`）。総合CI run `42433492145`、`42433496559`、`42433499545` はすべて成功。
+
+
+- クラウド読み込みの確認ダイアログ表示中に通信が切れた場合、確認後の通信状態を再確認して端末データの置き換えを中止するよう修正。初回同期でクラウドを選択する経路と手動クラウド読み込みの両方を対象にし、静的回帰テストで確認（実装コミット `58a6ee84d7f8`、テストコミット `3c5763c15081`）。テスト側の既存アカウント切替アサーションも新しい通信ガードに合わせて修正（コミット `cf31e20dc9a9`）。総合CI run `42434555916` は成功。
+
+- 自動同期で前回アップロード中に追加編集が行われた場合、後続の直列キュー処理が開始時点の最新ローカルデータを読み取って送信することを静的回帰テストに追加。アップロードキュー内でpayloadを生成する順序を検証（テストコミット `0723de66973e`、総合CI run `42434779978` と `42434785673` は成功）。
+
+- SNS操作の完了処理について、開始時のUIDだけでなく操作ごとの世代番号も照合するよう強化。同じUIDでログアウト・再ログインした場合でも、古い処理の `finally` が新しい操作のビジー状態を解除しないことを静的回帰テストへ追加（実装修正 `40c54cec0226`、検証 `344accb2faad`）。総合CI run `42435017751` は成功。
+- SNSのプロフィール・投稿・ブロック一覧の初期読み込みにも認証世代番号を導入。同じUIDの再認証後に古い読み込み結果が画面へ反映されないようにし、非同期読み込み後のUID・世代照合を追加（実装 `40c0511d8f63`、回帰テスト `fa498b685182`）。管理用通報一覧も、フィルター変更・再読み込みの最新リクエスト世代と認証世代が一致する場合だけ表示し、古い応答を破棄する。
+- SNS管理の通報更新ボタンは、同一通報の処理中に再実行できないようロック。認証世代が変わった古い処理は新しいセッションのロックを解除しない。サーバー側はFirestoreトランザクション内で対象状態が `pending` の場合だけ更新し、既に更新済みなら409を返す。管理UI・認証切替・ロック解放の静的回帰検証を追加（管理UI実装 `9a56f053`、回帰テスト `32df5c17`、`47ff1edd`、検証調整 `1437de26`、`b652abd5`、`4eedfcb9`）。 最終テスト調整コミット `4ce64a00` の総合CI run `42435746760` は成功。同期・アカウント分離・管理API・AI相談・Hosting・Firestore Rulesエミュレーターの検証ステップがすべて成功しました。
+
+## 本番公開前に必ず残る作業
+
+1. **Googleログイン実機確認**  
+   以前の実機エラーは `auth/api-key-not-valid` でした。Firebase Console側のWeb APIキー、API制限、Authentication設定をプロジェクト管理者が確認し、スマホ実機でログインを再試験する必要があります。リポジトリ上の設定検査だけでは解決確認になりません。
+
+2. **AI相談の接続設定**  
+   Firebase Secret Managerに `OPENAI_API_KEY` を安全に登録し、Cloud Functionsを反映した後、認証済み利用者で実際の応答・上限・エラー処理を確認する必要があります。秘密鍵をHTMLやGitHubへ登録してはいけません。
+
+3. **SNS運営体制**  
+   通報を確認する担当者、未成年利用者への対応手順、緊急時の連絡経路を決める必要があります。管理者custom claimは、プロジェクト権限を持つ信頼された管理者だけが設定します。
+
+4. **Firebase反映と実機試験**  
+   Firestore Rules、複合インデックス、Cloud Functions、Hostingを対象プロジェクトと内容を照合してから反映し、未ログイン・一般ユーザー・運営担当者の各権限で確認する必要があります。
+
+5. **公開前の総合確認**  
+   スマホで新規ログイン、再ログイン、ログアウト、複数端末同期、オフライン復帰、アカウント切替、SNS通報、AI相談を実際に試験する必要があります。
+
+## 変更・公開の境界
+
+- 作業対象は `feature/ai-consultation-integration` です。
+- `main` は変更しません。
+- PRのマージ、本番デプロイ、Firebase Consoleの変更、秘密情報の登録、管理者権限の付与は行っていません。
+- 本番公開は、上記の未完了項目を実環境で確認した後に判断します。
+- アプリの中身を優先する機能追加として、寝室・家族のリビング・勉強部屋・グリーンの部屋・おうちカフェの5種類の完成済みお部屋セットを追加。ホーム画面とナビから直接選べ、既存のお部屋データ検証・安全な適用処理を通し、適用前の状態は変更履歴から戻せる。専用回帰検証 `scripts/validate-room-templates.mjs` をCIへ追加。総合CI run `42436195863` は成功。
+- SNSの公開タイムラインを追加。認証済みCloud Functionsが最新50件の公開・有効投稿だけを取得し、閲覧者・投稿者の双方向ブロックと投稿者プロフィールの公開設定をサーバー側で照合。画面には公開用ニックネーム・選択式アイコン・本文・日時だけを表示し、投稿者通報の導線を追加。Hosting rewrite、複合インデックス、専用回帰検証を追加し、総合CI run `42436406627` は成功。Firebase Functions/Hosting/インデックスの本番反映と実機確認は未実施。
+
+
+## 2026-11-08 追加実装
+
+- お部屋テンプレート5種類と公開SNSタイムラインを実装済み。最新の総合CI run `42436508840` は成功（Firestore Emulatorを含む）。
+- SNS公開投稿に「いいね」登録・解除、コメント表示・送信・削除を追加。Firestore Rulesで公開・有効な親投稿、公開プロフィール、双方向ブロックを検証し、コメント300文字制限・UID偽装防止・削除権限を設定。
+- コメント・いいねのFirestore Emulatorテストを追加。新しい総合CIは現在実行中のため、成功とは未判定。
+- Service Workerキャッシュを v110 に更新。
+- 本番デプロイ、Firestoreインデックス／ルール反映、Googleログイン実機試験、コメント通報導線と友達申請は開発ブランチに実装済み。運営体制確認は未完了。
+
+
+## 2026-11-08 SNS追加
+
+- 友達申請・承認・辞退・送信側の取り消しUIを追加。申請は公開プロフィールに限定し、双方のブロックを確認。宛先本人のみ状態変更可能。
+- 承認済み申請を友達として表示。友達になっても非公開投稿・部屋データ・連絡先は自動共有しない。
+- コメント投稿者を既存の非公開通報フォームへ案内する導線を追加（コメント本文は送信しない）。
+- Firestore Emulatorの友達申請権限テストを追加。友達申請の初期実装に対するCI run `42437166280` は実行中（静的検証ステップはすべて成功、Firestore Emulator試験待ち）。
+- Service Worker cacheをv112へ更新。
+
+- 友達申請の取り消し処理に二重操作防止とアカウント切替ガードを追加。Service Worker cache v114。
+
+- コメント通報を既存の運営確認フローに接続。サーバーで投稿・コメントの状態と投稿者UIDを検証し、本文を通報データに複製しない。Service Worker cache v116。
+
+- 投稿公開範囲に「友達のみ」を追加し、サーバー側タイムライン、Firestore読み取り・コメント・いいね権限を承認済み友達に限定。friendRequests複合インデックスを追加。Service Worker cache v117。
+
+- コメント通報APIは公開投稿・友達限定投稿の双方に対応。友達限定コメントは申告者と対象ユーザーの承認済み友達関係をサーバー側で再確認。
+- 友達限定プロフィールの表示は承認済み友達に限定。自分のみの投稿、部屋データ、連絡先は友達へ自動共有しない。
+
+- 友達申請先を探す公開プロフィール検索を追加。ニックネーム先頭一致・最大10件・1日30回制限・双方向ブロック除外で、非公開プロフィールや連絡先は返さない。Service Worker cache v118。
+
+
+## 2026-11-08 development update
+
+- Added accepted-friend room snapshot sharing in the SNS panel.
+- Owner and recipient views use separate Firestore paths so list queries can be restricted without broad collection access.
+- Shared snapshots can be imported as a separate editable copy; they do not provide real-time collaborative editing.
+- Recipient removal, owner revocation, and block-triggered cleanup remove both snapshot records.
+- Firestore emulator tests and a dedicated source regression validator were added. CI status is tracked by the current GitHub Actions run; no production deployment or live Firebase test has been performed.
+
+## 2026-11-15 追加点検
+
+- 開発版の配信方式は GitHub Pages（`development-kokoro-app`）であることを確認。
+- AI相談画面がFirebase Hosting専用の相対APIパスを使っていたため、GitHub PagesではCloud FunctionsのURLへ直接接続し、Firebase Hostingでは従来のHosting rewriteを使うよう開発ブランチで修正。
+- Cloud FunctionsのCORS許可元に開発用GitHub Pagesのオリジンを追加。Firebase Authenticationの承認済みドメインとWeb APIキーのHTTPリファラー制限にも、実際の配信先を追加する必要があることを設定手順へ追記。
+- 上記の接続先選択とCORS許可を自動検証へ追加。最新のSource validation run `43646388544` は成功。
+- GitHub Pagesの直近デプロイ run `43593021470` は、build成功・deploy失敗。失敗理由は取得できた実行情報だけでは確定できず、公開済みとは扱わない。
+- PR #1 は引き続きドラフト。2026-11-15に開発ブランチをfeatureへ取り込む2親コミット `ece145a7447fd3d112deab6503c81fc74c889518` を作成し、`index.html` と `sw.js` の競合を解消。GitHub PR情報は `mergeable: true` に変化したが、PR自体はまだマージしていない。
+- Firebase Secret Managerへの `OPENAI_API_KEY` 登録、Functions/Hostingの本番反映、Firebase Authentication設定、実機ログイン・AI応答確認、SNS運営担当者と緊急時対応手順の確定は未完了。
+- 開発ブランチの「今日の予定」UI・ローカル保存機能、パステルテーマ、PWA manifest、GitHub Pagesデプロイworkflowと関連仕様書をfeatureブランチへ統合。feature側のネットワーク優先Service Workerを維持し、キャッシュ名をv367へ更新。
+- `scripts/validate-today-plan.mjs` を追加し、予定データの入力検証・容量制限・JSON入出力・確認付き削除・個人情報注意表示をCIで検査する設定を追加。最新head `6bfbb82ed58f0926f6b13353da5ff7096dbdddf3` のSource validation run `43646736894` は確認時点で実行中。
+
+## GitHub Pages 配信失敗の追加調査（2026-11-15）
+
+- 既存の Pages run `43593021470` は build job が成功し、artifact のアップロードまで完了。
+- deploy job `132441618917` は失敗したが、GitHub API上で `runner_id: 0`、`steps: []`。ジョブの実行ログも取得できず、失敗理由は確定できない。Pages の有効化状態、Actions のデプロイ権限、`github-pages` environment の保護設定をリポジトリ管理者が確認する必要がある。
+- 旧コミットの deploy job をそのまま再実行すると古い開発版を公開する可能性があるため、再実行していない。
+- AI相談Cloud Functionは `asia-northeast1` の `aiConsultation` として定義され、GitHub Pagesの完全一致Origin許可、Bearer IDトークン検証、東京日付での1日10回上限、1200文字入力制限、OpenAI APIキーのSecret参照、`store: false`、応答キャッシュ禁止をコード上で確認。これはコード点検であり、デプロイ済み・実応答済みを意味しない。
+
+
+## 2026-11-15 最新検証結果
+
+- 最新コミット `11795c81e88383e833d59ed4e0c4e5c9ac098ae8` に対する Source validation は push run `43647530274` と pull_request run `43647534524` の両方が成功。
+- 26段階のCIジョブがすべて成功。Cloud Functions / Service Worker / アプリ内JavaScriptの構文、Firebase配線・Secret参照、ナビゲーション・PWA、Firestoreアクセス制御、管理者通報権限、AI相談の安全性・プライバシー、同期・アカウント分離、今日の予定のローカルデータ安全性、SNS・友達・共有ルーム・プロフィール検索の各検証、およびFirestore Rules Emulatorテストを含む。
+- Firestore Rules Emulatorテストは最新CI内で成功。CIの成功はFirebase本番環境への反映や実機動作の成功を意味しない。
+- PR #1 は open / draft / mergeable。featureブランチから `development-kokoro-app` への提案で、41ファイル変更。未マージであり、`main` と本番環境は変更していない。
+- GitHub Pages workflowのソースを再点検。Pages write / id-token write権限、configure-pages、upload-pages-artifact、deploy-pagesを使用する構成を確認。過去のdeploy jobはrunner開始前に失敗した状態のため、workflowの記述だけではGitHub側のPages設定・environment制限の問題を解決できない。公開成功は未確認。
+- 未完了：GitHub Pagesの実デプロイ、Firebase Secret登録とFunctions/Hosting/Rules/Indexes反映、Authenticationの承認済みドメイン・APIキー制限、実機ログイン・同期・AI応答、SNS運営担当者と未成年者対応手順の確定。
+
+
+## 2026-11-15 SNS友達限定投稿のルール修正
+
+- 追加点検で、SNSの投稿表示・公開タイムライン・友達限定アクセスは `friends` を扱う一方、Firestore Rulesの `validPost` が `private` / `public` しか許可せず、友達限定投稿の新規保存が拒否される不整合を発見。
+- `validPost` の許可値に `friends` を追加。既存のブロック確認と承認済み友達関係の読み取り制御は維持。
+- Firestore Emulatorテストに、承認済み友達は読めるが第三者は読めないこと、および友達限定投稿の作成が成功することを追加。
+- 静的検証にも、投稿データ検証がSNS UIの友達限定公開範囲を許可することを追加。
+- 最新修正コミット `2e388e314d7fd2e6dd462cf48ed89f221b925e93` のSource validation push run `43648043273` と pull_request run `43648041093` は両方成功。Firestore Rules Emulatorテストを含む全検証ステップ成功。
+- この修正は開発ブランチのみ。Firebase本番ルールへの反映は未実施。
+
+
+## 2026-11-15 ブロック・友達申請の追加点検
+
+- ブロック後の既存友達申請について、本人の申請一覧取得はブロック後の申請整理に必要なため許可を維持し、相手との既存申請の直接取得・承認・新規作成は双方向ブロック時に拒否するルールとした。
+- Firestore Emulatorテストで、ブロック後も本人の申請一覧を整理できること、相手の既存申請を直接取得できないこと、新規申請が拒否されることを確認。
+- SNSのブロック操作で、すでにブロック済みの相手を再度登録しようとしてFirestoreの更新拒否になるケースを修正。既存ブロックを先に確認し、重複操作には案内を表示する。
+- 友達申請・ブロック関連のSource validationとFirestore Rules Emulatorを含むCI run `43649916477`、`43649920601`、`43650038123`、`43650042718` はすべて成功。
+- 最新開発コミットは `775bbeca54f04095ba3fe7612d51b0a3a9a2487c`。PR #1 は open / draft / mergeable のまま。Firebase本番ルールの反映、実機でのブロック・解除動作は未確認。
+
+
+## 2026-11-15 友達申請の存在確認プライバシー修正
+
+- Firestoreの友達申請 `get` ルールから、存在しない申請IDへの読み取りを許可する例外を削除。これにより、ログイン利用者が他人同士の申請有無を読み取り可否の差で推測する経路を閉じた。
+- 申請送信は事前の双方向 `getDoc` をやめ、作成ルール内の重複・逆方向申請チェックに一本化。拒否時には利用者向けの説明を表示。
+- 友達解除と共有ルーム送信時の友達確認は、自分が送信者または受信者である申請一覧クエリから確認する方式に変更。存在しないIDを直接照会しない。
+- Firestore Emulatorテストを更新し、存在しない申請ドキュメントの直接取得が拒否され、参加者は既存申請を読めることを確認。
+- Source validationおよびFirestore Emulatorを含むCI run `43663689250` は成功（30ステップ）。
+- 開発ブランチの検証済みコミット：`15b5afaedea2f45f799dd706f684c2b547a37080`。Firebase本番ルールへの反映と実機動作は未確認。
+
+
+## 公開前の年齢保護・SNS運営ゲート（2026-11-15追加）
+
+- `index.html` の現行画面にはSNSプロフィール、投稿、友達申請、共有機能が含まれ、ビルドから除外されていない。開発ブランチへのPRマージ後にGitHub Pagesのデプロイが成功すると、これらの画面も公開対象になる。
+- `index.html` に年齢帯の確認、年齢別の機能制限、保護者関与・同意フローは実装されていない。AIのSystem instructionsに未成年者向けの安全指示があることだけでは、年齢確認や保護者同意の要件を満たしたとは扱わない。
+- SNS公開に必要な、人による通報確認の担当者、対応時間、重大案件のエスカレーション、利用規約・コミュニティルール、異議申し立ての運用は未確定。
+- したがって現時点では、PR #1をドラフトのまま維持し、開発版を含む一般公開を承認しない。年齢保護・運営体制・対象地域の法令とストア要件を確認し、SNSを後続フェーズに分離するか、必要な運用を整えるまで公開ゲートを解除しない。
+- この項目はコード上の不足を明確に記録するもので、年齢や個人情報をユーザーからチャットで収集することを求めない。
+
+
+## 2026-11-15 SNS公開範囲表示の最終整合
+
+- 投稿画面に「友達のみ」を追加。初期値は従来どおり「自分のみ」を維持。
+- プロフィールプレビューと自分の投稿一覧で、友達限定を「自分のみ」と誤表示する問題を修正。非公開・友達限定・公開の表示をそれぞれ区別。
+- 友達限定の投稿設定・プロフィール表示・投稿一覧表示について、再発防止の静的検証を追加。
+- 最新コミット `df1bd05e852e81a40f50fe6e1a80c4a0d381c66a` のSource validation push run `43700610970` と pull_request run `43700614668` は両方 success。Firestore Rules Emulatorを含む30ステップすべて成功。
+- PR #1 は引き続き open / draft / mergeable。マージ・本番デプロイ・Firebase実環境の変更は未実施。実機でのSNS表示・投稿保存は未確認。
+
+
+## 2026-11-15 MVP仕様とGitHub Pages成果物の整理
+
+- `MVP_SCOPE.md` の古い実装状況を更新。部屋テンプレート・今日の予定・AI相談・SNSが開発ブランチに存在することと、実機・本番確認が未完了であることを明記。SNSコードの存在はMVP採用や公開承認を意味しないことを明確化。
+- GitHub Pagesの成果物をリポジトリ全体から、`index.html`、`manifest.webmanifest`、`icon.svg`、`sw.js` の4ファイルだけを格納する `_site` に変更。Firebase設定、Functions、テスト、仕様書などをPages成果物へ含めない構成にした。
+- `scripts/validate-pages-artifact.mjs` を追加し、成果物の対象、相対PWAパス、Service Worker app shellの整合をCIで検証。
+- Source validation run `43701495003` と `43701499789` は両方success。最新Pages成果物検証を含む31ステップが成功。
+- Pages workflowの変更はfeatureブランチ上。PR #1は未マージのため、今回の変更を理由とした開発ブランチへの自動デプロイは行っていない。
+- 作業中に検証スクリプト作成時のブランチ指定を誤り、default branchに一時追加した後、同ブランチ上で削除した。Git比較では作業前の親コミットと現在のmainのファイル差分は0件。GitHub Pagesの自動ビルド・デプロイrun `43701500372` はmain上でsuccessとなったため、既存main内容の再デプロイが発生した可能性がある。内容の新規変更は残っていないが、Pagesの公開状態そのものは別途確認が必要。
+
+
+## 2026-11-15 夜間最終点検
+
+- PR #1 の最新headは `b9e81637674299f2aa86beee3c589239824e9abb`。PRはopen / draft / mergeableで、未マージ。
+- 最新Source validation run `43701673860` と `43701670193` は両方success。Pages成果物の限定を含む31ステップが成功。
+- `index.html` のID 301件はすべて一意。画面内のハッシュリンク34件にリンク切れなし。
+- Firebase Hosting rewriteは6つのCloud Functions exportと対応。AI相談のGitHub Pages向け接続先選択とHosting rewriteをコード上で確認。
+- 上記は静的検証・CI結果であり、スマホ実機ログイン、Firestore同期、AI実応答、Functions/Rules/Indexesの本番反映を保証しない。
+- 未完了の公開ゲート：Firebase Authenticationの承認済みドメイン・APIキー制限、Secret Managerへの `OPENAI_API_KEY` 登録、Cloud Functions/Firestore Rules/Indexes/Hostingの反映と実機試験、SNSを公開する場合の年齢保護・人による通報運営体制。
+- PRマージ・本番公開・Firebaseデプロイは実施していない。引き続きmainは変更しない。
+
+
+## 2026-11-15 AI相談利用枠の予約処理・最新CI確認
+
+- AI相談の利用回数制限について、同時リクエスト時に失敗した処理が別リクエストの利用枠を返却しないよう、リクエスト固有のFirestore予約ドキュメントを利用する方式へ変更。
+- 利用回数の加算と予約作成は同一トランザクションで実施。失敗時は自分の予約が存在する場合だけ削除して利用回数を戻す。
+- 成功時は利用回数を維持したまま、自分の予約ドキュメントだけを削除し、一時記録が残らないよう変更。
+- 専用validatorに、予約の原子的作成、失敗時の自分の予約だけの返却、成功時の予約削除を検査する項目を追加。
+- 最新コミット `d3446c1e72ce68ee64e21d7cd5efac51e9fbaa6e` のGitHub Actions PR run `43705064826` と push run `43705060901` は両方 completed / success。各validate jobの32ステップすべて成功。
+- PR #1 は open / draft / mergeable、headは上記コミット。未マージ・未公開。
+- これはコード検証結果であり、Firebase本番Functionsへのデプロイや同時アクセスを含む実機動作の確認ではない。Firebase Secret登録、Functions/Rules/Indexes反映、Authentication設定、スマホ実機ログイン・同期・AI応答、SNS年齢保護・人による運営体制は引き続き未完了。
+
+
+## 2026-11-15 追加点検：検索枠・スマホナビCI
+
+- プロフィール検索の利用回数制限にも、AI相談と同じ同時実行時の返却競合があることを発見。リクエスト固有予約を追加し、失敗時は自分の予約が存在する場合だけ返却、成功時は予約だけ削除するよう修正。
+- 専用validatorに予約作成・失敗時の個別返却・成功時の予約削除を検証する項目を追加。最新head `160f20c29e5525259148db846bd6e0d588be8eca` のpush/PR両CIは32/32成功。
+- スマホナビ専用validatorが古いService Worker cache名 `v244` を参照し、CIにも組み込まれていないことを発見。現行cache `v367` に更新し、Source validation workflowで実行するよう追加。
+- 同期・アカウント切替・初回同期の安全性は `scripts/validate-sync-safety.mjs` で検証し、CIに組み込み済み。コード上はアカウント世代確認、保存キュー直列化、端末/クラウドの上書き前確認、失敗時のロールバック、ログアウト時の待機を検査。
+- 通報の利用回数と通報記録は同一Firestoreトランザクションで作成されるため、記録作成と上限加算は原子的。通信応答が失われた場合の再送による重複通報防止は別途実機・API動作確認が必要。
+- いずれも開発ブランチ上のコード検証。Firebase本番反映、スマホ実機、Googleログイン、クラウド同期の実動作は未確認。SNSの年齢保護・人による通報運営体制も未完了のため、PR #1はドラフトを維持。
+
+
+## 2026-11-15 公開デプロイの明示承認ゲート
+
+- GitHub Pagesのdeploy jobに `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の条件を追加。ビルドと成果物検証は継続するが、リポジトリ管理者が公開チェックを完了して明示的に承認変数を設定するまで、公開デプロイjobは実行されない。
+- `scripts/validate-pages-artifact.mjs` に承認条件の回帰検証を追加。成果物がアプリ本体4ファイルだけであること、PWAの相対パス、Service Worker app shellとの整合も引き続き検証する。
+- このゲートは年齢保護、SNS運営体制、Firebase本番設定、実機試験の未完了を解消するものではない。PR #1はドラフトのまま維持し、公開承認変数の設定・PRマージ・本番デプロイは行わない。
+
+
+## 2026-11-15 タイムライン読み込み負荷の制限
+
+- 認証済みユーザーごとに、東京時間の1日あたり公開タイムライン読み込みを120回までに制限。上限判定とカウンター更新はFirestore transaction内で実施し、壊れたカウンター値は上限到達として扱う。
+- `timelineUsage`はFirestore Rulesでクライアントの読み書きを禁止。ルール検証とEmulatorテストに、未認証・認証済みクライアント双方の拒否ケースを追加。
+- タイムラインvalidatorで日次上限、transaction、上限応答を検査。これはSNS運営体制や年齢保護の未完了を解消するものではない。
+
+
+## 2026-11-15 共有ルームの友達解除後アクセスを修正
+
+- 共有ルームの受信者側読み取り・一覧取得に、現在も承認済みの友達関係であることを追加。友達解除後は共有ルーム本文を読めず、所有者側のアクセスは維持。
+- Firestore Emulatorテストに、友達関係がない受信者による直接取得と一覧取得の拒否を追加。既存のブロック後アクセス拒否・共有解除テストも維持。
+- これはコードとルールの修正であり、本番Firestore Rulesへのデプロイは未実施。
+
+
+## 2026-11-15 追加のDOM安全検査と共有ルーム再検証
+
+- `index.html`内のHTML挿入sinkを全件確認。`innerHTML`は固定された開発者作成テンプレート2箇所のみであることを確認し、追加のHTMLパーサー・動的コード実行sinkを禁止する `scripts/validate-dom-safety.mjs` をCIへ追加。
+- 共有ルームの受信者は、友達関係が終了した後に本文を直接取得・一覧取得できないようFirestore Rulesを変更。Emulatorテストで両方の拒否を検証。
+- 共有ルームvalidatorも新しいルールを検査するよう更新。
+- 最新コミット `9089674d2ddef08590ceafaab579fa6f13ae14cc` のpush CI・PR CIは両方成功。各34/34 steps。Firestore Rules Emulatorテストを含む。
+- PR #1はopen/draftのまま。Firebase本番へのRules反映、Googleログイン・同期の実機確認、SNS年齢保護・人による運営体制は未完了。
+
+
+- 共有ルームvalidatorの検査対象を `sharedRooms/{shareId}` のルールブロックに限定し、受信者の `get` と `list` の双方で承認済み友達関係・ブロック状態を個別に確認するよう強化。コミット `0bd9ed4` のpush CI・PR CIも34/34 steps成功。
+
+
+## 2026-11-15 端末間同期の対象範囲を明示
+
+- コード確認の結果、メインのFirebase同期payloadはお部屋、保存したお部屋、お部屋の設定・配色に限定。買い物リスト・履歴・予算は専用の別同期機能。
+- 今日の予定、家族のやること、家族カレンダー、献立、レシピ、レシピのお気に入り、外出準備チェックは端末のlocalStorage保存で、メイン同期payloadには含まれない。
+- この範囲をメイン同期画面に表示し、PC/スマホ間で同期されると誤認しないよう変更。
+- `scripts/validate-sync-coverage.mjs` を追加し、同期対象payload・ローカル保存のみの機能・画面の説明をCIで照合。
+- これらローカル専用機能のクラウド同期自体は未実装。データ形式・競合解決・プライバシーを設計してから別途実装する必要がある。
+
+## 2026-11-15 追加確認（コミット `0665922003b48d08b800e7f64c39654e5398ff23`）
+
+- SNSのナビゲーション導線を外し、`#sns` セクションを `hidden` / `aria-hidden=true` にした。既存のSNSコード・Cloud Functions・Firestoreルールは残っているため、これは画面上の非表示であり、サーバー側の機能停止やデータアクセス遮断を意味しない。MVPからSNSを完全に除外したと判定するには、サーバー/APIとFirestoreのアクセス制御も別途無効化・検証する必要がある。
+- 最新コミットのGitHub Actions Source validation（run `43711651932`、run number 2204）は成功。
+- AI相談はログイン必須、東京時間の日次10回上限、入力長制限、`store: false`、画面内履歴のみ（再読込で消去）、個人情報を尋ねない指示を確認。ただし、アプリ側・サーバー側とも年齢帯の確認や年齢別の利用制限は未実装。MVP仕様の年齢別提供条件を満たしていないため、一般公開の承認条件を満たさない。
+- アカウント削除のUI/APIは確認できていない。Firebase Authenticationユーザーだけを削除する簡易処理では、Firestore内のユーザーデータ、共有データ、通報・利用記録などが残る可能性がある。削除対象の棚卸し、本人確認、関連データの削除・保持方針、失敗時の再実行設計を行うまで実装済みと扱わない。
+- Firebase本番環境のGoogleログイン、Cloud FunctionsのSecret設定・デプロイ、AI実応答、Firestore同期・復元、スマートフォン実機受け入れ試験は未確認。
+- 結論：ソース検証は成功したが、MVP完成・本番公開可能とは判定しない。次の必須作業はSNSのサーバー側停止、年齢別AI利用制御の設計・実装、包括的なアカウント/データ削除設計、実機とFirebase本番環境の受け入れ試験。
+
+## 2026-11-15 SNSサーバー停止ゲート・最新CI結果
+
+- SNSの画面非表示に加え、submitReport、publicTimeline、searchPublicProfiles の各Cloud Functionにサーバー側停止ゲートを追加。環境変数 SNS_ENABLED が文字列 true でない限り503を返し、初期状態では停止する。
+- scripts/validate-sns-release-gate.mjs を追加し、3つのAPIすべてに停止判定があること、SNS画面がhiddenであることを検査。Source validation workflowにも組み込んだ。
+- AI相談APIも AI_CONSULTATION_ENABLED=true が明示されない限り503で停止する既存ゲートを維持。年齢別利用制御・保護者同意が未実装のため、環境変数を有効化しない。
+- コミット 8a904f153b0e3f78cb2f6c54b19873ec3f5b359d のGitHub Actions Source validation run 43713072759 は completed / success。SNS停止ゲート検査、既存の同期・プライバシー検査、Firestore Rules Emulator、Pages成果物・JSON検査を含む全ステップが成功。
+- アカウント削除UI/APIは依然として未実装。Firestoreには本人専用データ、AI・通報・タイムライン利用枠、プロフィール、投稿とコメント・いいね、友達申請、ブロック、共有ルーム、共有買い物データ、通報記録など複数の保存先がある。本人専用データと他人との共有・通報記録では削除や保持の扱いが異なるため、Firebase Authだけを削除する処理や、本人UID配下だけを機械的に消す処理は不完全・危険となる。
+- 削除対象と保持例外、共有データの扱い、再認証、削除処理の再実行・部分失敗復旧、Authアカウント削除の順序を設計・テストするまで、アカウント削除を実装済みと扱わない。一般公開の必須ブロッカーとして維持する。
+- 今回のCI成功は開発ブランチのコード検査結果であり、Firebase本番環境へのデプロイ、SNS/AIの本番停止状態、実機ログイン・同期の確認ではない。PR #1はopen / draft / unmergedのまま。マージ・デプロイ・公開承認は実施していない。
+
+
+## 2026-11-15 MVP SNS・友達共有のFirestore直接アクセス停止
+
+- MVP仕様に合わせ、SNS・友達共有を画面上で隠すだけでなく、Firestore Rulesでもクライアントからの直接アクセスを拒否するよう変更。
+- 拒否対象：プロフィール、投稿・コメント・いいね、友達申請、ブロック記録、共有ルーム本体・所有者ミラー・受信者インデックス・非表示インデックス、友達共有買い物データ。
+- 本人専用の部屋データと個人用買い物データ（/users/{uid}/kokoro/{data|shopping}）の所有者限定同期ルールは維持。
+- 買い物画面の友達共有UIも非表示にし、初期版では利用できないことを表示。本人のGoogleアカウント間の個人用買い物同期は維持。
+- Firestore Emulatorテストを、SNS・共有関連11パスについて未認証・認証済み双方の読み書き拒否を確認する構成へ変更。
+- 既存のSNS内部実装は将来用に残すが、UI非表示、Cloud Functionsの停止ゲート、Firestore直接アクセス拒否の3層でMVP利用を止める。
+- 最新head a7e58ada0f2eec01b6594aabea7aed9fb17d05b5 のSource validation run 43718204492 はcompleted / success。Firestore Rules Emulatorを含む32工程すべて成功。
+- この結果は開発ブランチのコードとEmulatorの検証。Firebase本番Firestore Rulesへのデプロイや、既存公開環境の設定変更は未実施。PR #1はopen / draft / unmergedを維持。
+- AI相談APIは年齢別安全設定が整うまでサーバー側で停止。年齢確認・保護者関与の仕組み、包括的なアカウント削除、Firebase本番設定と実機受け入れ試験は引き続き公開前ブロッカー。
+
+
+## 2026-11-15 AI相談の画面停止表示とPWA更新
+
+- AI相談APIのサーバー側停止ゲートに加え、画面にも「年齢に応じた安全設定の準備が整うまで一時停止中」と表示し、送信イベントでも停止判定を行うよう変更。
+- 年齢帯確認・保護者関与の仕組みが未実装の状態で、AI相談画面から誤って送信できないようにした。AI相談機能は公開・利用可能とは扱わない。
+- 画面・安全ゲートの変更を端末へ配信するため、Service Worker cacheを kokoro-family-v368 に更新。
+- 最新head 02b19c84586e6f9c2ca20822ce0f6d32ff904708 のSource validation run 43718531537 はcompleted / success。Firestore Rules Emulator、AI相談停止表示、個人買い物同期、PWA cache、その他の全32検証工程が成功。
+- Firebase本番反映・Pages公開・PRマージは未実施。公開前ブロッカー（年齢保護、アカウント削除、Firebase本番設定、実機受け入れ試験）は継続。
+
+## 2026-11-16 PR #2 統合ブランチの再検証
+
+- PR #2（`feature/ai-consultation-reconciled` → `development-kokoro-app`）に、元の機能差分49ファイルを保持した統合スナップショットを用意。初回利用ガイドと、AI相談・SNSが停止中であることの画面案内を追加。
+- CIで見つかった買い物機能validatorのService Worker cache期待値を、実際の `kokoro-family-v370` に合わせて修正。
+- 最新コミット `69beebb8d7c8584864ba2cc8bfd5c64c77dbd3f7` のSource validation run `43846110908` は completed / success。JavaScript構文、Hosting/PWA、AI相談・SNS安全ゲート、同期・アカウント分離、Firestore Rules Emulator、Pages成果物、JSON設定を含む全検証ステップが成功。
+- PR #2はopen / draft。GitHubのmergeable判定はtrue。レビュー投稿・インラインレビューはまだなし。
+- このCI成功は静的検証とFirestore Emulatorの結果であり、スマートフォン実機、Firebase本番設定・Rules・Functions、Googleログイン、クラウド同期の受け入れ試験を代替しない。
+- AI相談は年齢・同意を確認する管理者ワークフローが未整備のため、画面とAPIの停止ゲートを維持。SNSもMVPでは画面・API・Firestore Rulesで停止。包括的なアカウント削除設計、運営責任者・通報対応体制、実機試験は未完了。
+- PRマージ、Firebaseデプロイ、一般公開は実施していない。公開ゲートは解除しない。
+
+
+## 2026-11-16 毎日のルーティン機能追加
+
+- `index.html` に「毎日のルーティン」を追加。最大30件の習慣を登録・削除でき、日付ごとに完了状態を端末内保存する。
+- 不正な保存データは上書きせず、保存失敗時は直前の内容へのロールバックを試みる。完了履歴は直近14日分に制限する。
+- 通知・連続達成の競争要素・クラウド同期は追加していない。画面に端末内保存のみであることを明示。
+- `scripts/validate-daily-routines.mjs` を追加し、Source validation workflowに組み込んだ。
+- Service Worker cacheを `kokoro-family-v370` に更新。スマホナビゲーション検証とMVP/AIセットアップ文書のバージョン表記も更新。
+- GitHub Actionsの新しい実行結果はまだ確認できていないため、CI成功とは判定しない。
+
+
+## 2026-11-16 毎日のルーティン検証修正・全CI成功
+
+- 最新コミット `0ed2267beada91282afd43dbb4559635d448932c` で、ルーティン検証スクリプトが実装と異なる `function today()` 宣言を前提にしていた問題を修正。実装に合わせて `const today=()=>` を確認する。
+- GitHub Actions Source validation run `43870429644` は completed / success。41項目すべて成功。Firestore Rules Emulator、GitHub Pages成果物、JSON設定検証を含む。
+- これは作業ブランチ上の自動検証成功。Firebase本番環境・スマートフォン実機の受け入れ試験が完了した意味ではない。
+- PR #2はopen / draft / mergeableのまま。GoogleログインのFirebase設定、Functions/Rules/Indexesの本番反映、AI年齢・同意管理、SNS運営体制、包括的アカウント削除、実機試験は未完了。公開ゲート解除・マージ・デプロイは行わない。
+
+## 2026-11-16 公開経路・Firebase設定の追加点検
+
+- PR #2の現在状態：`open`、draft=`true`、merged=`false`、mergeable=`true`。head branch=`feature/ai-consultation-reconciled`、base branch=`development-kokoro-app`。マージ・公開は未実施。
+- GitHub Pagesの公開workflowは `development-kokoro-app` へのpushまたは手動実行でビルドし、deploy jobはリポジトリ変数 `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の場合だけ実行する。承認変数は変更していない。
+- Pages成果物は `index.html`、`manifest.webmanifest`、`icon.svg`、`sw.js` の4ファイルのみ。Firebase Functions、Firestore Rules、IndexesはPagesからは反映されない。
+- リポジトリにはFirebaseプロジェクトの既定値として `kokoro-family` が記録されている。誤った本番反映を避けるため、Firebase Console・対象プロジェクト・差分を管理者が照合するまでFirebase deployコマンドは実行しない。今回もFirebaseへのデプロイや設定変更は行っていない。
+- Source validation workflowは最新のルーティン修正コミット `0ed2267beada91282afd43dbb4559635d448932c` で全41項目成功（run `43870429644`）。その後の公開準備文書更新はドキュメントのみの変更であり、別のソース検証を実施したとは扱わない。
+- Googleログインの実機確認、Firebase本番Rules・Indexes・Functions反映、包括的アカウント削除、AIの年齢・同意管理、SNS運営体制、スマートフォン受け入れ試験は引き続き未完了。よって公開可能判定にはしない。
+
+## 2026-11-16 アカウント削除の安全設計を追加
+
+- 現行コードのFirestoreルール・Functions参照・端末保存キーを点検し、アカウント削除時に扱う保存先と共有データ・通報記録の注意点を整理。
+- `ACCOUNT_DELETION_SPEC.md` を新規作成。再認証、書き込み停止、関連データ棚卸し、共有関係の整理、保持例外、再実行可能な削除ジョブ、Auth削除を最後に行う順序、端末内データ消去、必須テストを定義。
+- これは設計文書の追加であり、削除UI/API/Cloud Functionや削除処理そのものは未実装。通報保持期間・共有データ所有権・Storage/バックアップ等の運用判断も未確定のため、公開ブロッカーは解除しない。
+
+
+## 2026-11-16 アカウント削除仕様の安全検証追加
+
+- アカウント削除仕様について、必須セクション・共有データ保護・通報記録の保持例外・外部保存先の確認限界・Auth削除順序・再試行状態・テスト項目を自動検査する `scripts/validate-account-deletion-safety.mjs` を追加。
+- Source validation workflowに専用ステップを追加。最新コミット `9f761a05ecaf9bc34937d4db0c80024923d779a9` のCI run `43884865739` と `43884882912` は両方成功。
+- 既存のデータ棚卸し検証も成功し、29個のlocalStorageキーと12個のFirestoreパスを確認。
+- この変更は設計・静的検証のみ。アカウント削除UI/API/Cloud Function/削除ジョブは未実装。本番データ削除・デプロイ・PRマージは行っていない。
+
+## 2026-11-16 アカウント削除の所有関係・再試行条件を明確化
+
+- `ACCOUNT_DELETION_SPEC.md` に、本人専有データ・共有参加者データ・本人所有の共有データ・他者所有の投稿/反応・通報/監査記録・端末内データ・外部保存先の扱いを分類表として追加。
+- 再試行時の不変条件として、完了済みステップの冪等性、バッチチェックポイント、部分失敗時に完了扱いしないこと、Auth削除結果が不明な場合の再照会、保持例外の別管理を明記。
+- `scripts/validate-account-deletion-safety.mjs` に所有関係・再試行ルールの必須記載チェックを追加。
+- 削除UI/API/Cloud Function/ジョブは未実装。実データ削除・Firebaseデプロイ・PRマージは行っていない。次段階は隔離されたテスト環境で使える非破壊の削除計画/状態遷移テスト設計と、運用責任者による保持・共有ルールの確定。
+
+
+## 2026-11-16 週間まとめの連携修正・キャッシュ更新
+
+- 家族タスク・カレンダー・献立の保存成功時に、同一タブ内の週間まとめへ更新イベントを送るよう変更。週間まとめはこの通知を受けて即時再読込する。別タブの変更は既存のstorageイベントで再読込する。
+- 週間まとめのタスク期限・予定日・献立日・買い物予定日について、Date.parseだけに頼らず実在する年月日かを厳密に検証する。
+- 予定の持ち物チェック、買い物リストへの追加、保存失敗時の既存データ保護を継続。
+- Service Workerのキャッシュ名を `kokoro-family-v371` に更新し、関連validator 3件もv371を確認するよう更新。
+- v370以前のコミットでは週間まとめの日付検証テストが実装と不一致で失敗したが、後続コミットで実装を統一し、同コミットのCIはcompleted / success（run `43889574556`、`43889560243`）。
+- v371への更新後のCIは実行中。完了結果を確認するまで最新コミットのCI成功とは扱わない。
+- 実機でのiPhone Safari / Android Chrome確認、Firebase本番環境の設定・Rules・Functions反映、Googleログインとクラウド同期、包括的アカウント削除、AI年齢・同意管理、SNS運営体制は未完了。PR #2のマージ・本番デプロイ・一般公開は未実施。
+
+
+## 2026-11-17 Service Worker APIキャッシュ除外・最新CI
+
+- Service Workerのキャッシュ名を `kokoro-family-v372` に更新し、同一オリジンの `/api/` GETリクエストもキャッシュ処理前に除外するよう変更。
+- `scripts/validate-service-worker.mjs` は非GET・クロスオリジン・APIパスの除外条件を確認する。
+- コミット `a0cc171acdd8358009ecbe817a7c807914dfbaca` のSource validation run `43893075248` は completed / success。validate jobの全49ステップが成功（JavaScript構文、Service Worker、Firebase Hosting、Firestore Rules Emulator、Pages成果物、各機能validatorを含む）。
+- GitHub Pages workflowは引き続き `development-kokoro-app` へのpushまたは手動実行でbuildし、deploy jobは `KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の場合のみ実行する。承認変数の変更・PRマージ・公開デプロイは行っていない。
+- PR #2はopen / draft / unmerged。CI成功はソース検証とFirestore Emulatorの結果であり、Firebase本番設定・Functions/Rules/Indexesの反映、Googleログイン、実機同期、AI実応答の確認を意味しない。
+- 公開前ブロッカー：AI年齢・同意管理、包括的アカウント削除の実装と運用判断、SNSを将来有効化する場合の年齢保護・人による通報運営体制、Firebase本番設定、スマートフォン実機受け入れ試験。これらが未完了のため公開可能判定にはしない。
+
+
+## 2026-11-17 PRレビュー状況の確認
+
+- PR #2は `feature/ai-consultation-reconciled` から `development-kokoro-app` への変更で、open / draft / unmerged。最新headは `3a753599c395e142fa5780614ef7b9fba775c7b0`。
+- PRには53ファイルの変更が含まれる。GitHub上のmergeable判定はtrueだが、これはコードレビュー完了や公開承認を意味しない。
+- GitHub APIで確認した時点では、レビュー決定はなく、レビュー依頼先も設定されていない。Firebase Rules・Cloud Functions・大規模なindex.html変更を含むため、マージ前に権限を持つ人による差分レビューが必要。
+- Source validation run `43893368746` は全49ステップ success。静的検証・Firestore Emulator成功と、独立した人間のコードレビュー・Firebase本番受け入れ試験は区別する。
+- この確認によるPRレビュー依頼、マージ、公開承認、Firebaseデプロイは行っていない。
+
+
+## 2026-11-17 最新PR・公開ゲート・追加安全点検
+
+- PR #2の最新headは `e8ee0e9e63c75f242c5065ef5af78d73308ae9c2`。baseは `development-kokoro-app`、状態はopen / draft / unmerged、GitHubのmergeable判定はtrue。変更57ファイル、130コミット。PR #1もopen / draft / unmergedのまま保持。
+- PR #2の最新Source validation run `43895726395` は completed / success。validate jobの49ステップすべて成功。Firestore Rules Emulator、Pages静的成果物、各機能の検証を含む。
+- PR #2のレビューは、確認時点でレビュー0件・インラインレビューコメント0件。mergeable=trueは独立した人間のコードレビューや本番受け入れ試験の代わりではない。
+- GitHub Pages workflowはpush時に成果物をbuildするが、deploy jobは `workflow_dispatch`、`development-kokoro-app` ブランチ、`KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の全条件がそろう場合だけ実行する。今回、承認変数変更・workflow dispatch・マージ・デプロイは行っていない。
+- Cloud FunctionsのSNS公開API（通報送信・公開タイムライン・公開プロフィール検索）は、各エンドポイントで `SNS_ENABLED == 'true'` を要求するfail-closedゲートを確認。Firestore RulesのSNS・友達・共有系パスも拒否状態。管理者用通報確認APIは別途admin claimを検証する。
+- お部屋バックアップはアプリ識別子・バージョン・データ構造・ファイルサイズを検証し、読み込み前の退避と失敗時のロールバック処理を持つことをソース点検で確認。これはコード点検であり、実機ファイルを使った操作試験ではない。
+- 引き続き未完了：独立した人間による差分レビュー、iPhone Safari / Android Chrome実機試験、Firebase本番設定・Rules・Indexes・Functionsの管理者確認と反映、Googleログイン・クラウド同期の実地確認、AIの年齢・保護者同意フロー、SNS運営体制、包括的アカウント削除機能。
+- したがってAI・SNSの停止ゲートを維持し、PRはDraftのまま。マージ・本番デプロイ・一般公開は行わない。
+
+
+## 2026-11-17 今日の予定の動作テスト追加・CI成功
+
+- `tests/today-plan.test.mjs` を追加し、端末内の予定データについて、追加・完了更新・壊れた保存データの保護・保存失敗時の入力保持・インポート確認後の置換・古いファイル読込の無効化・実在しない日付の拒否・確認キャンセル時の既存データ保持・削除を動作テストする。
+- Source validation workflowに `node --test tests/today-plan.test.mjs` を追加。
+- コード変更コミット `fa450cedd44c00d0dc24da26375e038432a45eb2` のSource validation run `43986989379`（run #2526）は completed / success。Today Planの動作テスト、既存の毎日のルーティン動作テスト、Firestore Rules Emulatorを含む全ステップが成功。
+- PR #2はopen / draft / unmerged、headは上記コードコミット、変更58ファイル、GitHubのmergeable判定はtrue。レビュー0件・レビューコメント0件は前回確認時の状態であり、マージ前に再確認する。
+- このCI成功はモックされたブラウザー保存領域と自動検証の結果。iPhone Safari / Android Chrome実機操作、Firebase本番環境の設定・Rules・Functions反映、Googleログイン・実クラウド同期の受け入れ試験ではない。
+- AI相談・SNSの停止ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開は行わない。
+
+
+## 2026-11-18 Firestore削除テスト修正・PR CI再確認
+- Firestore Emulatorテストで、削除済みドキュメントの `getDoc` は例外ではなく `exists() === false` を返す仕様に合わせて期待値を修正（コミット `f31f7ba7d04f310ca09432aef70eb389929dc44b`）。所有者の削除成功・削除後の不存在・他ユーザーによる削除拒否を確認する。
+- push検証 run `44280587437` と PR検証 run `44280598946` はどちらも completed / success。PR検証ではFirestore Emulatorを含む47ステップが成功。
+- PR #2は引き続き open / draft / unmerged。独立した人間による差分レビュー、Firebase本番設定・Rules・Indexes・Functionsの管理者確認と反映、Googleログイン・同期の実機確認、AIの年齢・保護者同意フロー、包括的アカウント削除、SNS運営体制、iPhone Safari / Android Chromeの受け入れ試験は未完了。
+- したがって、CI成功はソース検証の完了を示すものであり、MVP完成・公開可能を意味しない。AI・SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開は行わない。
+
+
+## 2026-11-18 Firebase Storage閉鎖設定・Firestoreテスト修正・CI成功
+
+- Firebaseクライアント設定にStorageバケットが存在する一方、アプリにStorageアップロード／ダウンロード機能がないため、`storage.rules` を追加し、クライアントからの全read/writeを拒否するfail-closed設定にした。`firebase.json` から同ルールを参照するよう登録。
+- `scripts/validate-storage-rules.mjs` を追加し、StorageルールがFirebase設定に登録され、全パスの読み書きを拒否することをSource validationで確認する。
+- Firestore Emulatorテストで別ユーザーの買い物データアクセス拒否を確認する際、所有者データの準備と `ownerDb` の定義が欠けていたため修正。所有者文書を先に作成し、別ユーザーによるread/write/delete拒否と、所有者データが維持されることを検証する。
+- 最新head `6b297ef4d9f3b9e55e6c981c63188d61f2feb191` のSource validationはpush run [44282600686](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282600686) と pull_request run [44282607435](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282607435) の両方が completed / success。Firestore Rules Emulator、Pages静的成果物、Storageルール検証を含む全工程が成功。
+- PR #2はopen / draft / unmerged。mergeable=trueは独立したコードレビュー・実機受け入れ試験の代わりではない。
+- Storageルールは新規クライアントアクセスを拒否する設定であり、既存バケット内データが空であることや、Cloud Logging・Analytics・バックアップ・外部エクスポートの削除を保証しない。バケット実データと外部保存先はプロジェクト管理者による別確認が必要。
+- 未完了の公開ブロッカー：包括的アカウント削除UI/API/再試行ジョブと保持ポリシー、AIの年齢・同意管理、SNS運営体制、Firebase本番プロジェクト・認証ドメイン・APIキー・Secrets・課金／利用枠・実データの管理者確認、Googleログインと同期の実機確認、iPhone Safari / Android Chrome受け入れ試験、独立した人間による差分レビュー。
+- PRマージ、Firebaseデプロイ、Pages公開、公開承認変数の変更は行っていない。AI・SNSの停止ゲートと公開承認ゲートを維持する。
+
+
+## 2026-11-18 最新headのCI完了・PR記録同期
+
+- 最新head `ffc20c360323c5ba37424b20c79ba9f0ce1c02a9` のSource validationは、push run [44282838544](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282838544) と pull_request run [44282844489](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44282844489) の両方が completed / success。validate jobに失敗ステップなし。
+- PR #2はopen / draft / unmerged、headは上記SHA、GitHubのmergeable判定はtrue。PR本文の古いhead・CI実行中という記述をこの結果に同期した。
+- CI成功は自動ソース検証の結果であり、Firebase本番設定・実データ・Googleログイン・クラウド同期・スマートフォン実機試験・独立した人間のレビューを完了した意味ではない。
+- AI相談・SNS停止ゲート、公開承認ゲートを維持。PRマージ、Firebaseデプロイ、Pages公開、承認変数変更は行っていない。
+
+## 2026-11-18 Firebase Authentication本番確認チェックリスト
+
+- リポジトリ内のFirebase Web設定・Functions CORS許可元・Hosting rewriteは、既存のSource validationで静的整合性を確認する。ただしWeb APIキーはブラウザーへ配布されるFirebaseクライアント設定値であり、秘密鍵として扱うものではない。安全性はAPI制限・HTTPリファラー制限・Firebase側の認証設定と組み合わせて確認する。
+- プロジェクト管理者はFirebase Consoleで、対象プロジェクトが意図した本番プロジェクトであること、AuthenticationのGoogleプロバイダが意図どおり有効であること、承認済みドメインに実際に使うHostingドメインだけが登録されていることを確認する。不要なテスト・旧ドメインは整理する。
+- Google Cloud ConsoleのAPIキー設定では、対象Web APIキーを特定し、HTTPリファラー制限に本番で使う正確なHTTPSホスト名を登録する。API制限はFirebase Authenticationの実際の通信に必要なAPIを阻害しないよう、Consoleの利用状況とFirebase公式手順に照らして設定する。設定変更後はログイン・トークン更新・ログアウト・再ログインを実機で確認する。
+- APIキーやOAuthクライアントの値をGitHub Issue、チャット、スクリーンショット、公開ログへ貼り付けない。Web APIキーがHTMLに含まれること自体を秘密漏えいと誤認してローテーションするのではなく、制限設定と不正利用監視を確認する。秘密鍵・サービスアカウント鍵・OpenAI APIキーは別物として扱い、クライアントへ置かない。
+- iPhone SafariとAndroid Chromeで、初回Googleログイン、既存セッション復帰、ログアウト後の再ログイン、ネットワーク切断後の復帰を試験する。auth/api-key-not-valid、auth/unauthorized-domain、auth/operation-not-allowed が出た場合は、画面表示だけで解決済みとせずConsole側の原因を修正して再試験する。
+- このチェックリストの追加は運用手順の明文化のみ。Firebase Console・Google Cloud Console・APIキー・OAuth設定の変更、実機ログイン試験、デプロイ、PRマージは行っていない。完了判定には管理者の確認記録と実機試験結果が必要。
+
+## 2026-11-18 DOM HTML挿入箇所の再点検
+
+- `index.html` の `innerHTML` 代入は2か所のみ。家具アイテムの固定テンプレートと保存済み部屋セレクトの固定optionで、いずれも開発者が記述した定数文字列を使用している。
+- 動的なユーザー入力をHTML文字列として挿入する用途は確認されなかった。ユーザー由来の表示値は `textContent` / `createElement` を使う実装を維持する。
+- `scripts/validate-dom-safety.mjs` はinnerHTML代入数を2件に固定し、両テンプレートの完全一致と `insertAdjacentHTML` / `outerHTML` / `document.write` / `eval` の追加を禁止する。
+- この再点検はソース静的確認であり、ブラウザー全画面の動的セキュリティ試験や第三者レビューの代替ではない。CIはこの記録追加後に再実行する。
+
+## 2026-11-18 SNS・通報運営ゲート再確認
+
+- `submitReport`・`publicTimeline`・`searchPublicProfiles` はすべて `SNS_ENABLED === "true"` が設定されない限り503で停止する。SNS画面は非表示で、Firestoreのプロフィール・投稿・コメント・いいね・友達・共有関連パスもクライアントアクセス拒否を維持する。
+- 通報管理APIは失効確認付きFirebase IDトークンと `admin === true` のサーバー検証済みカスタムクレームを要求する。アプリ内に管理者権限を付与する処理は存在しない。管理者画面もクレーム確認後にのみ表示する。
+- 通報管理APIがあることは、実際の人間によるモデレーション体制が整ったことを意味しない。SNSを有効化する前に、責任者・代理担当・対応時間・緊急時の連絡経路・未成年者保護手順・通報の保存期間と削除責任・異議申立て方法を運営側で決定し、実地訓練と記録を残す。
+- これらの運営要件が未確認のため、SNS_ENABLEDは有効化しない。Firebase Functions設定・Firestoreルール・管理者クレーム・公開設定の変更やデプロイは行っていない。
+
+## 2026-11-18 Cloud Functions API・不正利用対策の確認
+
+- `functions/index.js` の公開HTTP Functionsは、Firebase IDトークンをサーバー側で検証し、AI相談では失効済みトークンの拒否に加えて、年齢帯・同意バージョン・利用許可クレームを確認する。AI APIキーはFirebase Secret Manager経由でのみ参照し、Responses APIでは `store: false` を指定する。
+- AI相談は1日あたりUID単位10回、プロフィール検索はUID単位30回、タイムライン読み込みはUID単位120回の上限と、失敗時に自分の予約分だけを戻すトランザクション処理を持つ。これらはアカウント単位の上限であり、IP単位の防御や自動化攻撃への完全な防御を意味しない。
+- CORSの許可Origin検査はブラウザー向けの接続制御であり、非ブラウザーのHTTPクライアントを認証する仕組みではない。認証はFirebase IDトークン検証で行う。App Checkによるリクエスト真正性検証は現状のFunctionsには実装されていない。
+- AI相談とSNSは停止ゲートが有効なため、現在これらのAPIは通常利用できない。停止状態を解除する前に、App Checkまたは同等の不正利用対策、UID/IP別の監視・レート制限、費用上限アラート、異常時の即時停止手順、プライバシー・年齢・同意審査を実装・検証する。
+- これはソース確認と公開前要件の記録であり、Functionsの設定変更、App Check有効化、Firebaseデプロイ、AI/SNSゲート解除は行っていない。
+
+
+## 2026-11-18 最新Cloud Functions監査記録・CI再確認
+
+- Cloud FunctionsのIDトークン検証、AIの年齢帯・同意・利用許可クレーム、UID日次上限、Secret Manager利用、Responses APIの`store: false`を確認し、不足点としてApp Check未実装、IP単位の防御・監視不足、費用アラートと緊急停止手順の要整備を記録。
+- 最新head `c4337bcb6d299124fccd9ae25a545549d9ed51bd` のSource validationはpush run [44292462460](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44292462460) と pull_request run [44292471126](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44292471126) が両方 completed / success。
+- PR #2の本文を最新head・CI結果・Cloud Functions監査内容に同期。PRはopen / draft / unmergedのまま。
+- CI成功はソース検証の結果であり、Firebase本番環境・実機・独立した人間のレビューの完了を意味しない。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・公開は行っていない。
+
+
+## 2026-11-18 アカウント削除インベントリの双方向関係・CI再確認
+
+- Firestore削除候補の棚卸しに、送信者／受信者の両方向の友達申請文書（`friendRequests/{uid}_{peerUid}` と逆方向）および相手側ブロック記録（`users/{peerUid}/blocks/{uid}`）を明示。アカウント本人の配下だけを走査しても見つからない関係記録を区別する。
+- アカウント削除インベントリ検証スクリプトの完了表示が古い件数を固定表示していたため、検証対象のFirestoreパス配列から件数を算出する形に統一。検証対象と報告件数が別々にずれることを防止。
+- 最新head `74f9ab225b99053e662f937ff01a24c3a5365324` のSource validation push run [44294698463](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44294698463) と pull_request run [44294706689](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44294706689) は両方 completed / success。
+- PR #2の本文もhead・CI結果・24 Firestoreパスに同期。PRはopen / draft / unmerged。アカウント削除UI/API/Cloud Function/ジョブは未実装であり、運用保持方針・Storage実データ・バックアップ等の確認は未完了。
+- CI成功は静的検証とFirestore Emulatorの結果であり、Firebase本番設定・実機試験・独立した人間のレビューを代替しない。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・一般公開は行っていない。
+
+
+## 2026-11-18 最新head 97ab714 のCI完了
+
+- 最新head `97ab714b833cdc30f2465f844e0b83abe3df6b05` のSource validation run [44295106604](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44295106604) は completed / success。validate jobもsuccess。
+- このheadの変更は、アカウント削除インベントリの双方向関係・24 Firestoreパス検証件数の整合性に関するリリース準備記録の更新。
+- CI成功は自動検証の結果であり、Firebase本番設定・実データ・実機ログイン・スマートフォン受け入れ試験・独立した人間のレビューの完了を意味しない。
+- PR #2はopen / draft / unmergedのまま。AI/SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開・公開承認変数の変更は行っていない。
+
+
+## 2026-11-19 CIワークフロー権限最小化・検証結果
+
+- Source validation workflowに明示的な `permissions: contents: read` を設定し、ソース取得と検証に不要な書き込み権限を付与しない構成にした。
+- 最新head `e9073c7a629412d8373002e633497831c1dafeae` のpush run [44296288418](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44296288418) と pull_request run [44296297961](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44296297961) は両方 completed / success。validate jobに失敗ステップなし。
+- CI成功は自動ソース検証の結果であり、本番Firebase設定・実機試験・独立した人間のレビューを完了した意味ではない。
+- PR #2はopen / draft / unmerged。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・公開は行っていない。
+
+
+## 2026-11-19 GitHub Pages job permissionsの最小化・CI完了
+
+- GitHub Pages workflowの権限をworkflow全体から各jobへ移動。build jobは `contents: read` と `pages: read` のみ、deploy jobは `pages: write` と `id-token: write` のみを持つ。
+- deploy jobには従来どおり、手動 `workflow_dispatch`・`development-kokoro-app` ブランチ・`KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の全条件を要求する。
+- `scripts/validate-pages-artifact.mjs` に権限分離の回帰検証を追加。公開成果物を4つの静的アプリファイルに限定する既存検証も維持。
+- 最新head `1389423d8c28c0f8c75fca08e81c7c18d554c332` のpush run [44497281918](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44497281918) と pull_request run [44497288744](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44497288744) は両方 completed / success。validate jobに失敗ステップなし。
+- CI成功はGitHub Actions上の静的検証とFirestore Emulatorの結果であり、Pages公開・Firebase本番環境の確認・実機試験・独立した人間のレビューを意味しない。
+- PR #2はopen / draft / unmerged。AI/SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開・承認変数変更は行っていない。
+## 2026-11-19 Cloud Functions resource limit regression check
+
+- 6つのHTTP Functions（AI相談、通報、公開タイムライン、プロフィール検索、管理者通報一覧、管理者通報更新）のリージョン・最大インスタンス数・タイムアウト・メモリ設定を静的検証する `scripts/validate-functions-resource-limits.mjs` を追加。
+- すべてのendpointに `asia-northeast1`、`maxInstances` 1〜3、`timeoutSeconds` 1〜60、`256MiB` の上限を要求し、endpointの追加・削除や設定緩和がCIで見逃されないようにした。
+- Source validation workflowにこの検証を追加。これは設定値の回帰防止であり、IP単位の濫用対策、App Check、費用アラート、本番監視を実装したものではない。
+- AI/SNSの停止ゲート、GitHub Pagesの公開承認ゲートは変更していない。Firebaseデプロイ・PRマージ・公開も行っていない。
+## 2026-11-19 通報APIの入力種別を厳格化
+
+- 通報APIが未指定・不正な `reportType` を暗黙にユーザー通報へ変換していたため、`user` または `comment` の明示値だけを受理し、それ以外はHTTP 400で拒否するよう変更。
+- クライアントが送信する2種類の値、対象UID・コメント対象IDの形式、通報カテゴリ許可リスト、日次上限をCIで固定する `scripts/validate-report-request-schema.mjs` を追加。
+- SNS機能自体は引き続き停止ゲート配下であり、この修正は公開・有効化を意味しない。CI実行結果を確認するまで完了扱いにしない。
+
+## 2026-11-19 最新PR検証結果と削除機能の次工程
+
+- PR #2のhead `6fb71425f604228dbb99781bf6d0595d86ed6f71` に対するGitHub Actions Source validation run `44517033081` は completed / success。
+- validate jobは、Cloud Functions構文・リソース上限、通報APIの厳格な入力形式、AI/SNS停止ゲート、同期・アカウント分離、Firestore Rules Emulator、Pages成果物などの検証工程がすべて成功。
+- 通報APIは `reportType` に `user` または `comment` の明示値だけを許可し、未指定・不正値はHTTP 400で拒否する。クライアント送信形式との一致もCIで検証。
+- アカウント削除は引き続き設計・棚卸し段階。本人確認、通報記録の保持根拠・期間、共有データの所有権、外部保存先、削除運営責任者が確定していないため、削除UI/API/Cloud Functionは追加しない。未レビューの一括削除を実装して他者データを失う危険を避ける。
+- 次工程は、削除前に責任者が決める事項を明確化し、テスト専用Firebase環境で保存先の実在・所有関係を確認できる受け入れ計画を整えること。決定前に本番データを削除する試験は行わない。
+- PR #2はopen / draft / unmerged。AI相談・SNSは停止状態を維持し、マージ・Firebaseデプロイ・Pages公開承認は行っていない。
+
+
+## 2026-11-19 アカウント削除受け入れ計画のCI成功
+
+- 受け入れ計画の必須章、18項目のテストマトリクス、テスト環境分離、他者データ保護、Auth削除順序、未承認状態を検証する `scripts/validate-account-deletion-acceptance.mjs` を追加し、Source validation workflowに組み込んだ。
+- 最新head `fa2cb8b09566c9c4ccd8846a08b5c67210905619` のSource validation run [44518911103](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44518911103) は completed / success。validate jobの51ステップ（後処理を含め全ステップ）に失敗なし。新しい受け入れ計画検証ステップもsuccess。
+- この成功は文書・静的検証と既存CIの成功を示すもので、削除機能の実装、実Firebaseデータ検証、Storage・ログ・バックアップの実査、実機試験、独立レビューを意味しない。
+- アカウント削除は未着手／未承認のまま。PR #2はopen / draft / unmerged。AI/SNS停止ゲートとPages公開承認ゲートを維持し、マージ・Firebaseデプロイ・Pages公開・承認変数変更は行っていない。

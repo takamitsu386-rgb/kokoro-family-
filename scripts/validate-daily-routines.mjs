@@ -1,0 +1,24 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+const sw=readFileSync(new URL("../sw.js",import.meta.url),"utf8");
+assert.match(html,/id="daily-routines"/,"Daily routine section must exist.");
+assert.match(html,/href="#daily-routines"/,"Daily routine navigation must exist.");
+assert.match(html,/id="dailyRoutineForm"/,"Routine creation form must exist.");
+assert.match(html,/maxlength="60"/,"Routine title input must be bounded.");
+assert.match(html,/const KEY="kokoroDailyRoutinesV1",LIMIT=30,MAX_TITLE=60/,"Routine storage key and bounds must be explicit.");
+assert.match(html,/const validState=data=>/,"Routine storage schema must be validated.");
+assert.match(html,/new Set\(data\.routines\.map\(item=>item\.id\)\)/,"Duplicate routine IDs must be rejected.");
+assert.match(html,/new Set\(ids\)\.size===ids\.length/,"Duplicate completion entries must be rejected.");
+assert.match(html,/localStorage\.setItem\(KEY,JSON\.stringify\(next\)\)/,"Routine state must persist locally.");
+assert.match(html,/Daily routine rollback failed/,"Failed writes must attempt rollback.");
+assert.match(html,/Object\.keys\(next\.completions\)\.sort\(\)\.reverse\(\)\.slice\(14\)/,"Completion history must be pruned to the latest 14 days.");
+assert.match(html,/let previous=null;try\{previous=localStorage\.getItem\(KEY\)/,"Storage reads and writes must share the guarded error path.");
+assert.match(html,/保存データを読み取れないため、上書きを止めています/,"Invalid stored data must fail closed.");
+assert.match(html,/今日の達成：/,"Daily completion progress must be shown.");
+assert.match(html,/aria-live="polite"/,"Routine status must be announced accessibly.");
+assert.match(html,/const today=\(\)=>/,"Completion must use the current local date.");
+assert.match(html,/毎日くり返したいことを登録できます/,"Routine behavior must be explained.");
+assert.match(sw,/kokoro-family-v372/,"Service worker cache must be refreshed for the new feature.");
+console.log("Daily routine persistence, validation, completion, and navigation checks passed.");
