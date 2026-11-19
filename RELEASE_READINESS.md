@@ -551,3 +551,13 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - 最新head `e9073c7a629412d8373002e633497831c1dafeae` のpush run [44296288418](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44296288418) と pull_request run [44296297961](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44296297961) は両方 completed / success。validate jobに失敗ステップなし。
 - CI成功は自動ソース検証の結果であり、本番Firebase設定・実機試験・独立した人間のレビューを完了した意味ではない。
 - PR #2はopen / draft / unmerged。AI/SNS停止ゲートと公開承認ゲートを維持し、マージ・デプロイ・公開は行っていない。
+
+
+## 2026-11-19 GitHub Pages job permissionsの最小化・CI完了
+
+- GitHub Pages workflowの権限をworkflow全体から各jobへ移動。build jobは `contents: read` と `pages: read` のみ、deploy jobは `pages: write` と `id-token: write` のみを持つ。
+- deploy jobには従来どおり、手動 `workflow_dispatch`・`development-kokoro-app` ブランチ・`KOKORO_PUBLIC_RELEASE_APPROVED == 'true'` の全条件を要求する。
+- `scripts/validate-pages-artifact.mjs` に権限分離の回帰検証を追加。公開成果物を4つの静的アプリファイルに限定する既存検証も維持。
+- 最新head `1389423d8c28c0f8c75fca08e81c7c18d554c332` のpush run [44497281918](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44497281918) と pull_request run [44497288744](https://github.com/takamitsu386-rgb/kokoro-family-/actions/runs/44497288744) は両方 completed / success。validate jobに失敗ステップなし。
+- CI成功はGitHub Actions上の静的検証とFirestore Emulatorの結果であり、Pages公開・Firebase本番環境の確認・実機試験・独立した人間のレビューを意味しない。
+- PR #2はopen / draft / unmerged。AI/SNS停止ゲートと公開承認ゲートを維持し、PRマージ・Firebaseデプロイ・Pages公開・承認変数変更は行っていない。
