@@ -567,3 +567,8 @@ SNSではプロフィール保存、投稿編集・削除、ブロック解除�
 - すべてのendpointに `asia-northeast1`、`maxInstances` 1〜3、`timeoutSeconds` 1〜60、`256MiB` の上限を要求し、endpointの追加・削除や設定緩和がCIで見逃されないようにした。
 - Source validation workflowにこの検証を追加。これは設定値の回帰防止であり、IP単位の濫用対策、App Check、費用アラート、本番監視を実装したものではない。
 - AI/SNSの停止ゲート、GitHub Pagesの公開承認ゲートは変更していない。Firebaseデプロイ・PRマージ・公開も行っていない。
+## 2026-11-19 通報APIの入力種別を厳格化
+
+- 通報APIが未指定・不正な `reportType` を暗黙にユーザー通報へ変換していたため、`user` または `comment` の明示値だけを受理し、それ以外はHTTP 400で拒否するよう変更。
+- クライアントが送信する2種類の値、対象UID・コメント対象IDの形式、通報カテゴリ許可リスト、日次上限をCIで固定する `scripts/validate-report-request-schema.mjs` を追加。
+- SNS機能自体は引き続き停止ゲート配下であり、この修正は公開・有効化を意味しない。CI実行結果を確認するまで完了扱いにしない。
