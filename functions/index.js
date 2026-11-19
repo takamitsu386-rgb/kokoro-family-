@@ -218,7 +218,10 @@ exports.submitReport = onRequest({
     const decoded = await getAuth().verifyIdToken(match[1], true);
     const targetUid = typeof req.body?.targetUid === "string" ? req.body.targetUid.trim() : "";
     const category = typeof req.body?.category === "string" ? req.body.category : "";
-    const reportType = req.body?.reportType === "comment" ? "comment" : "user";
+    const reportType = req.body?.reportType === "comment" ? "comment" : req.body?.reportType === "user" ? "user" : "";
+    if (!reportType) {
+      return sendJson(res, 400, { error: "通報対象の種類を確認してください。" });
+    }
     const targetPostId = typeof req.body?.targetPostId === "string" ? req.body.targetPostId : "";
     const targetCommentId = typeof req.body?.targetCommentId === "string" ? req.body.targetCommentId : "";
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) || targetUid === decoded.uid) {
